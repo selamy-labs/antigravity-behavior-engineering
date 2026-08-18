@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/antigravity-behavior-engineering/ralph-state.schema.json",
+  "title": "RalphState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "initializationStatus",
+    "repositoryId",
+    "baseBranch",
+    "baseCommit",
+    "taskSetDigest",
+    "activeTask",
+    "phase",
+    "failureBudget",
+    "humanGates",
+    "tasks",
+    "lastUpdatedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{7,127}$" },
+    "initializationStatus": { "enum": ["uninitialized", "ready"] },
+    "repositoryId": { "const": "antigravity-behavior-engineering" },
+    "baseBranch": { "const": "main" },
+    "baseCommit": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      ]
+    },
+    "taskSetDigest": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/sha256" }
+      ]
+    },
+    "activeTask": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/taskId" }
+      ]
+    },
+    "phase": {
+      "enum": [
+        "idle",
+        "preflight",
+        "red",
+        "implementing",
+        "green",
+        "review",
+        "repair",
+        "checkpoint",
+        "awaiting_pr",
+        "awaiting_checks",
+        "awaiting_merge",
+        "needs_human",
+        "complete"
+      ]
+    },
+    "failureBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sameFailureLimit",
+        "infrastructureRetryLimit",
+        "flakeConfirmationLimit",
+        "reviewRepairLimit",
+        "noProgressLimit"
+      ],
+      "properties": {
+        "sameFailureLimit": { "const": 3 },
+        "infrastructureRetryLimit": { "const": 2 },
+        "flakeConfirmationLimit": { "const": 1 },
+        "reviewRepairLimit": { "const": 3 },
+        "noProgressLimit": { "const": 2 }
+      }
+    },
+    "humanGates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taskSet", "provenance", "candidateFreeze", "publicRelease", "publicationAuthority"],
+      "properties": {
+        "taskSet": { "$ref": "#/$defs/taskSetGate" },
+        "provenance": { "$ref": "#/$defs/gate" },
+        "candidateFreeze": { "$ref": "#/$defs/gate" },
+        "publicRelease": { "$ref": "#/$defs/gate" },
+        "publicationAuthority": { "$ref": "#/$defs/gate" }
+      }
+    },
+    "tasks": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^T0(0[1-9]|[1-3][0-9]|4[0-6])$": { "$ref": "#/$defs/taskState" }
+      }
+    },
+    "lastUpdatedAt": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "format": "date-time" }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "initializationStatus": { "const": "ready" } } },
+      "then": {
+        "properties": {
+          "baseCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+          "taskSetDigest": { "$ref": "#/$defs/sha256" },
+          "humanGates": {
+            "properties": {
+              "taskSet": {
+                "properties": {
+                  "status": { "const": "approved" },
+                  "recordDigest": { "$ref": "#/$defs/sha256" }
+                }
+              }
+            }
+          },
+          "tasks": {
+            "required": ["T001", "T002", "T003", "T004", "T005", "T006", "T007", "T008", "T009", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T017", "T018", "T019", "T020", "T021", "T022", "T023", "T024", "T025", "T026", "T027", "T028", "T029", "T030", "T031", "T032", "T033", "T034", "T035", "T036", "T037", "T038", "T039", "T040", "T041", "T042", "T043", "T044", "T045", "T046"]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "taskId": { "type": "string", "pattern": "^T0(0[1-9]|[1-3][0-9]|4[0-6])$" },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "recordDigest"],
+      "properties": {
+        "status": { "enum": ["pending", "approved", "rejected"] },
+        "recordDigest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/sha256" }
+          ]
+        }
+      }
+    },
+    "taskSetGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "recordDigest", "approvedCommit", "approvedTaskSetDigest"],
+      "properties": {
+        "status": { "enum": ["pending", "approved", "rejected"] },
+        "recordDigest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/sha256" }
+          ]
+        },
+        "approvedCommit": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/commit" }
+          ]
+        },
+        "approvedTaskSetDigest": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/sha256" }
+          ]
+        }
+      }
+    },
+    "taskState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "branch",
+        "prUrl",
+        "headCommit",
+        "mergeCommit",
+        "attemptCount",
+        "sameFailureCount",
+        "infrastructureRetryCount",
+        "reviewRepairCount",
+        "noProgressCount",
+        "lastEvidenceDigest",
+        "blocker"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_started",
+            "in_progress",
+            "not_selected",
+            "awaiting_review",
+            "awaiting_checks",
+            "awaiting_merge",
+            "needs_human",
+            "merged",
+            "failed"
+          ]
+        },
+        "branch": { "type": ["string", "null"] },
+        "prUrl": { "type": ["string", "null"], "format": "uri" },
+        "headCommit": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9a-f]{40}$" }] },
+        "mergeCommit": { "oneOf": [{ "type": "null" }, { "type": "string", "pattern": "^[0-9a-f]{40}$" }] },
+        "attemptCount": { "type": "integer", "minimum": 0 },
+        "sameFailureCount": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "infrastructureRetryCount": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "reviewRepairCount": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "noProgressCount": { "type": "integer", "minimum": 0, "maximum": 2 },
+        "lastEvidenceDigest": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/sha256" }] },
+        "blocker": { "type": ["string", "null"], "maxLength": 2000 }
+      }
+    }
+  }
+}

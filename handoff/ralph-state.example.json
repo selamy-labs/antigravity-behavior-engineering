@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "runId": "replace-with-unique-run-id",
+  "initializationStatus": "uninitialized",
+  "repositoryId": "antigravity-behavior-engineering",
+  "baseBranch": "main",
+  "baseCommit": null,
+  "taskSetDigest": null,
+  "activeTask": null,
+  "phase": "idle",
+  "failureBudget": {
+    "sameFailureLimit": 3,
+    "infrastructureRetryLimit": 2,
+    "flakeConfirmationLimit": 1,
+    "reviewRepairLimit": 3,
+    "noProgressLimit": 2
+  },
+  "humanGates": {
+    "taskSet": {
+      "status": "pending",
+      "recordDigest": null,
+      "approvedCommit": null,
+      "approvedTaskSetDigest": null
+    },
+    "provenance": { "status": "pending", "recordDigest": null },
+    "candidateFreeze": { "status": "pending", "recordDigest": null },
+    "publicRelease": { "status": "pending", "recordDigest": null },
+    "publicationAuthority": { "status": "pending", "recordDigest": null }
+  },
+  "tasks": {},
+  "lastUpdatedAt": null
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/antigravity-behavior-engineering/task-set-approval.schema.json",
+  "title": "TaskSetApprovalRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "gate",
+    "repositoryId",
+    "baseBranch",
+    "baseCommit",
+    "taskSetDigest",
+    "decision",
+    "ownerApprovalSentence",
+    "approvedAt",
+    "approver",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "gate": { "const": "task_set" },
+    "repositoryId": { "const": "antigravity-behavior-engineering" },
+    "baseBranch": { "const": "main" },
+    "baseCommit": { "$ref": "#/$defs/commit" },
+    "taskSetDigest": { "$ref": "#/$defs/sha256" },
+    "decision": { "const": "approved" },
+    "ownerApprovalSentence": {
+      "const": "I approve the final reviewed 46-task set in specs/001-improve-antigravity-behavior/tasks.md and authorize Ralph to begin T001 only under AGENTS.md and handoff/ralph-execution-contract.md."
+    },
+    "approvedAt": { "type": "string", "format": "date-time" },
+    "approver": { "type": "string", "minLength": 1 },
+    "signature": {
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+  }
+}
