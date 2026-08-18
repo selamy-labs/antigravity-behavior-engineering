@@ -4,17 +4,18 @@
 
 ## Terminal State of This Handoff
 
-- Constitution, specification, plan, data model, contracts, research, and the
-  46-task dependency graph are complete enough for owner review.
-- The specification and implementation plan are approved. The 46-task set is
-  deliberately not approved and does not authorize T001.
+- The constitution, specification, and implementation plan are approved. The
+  data model, contracts, research, and 46-task dependency graph form a draft
+  handoff under final independent review; the task set awaits a separate
+  project-owner approval.
 - No plugin, evaluator, worker, evaluation portfolio, or release-pipeline source
   has been implemented.
-- The first implementation task after task-set approval is T001, “Bootstrap the
-  reproducible maintainer workspace.”
-- The authorized public target is `pselamy/antigravity-behavior-engineering`.
-  Publication is waiting for a validated local commit plus working GitHub
-  credentials/access for that exact target.
+- No implementation task is currently authorized. If the final reviewed task
+  bytes are separately approved, T001, “Bootstrap the reproducible maintainer
+  workspace,” becomes the first task.
+- The repository is a planning handoff, not an implemented product.
+  Publication remains downstream of implementation, evidence, release gates,
+  one exact approved `owner/repository`, and explicit publication authority.
 - Human gates remain unsigned: task-set approval before T001,
   provenance/license at T038, candidate freeze at T038, and public
   release/publication at T045.
@@ -34,11 +35,6 @@ Observed local versions are feasibility evidence, not release qualification.
 The downstream environment must rerun every named preflight and may narrow the
 support matrix rather than inventing a compatibility fallback.
 
-This finalization session observed `agy --version` reporting `1.1.14` on the
-local machine. Earlier below-floor local observations remain non-release
-research notes. No local version observation substitutes for T013's authorized,
-hashed, read-only CLI artifact qualification.
-
 ## Human-Supplied Prerequisites
 
 These values cannot safely be inferred from the public repository:
@@ -54,12 +50,13 @@ These values cannot safely be inferred from the public repository:
 6. Normal PR merge authority for ordinary tasks, if automation is expected to
    merge rather than stop after opening a PR.
 7. Human approvers for provenance, candidate freeze, and public release.
-8. For publication only: working GitHub credentials/access for the authorized
-   public target `pselamy/antigravity-behavior-engineering` and explicit
-   publication authority at T045.
+8. For publication only: one exact GitHub `owner/repository` and explicit
+   publication authority.
 
-No secret value, private path, approver identity, or repository target belongs in
-the public handoff until its owning gate explicitly requires a public record.
+The selected public target is
+`selamy-labs/antigravity-behavior-engineering`; transfer and initial push are
+still pending. No secret value, private path, or approver identity belongs in
+the public handoff.
 
 ## Known Bootstrap Observation
 

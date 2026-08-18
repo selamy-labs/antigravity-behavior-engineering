@@ -2,10 +2,11 @@
 
 ## Controller Invocation
 
-The protected controller allocates a RunRecord identity for every
+The protected controller allocates a future RunRecord identity for every
 ScheduledAttempt and invokes at most one worker process for it. `run-attempt`
-stages raw output plus append-only lifecycle events through
-`execution_terminal`; it does not write `run.json`:
+stages raw output plus an UnclassifiedStagedAttemptOutcome and append-only
+lifecycle events through `execution_terminal`; the frozen classifier then
+writes a StagedAttemptOutcome. Neither step writes `run.json`:
 
 ```text
 abe-eval run-attempt \

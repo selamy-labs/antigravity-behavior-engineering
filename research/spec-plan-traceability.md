@@ -3,13 +3,14 @@
 **Audited**: 2026-08-18
 
 **Scope**: Approved `spec.md` against the approved, adversarially reviewed
-`plan.md` and draft downstream `tasks.md`
+`plan.md` and the draft downstream `tasks.md`
 
 **Meaning**: `Covered` below means the plan names a phase, artifact or measured
 result, and gate capable of proving the requirement later. It does not mean the
 requirement is implemented or empirically achieved. Implementation evidence
-does not exist yet. The project owner has not approved the final task bytes;
-this handoff stops before T001.
+does not exist yet. The project owner approved the implementation plan on
+2026-08-18, authorizing task drafting and review but not the final task bytes or
+T001. This handoff stops before T001 pending separate task-set approval.
 
 ## Functional Requirements
 
@@ -93,6 +94,6 @@ this handoff stops before T001.
 - Requirements claimed empirically achieved: 0.
 - The project-owner-approved plan now has a draft 46-task `tasks.md` with
   task-level file, test, command, review, and gate links back to this matrix.
-- Implementation is not authorized until the project owner approves the final
-  reviewed task set; provenance, freeze, release, and publication gates remain
-  human-only.
+- Implementation remains unauthorized until the project owner separately
+  approves the final independently reviewed task bytes. Provenance, freeze,
+  release, and publication gates remain later human-only decisions.

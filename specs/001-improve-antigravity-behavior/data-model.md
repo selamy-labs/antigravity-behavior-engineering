@@ -35,7 +35,7 @@ carry.
 | `supportedPlatforms` | array of platform records | Each names OS, architecture, and Node range |
 | `components` | array of ComponentLock | Unique by kind and name |
 | `dependencies` | array of DependencyLock | Exact upstream revision and license |
-| `files` | map of relative path to SHA-256 | Covers every package-owned file |
+| `files` | map of relative path to SHA-256 | Covers every package-owned file except `behavior-lock.json`; the external PackageArchiveRecord binds the final lock file and complete archive without a self-digest cycle |
 | `generatedAt` | RFC 3339 timestamp | Informational, excluded from reproducible content digest |
 
 ### ComponentLock
@@ -62,6 +62,26 @@ carry.
 | `consumption` | `runtime`, `development`, or `research` | Required |
 | `required` | boolean | Runtime missing dependencies fail visibly |
 | `qualificationEvidence` | relative evidence locator or `not_qualified` | Required |
+
+### EvaluationClaim
+
+Closed causal claim bound to a selected component. A component cannot enter the
+final PackageLock without its introduction and final leave-one-out evidence.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `claimId` | opaque string | Must match the referring ComponentLock |
+| `componentKind` | `rule`, `skill`, `agent`, `hook`, or `script` | Required |
+| `componentName` | string | Required |
+| `capability` | bounded falsifiable statement | Required |
+| `taskFamilyIds` | non-empty sorted array of IDs | Frozen families only |
+| `estimandDigest` | SHA-256 | Pre-treatment analysis identity |
+| `introductionEvidenceDigest` | SHA-256 | Matched incumbent-minus/plus evidence |
+| `leaveOneOutEvidenceDigest` | SHA-256 | Final unseen regression evidence |
+| `resourceEnvelopeDigest` | SHA-256 | Required |
+| `selectionDecision` | `selected` or `not_selected` | Required |
+| `limitations` | array of strings | Required, may be empty |
 
 ### TaskState
 
@@ -370,6 +390,7 @@ depends on. Candidate-freeze approval binds this object's digest.
 | `schemaVersion` | literal `1` | Required |
 | `candidateId` | opaque string | Required |
 | `packageDigest` | SHA-256 | Digest of the exact plugin archive |
+| `packageArchiveRecordDigest` | SHA-256 | Digest of deterministic final-package-manifest.json |
 | `packageLockDigest` | SHA-256 | Required |
 | `qualificationDigest` | SHA-256 | Exact release CLI/image/model/plugin qualification |
 | `conditionLockDigests` | map of model and condition to SHA-256 | Includes bare and full for each model |
@@ -845,11 +866,194 @@ affects only the stronger durable-goal claim.
 | `candidateDigest` | SHA-256 | Must match ReleaseCandidateLock |
 | `analysisDigest` | SHA-256 | Exact sealed analysis |
 | `publicCriteriaDigest` | SHA-256 | Covers SC-001 and SC-003–SC-013 |
-| `perModelDecisions` | closed map of both exact model slugs to pass/fail plus criterion results | Both entries required; never pooled |
+| `perModelDecisions` | closed map of both exact model slugs to ModelReleaseDecision | Both entries required; never pooled |
 | `overallDecision` | `pass` or `fail` | Pass iff both per-model decisions pass every public criterion |
 | `blockingCriteria` | sorted array of model/criterion IDs | Empty iff pass |
 | `limitationsDigest` | SHA-256 | Required |
 | `decidedAt` | RFC 3339 timestamp | Informational |
+
+### ModelReleaseDecision
+
+One model's mechanically derived public-gate result. It is nested in the
+dual-model ReleaseGateDecision and cannot authorize a pooled or one-model
+release.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `modelRequest` | exact target model slug | Required |
+| `scorecardDigest` | SHA-256 | Scorecard model must equal `modelRequest` |
+| `criterionResults` | closed map of SC-001 and SC-003–SC-013 to pass/fail plus evidence digest | Every criterion required |
+| `decision` | `pass` or `fail` | Pass iff every criterion passes |
+| `blockingCriteria` | sorted array of criterion IDs | Empty iff pass |
+| `limitations` | array of strings | Required, may be empty |
+
+### PackageArchiveRecord
+
+Deterministic identity of the post-ablation release archive. Repacking the same
+locked source tree must reproduce the same archive bytes and record.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `archiveDigest` | SHA-256 | Digest of exact archive bytes |
+| `archiveFormat` | frozen format/version record | Required |
+| `byteSize` | nonnegative integer | Exact archive length |
+| `packageLockDigest` | SHA-256 | Required |
+| `behaviorLockDigest` | SHA-256 | Required |
+| `sourceTreeDigest` | SHA-256 | Covers selected package sources only |
+| `fileManifestDigest` | SHA-256 | Exact ordered archive inventory |
+| `createdByDigest` | SHA-256 | Packer code and runtime identity |
+
+### PreparedSchedule
+
+Protected immutable schedule created during a one-use sealed-suite `prepare`.
+It contains the complete preallocated accounting population but is never
+mounted into a worker.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `scheduleId` | opaque string | Required |
+| `candidateDigest` | SHA-256 | Must match ReleaseCandidateLock |
+| `sealedBundleDigest` | SHA-256 | Exact one-use source bundle |
+| `qualificationDigest` | SHA-256 | Exact release qualification |
+| `matrixLockDigest` | SHA-256 | Required |
+| `attemptDigests` | non-empty ordered array of SHA-256 | Covers every preallocated attempt exactly once |
+| `pairLockDigests` | non-empty sorted array of SHA-256 | Required |
+| `resourceEnvelopeDigests` | non-empty sorted array of SHA-256 | Required |
+| `dispatchCountAtPrepare` | literal `0` | Prepare never dispatches a worker |
+
+### SealedOpeningJournal
+
+Protected, append-only state machine for the one-use sealed opening. A journal
+cannot be reused with another candidate, schedule, approval, or bundle.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `journalId` | opaque string | Required |
+| `state` | `prepared`, `resuming`, `completed`, or `failed` | Monotonic |
+| `candidateDigest` | SHA-256 | Required |
+| `approvalDigest` | SHA-256 | Authentic candidate-freeze approval |
+| `sealedBundleDigest` | SHA-256 | Required |
+| `preparedScheduleDigest` | SHA-256 | Required |
+| `prepareEventDigest` | SHA-256 | Records the single successful opening |
+| `resumeEventDigest` | SHA-256 or `not_resumed` | Exactly one resume transition allowed |
+| `preparedAt` | RFC 3339 timestamp | Informational |
+| `completedAt` | RFC 3339 timestamp or `not_completed` | Informational |
+
+### PublicationRecord
+
+Post-publication identity proven against the authorized remote system of
+record. It is written only after publication and cannot grant publication
+authority.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `publicationId` | opaque string | Required |
+| `approvalDigest` | SHA-256 | Exact authentic public-release approval |
+| `publicationTargetDigest` | SHA-256 | Exact owner/repository identity |
+| `publicationChannelAuthorityDigest` | SHA-256 | Exact authorized channel and actor/grant |
+| `repositoryUrl` | canonical HTTPS URL | Must match approved target |
+| `commitOrTag` | immutable remote revision | Required |
+| `archiveDigest` | SHA-256 | Must match approved PackageArchiveRecord |
+| `releaseDecisionDigest` | SHA-256 | Must identify a passing ReleaseGateDecision |
+| `actor` | recorded identity or approved key ID | Must match channel authority |
+| `publishedAt` | RFC 3339 timestamp | Required |
+| `remoteEvidenceDigest` | SHA-256 | Independent remote verification evidence |
+
+### RedactedRun
+
+Publishable one-way projection of a protected RunRecord. Raw identifiers and
+protected locators remain only in a separate protected mapping.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `publicRunId` | opaque public identifier | Cannot reveal raw run ID or condition |
+| `publicConfigurationDigest` | SHA-256 | Approved public configuration projection |
+| `scenarioFamilyId` | public family ID | No sealed instance identity |
+| `processState` | redacted ProcessState | Required fields retained |
+| `classification` | Classification | Required |
+| `consumption` | ConsumptionRecord | Required |
+| `artifactManifestDigest` | SHA-256 | Approved redacted artifacts only |
+| `gradeDigests` | sorted array of SHA-256 | Approved publishable grades |
+| `redactionReportDigest` | SHA-256 | Field-level disposition report |
+| `limitations` | array of strings | Required, may be empty |
+
+### CodexReferenceConfig
+
+Frozen protocol for the public/synthetic Codex CLI comparison lane.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `protocolId` | opaque string | Required |
+| `harnessVersion` | exact version | Required |
+| `modelId` | exact model identifier | Required |
+| `scenarioProtocolDigest` | SHA-256 | Public/synthetic tasks only |
+| `authorityManifestDigest` | SHA-256 | Required |
+| `resourceEnvelopeDigest` | SHA-256 | Required |
+| `toolInventoryDigest` | SHA-256 | Required |
+| `analysisLockDigest` | SHA-256 | Frozen before outcomes |
+| `redactionPolicyDigest` | SHA-256 | Required |
+
+### PublicScenario
+
+Reference-agent-visible task projection containing no target-model output,
+sealed instance, hidden check, or private repository material.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `publicScenarioId` | opaque string | Required |
+| `familyId` | public family ID | Required |
+| `request` | public/synthetic task request | Required |
+| `fixtureDigest` | SHA-256 | Public fixture only |
+| `authorityManifestDigest` | SHA-256 | Required |
+| `resourceEnvelopeDigest` | SHA-256 | Required |
+| `hiddenMaterialDigest` | literal `none` | Hidden checks are controller-only |
+
+### ReferenceRunRecord
+
+Immutable evidence for one Codex CLI reference attempt, stored and graded
+separately from target-model evidence.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `referenceRunId` | opaque string | Required |
+| `configDigest` | SHA-256 | Exact CodexReferenceConfig |
+| `scenarioDigest` | SHA-256 | Exact PublicScenario |
+| `rawArgvDigest` | SHA-256 | Required |
+| `processState` | ProcessState | Required |
+| `artifactManifestDigest` | SHA-256 | Required or explicit missing markers |
+| `gradeDigests` | sorted array of SHA-256 | External graders only |
+| `consumption` | ConsumptionRecord | Required |
+| `redactionReportDigest` | SHA-256 | Required before public use |
+| `limitations` | array of strings | Required, may be empty |
+
+### DurableGoalDecision
+
+Stronger private comparison decision. It cannot authorize or block the general
+public release and passes only after both target models meet the frozen CLI
+margins and the separate desktop calibration is complete.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `decisionId` | opaque string | Required |
+| `releaseDecisionDigest` | SHA-256 | Passing public ReleaseGateDecision |
+| `cliReferenceAnalysisDigest` | SHA-256 | Required |
+| `desktopCalibrationDigest` | SHA-256 | Required; never pooled with CLI lane |
+| `publicationRecordDigest` | SHA-256 or `not_published` | T043 uses `not_published`; T046 binds the verified T045 record |
+| `perModelMarginDecisions` | closed map of both target models | Both required |
+| `desktopCalibrationComplete` | boolean | Required |
+| `overallDecision` | `pass`, `fail`, or `indeterminate` | Pass only after both model margins, desktop calibration, and verified publication hold |
+| `blockingPredicates` | sorted array of IDs | Empty iff pass |
+| `limitations` | array of strings | Required, may be empty |
 
 ### ReviewerVerdict
 
@@ -859,6 +1063,8 @@ Agent-visible reviewer output validated before the worker uses it.
 |---|---|---|
 | `schemaVersion` | literal `1` | Required |
 | `reviewerRole` | `requirements` or `quality` | Must match invoked agent |
+| `reviewRequestDigest` | SHA-256 | Binds the exact content-addressed request package |
+| `reviewPairEnvelopeDigest` | SHA-256 | Binds the shared role-neutral review inputs |
 | `artifactDigest` | SHA-256 | Binds review to actual artifact |
 | `obligationDigest` | SHA-256 | Binds the approved obligation set |
 | `verificationInterfaceDigest` | SHA-256 | Required |
@@ -873,7 +1079,6 @@ Agent-visible reviewer output validated before the worker uses it.
 | Field | Type | Rule |
 |---|---|---|
 | `schemaVersion` | literal `1` | Required |
-| `reviewerRole` | `requirements` or `quality` | Required |
 | `artifactRoot` | normalized path inside declared workspace | Required |
 | `artifactDigest` | SHA-256 | Required |
 | `obligations` | non-empty array of ProofObligation | Approved set only |
@@ -883,6 +1088,22 @@ Agent-visible reviewer output validated before the worker uses it.
 | `authorityManifest` | AuthorityManifest | Read-only review authority |
 | `authorityDigest` | SHA-256 | Required |
 
+### ReviewPairEnvelope
+
+Role-neutral identity of the exact shared review subject. Two role-specific
+requests may be joined only when both derive from this same envelope.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `pairId` | opaque string | Required |
+| `artifactDigest` | SHA-256 | Required |
+| `obligationDigest` | SHA-256 | Required |
+| `verificationInterfaceDigest` | SHA-256 | Required |
+| `authorityDigest` | SHA-256 | Required |
+| `sharedPackageManifestDigest` | SHA-256 | Exact common payload files, excluding envelope/request/verdict files to avoid self-reference |
+| `reviewPairEnvelopeDigest` | SHA-256 | Canonical identity excluding itself |
+
 ### ReviewRequest
 
 | Field | Type | Rule |
@@ -890,11 +1111,12 @@ Agent-visible reviewer output validated before the worker uses it.
 | `schemaVersion` | literal `1` | Required |
 | `requestId` | opaque string | Required |
 | `reviewerRole` | `requirements` or `quality` | Required |
+| `reviewPairEnvelopeDigest` | SHA-256 | Exact shared parent envelope |
 | `artifactDigest` | SHA-256 | Required |
 | `obligationDigest` | SHA-256 | Required |
 | `verificationInterfaceDigest` | SHA-256 | Required |
 | `authorityDigest` | SHA-256 | Required |
-| `packageManifestDigest` | SHA-256 | Exact minimum review package |
+| `packageManifestDigest` | SHA-256 | Exact role-visible payload including parent envelope but excluding review-request/verdict files to avoid self-reference |
 | `reviewRequestDigest` | SHA-256 | Canonical identity excluding itself |
 
 ### ReviewerFinding
@@ -917,7 +1139,9 @@ It does not merge conclusions or decide whether a finding is accepted.
 | Field | Type | Rule |
 |---|---|---|
 | `schemaVersion` | literal `1` | Required |
-| `reviewRequestDigest` | SHA-256 | Both verdicts must bind this request package |
+| `reviewPairEnvelopeDigest` | SHA-256 | Both role-specific requests and verdicts bind this exact parent |
+| `requirementsReviewRequestDigest` | SHA-256 | Must name a requirements request derived from the parent |
+| `qualityReviewRequestDigest` | SHA-256 | Must name a quality request derived from the parent |
 | `requirementsVerdictDigest` | SHA-256 or `indeterminate` | Required |
 | `qualityVerdictDigest` | SHA-256 or `indeterminate` | Required |
 | `roleSeparationEvidenceDigest` | SHA-256 | Proves separate invocations/no cross-output input |

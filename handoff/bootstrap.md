@@ -9,16 +9,15 @@ implement them.
 Set these outside the repository:
 
 ```bash
-export ABE_HANDOFF_REPOSITORY_URL='https://github.com/OWNER/REPOSITORY.git'
+export ABE_HANDOFF_REPOSITORY_URL='https://github.com/selamy-labs/antigravity-behavior-engineering.git'
 export RALPH_STATE_DIR='/durable/private/path/antigravity-behavior-engineering'
 export RALPH_TASK_SET_APPROVAL_RECORD='/durable/private/path/task-set-approval.json'
 ```
 
-`ABE_HANDOFF_REPOSITORY_URL` is unavailable until the project owner chooses the
-public target. `RALPH_STATE_DIR` must already be an authorized, durable,
-non-public directory. `RALPH_TASK_SET_APPROVAL_RECORD` must name the external
-human approval record created only after the owner approval sentence is given.
-Do not commit any of these values.
+`RALPH_STATE_DIR` must already be an authorized, durable, non-public directory.
+`RALPH_TASK_SET_APPROVAL_RECORD` must name the external human approval record
+created only after the owner approval sentence is given. Do not commit the
+state-directory or approval-record values.
 
 Git credentials, commit identity, model authentication, the authorized CLI,
 protected evaluations, and merge authority are also human/environment supplied.

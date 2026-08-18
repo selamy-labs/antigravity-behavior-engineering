@@ -162,11 +162,24 @@ frozen:
 
 ```bash
 uv run --project evaluator abe-eval confirm \
+  --mode prepare \
   --release-lock docs/release/candidate-lock.json \
   --approval docs/release/candidate-freeze-approval.json \
   --sealed-bundle "$ABE_SEALED_BUNDLE_PATH" \
-  --qualification evidence/raw/qualification/release/qualification.json
+  --qualification evidence/raw/qualification/release/qualification.json \
+  --release-root evidence/raw/releases \
+  --schedule-out prepared-schedule.json \
+  --journal-out opening-journal.json
+uv run --project evaluator abe-eval confirm \
+  --mode resume \
+  --release-lock docs/release/candidate-lock.json \
+  --release-root evidence/raw/releases \
+  --journal opening-journal.json
 ```
+
+The command validates the lock, derives the canonical candidate digest, and
+uses `evidence/raw/releases/<candidate-digest>/`; schedule/journal arguments are
+safe basenames, not caller-supplied candidate paths.
 
 If a confirmation fails and the treatment changes, the opened bundle becomes
 regression data and cannot be reused as unseen evidence.

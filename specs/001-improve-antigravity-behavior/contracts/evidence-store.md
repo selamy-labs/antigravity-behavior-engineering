@@ -17,10 +17,12 @@ evidence/publishable/
 ```
 
 `attempt.json` is created first and is immutable. Lifecycle transitions append
-to `lifecycle.ndjson`; they never rewrite the attempt. `run.json` is written last
-inside a temporary run directory and atomically renamed by the controller to
-mark finalized evidence. A finalized run is read-only. Grades are append-only
-children keyed by grader digest.
+to `lifecycle.ndjson`; they never rewrite the attempt. The runner produces an
+UnclassifiedStagedAttemptOutcome, the frozen classifier produces a
+StagedAttemptOutcome, and the evidence importer alone writes `run.json` inside
+a temporary run directory and atomically renames it to mark finalized evidence.
+A finalized run is read-only. Grades are append-only children keyed by grader
+digest.
 
 ## Content Integrity
 
@@ -61,8 +63,10 @@ name the exact policy, grader, rubric, and analysis digests they aggregate.
 ## Access
 
 - Worker: write-only staging for its own run and no competing evidence.
-- Controller: create attempts, import finalized staging, and run deterministic
-  graders.
+- Controller: create attempts and invoke the runner, classifier, importer, and
+  deterministic graders through their closed interfaces.
+- Evidence importer: sole writer of immutable `run.json` and the subsequent
+  `run_finalized` lifecycle event.
 - Blind reviewer: normalized single-run projection without condition or model.
 - Publisher: read protected grades and write only to publishable output.
 - Runtime plugin: no access to this store.

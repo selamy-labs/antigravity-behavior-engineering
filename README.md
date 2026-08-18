@@ -37,7 +37,8 @@ separate human-only gates. Automation must not issue or infer any of them.
 
 ## Publication Status
 
-The authorized public target is `pselamy/antigravity-behavior-engineering`.
-Publication is deferred until the committed handoff passes validation and
-working GitHub credentials/access for that target are available. Do not search
-for or expose credentials.
+The selected public specification repository is
+`selamy-labs/antigravity-behavior-engineering`. Its initial push is pending the
+GitHub ownership transfer and successful validation of the reconciled handoff.
+This does not authorize implementation or the later product-release publication
+gate.

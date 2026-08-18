@@ -261,6 +261,7 @@ fixtures, and no atomic-write input can escape its declared root.
 - Create: `plugin/schemas/evidence-event.schema.json`
 - Create: `plugin/schemas/reviewer-verdict.schema.json`
 - Create: `plugin/schemas/review-package-input.schema.json`
+- Create: `plugin/schemas/review-pair-envelope.schema.json`
 - Create: `plugin/schemas/review-request.schema.json`
 - Create: `plugin/schemas/reviewer-join.schema.json`
 - Create: `plugin/schemas/completion-gate-event.schema.json`
@@ -274,6 +275,7 @@ parseTaskState(value: unknown): TaskState
 parseEvidenceEvent(value: unknown): EvidenceEvent
 parseCompletionGateEvent(value: unknown): CompletionGateEvent
 parseReviewPackageInput(value: unknown): ReviewPackageInput
+parseReviewPairEnvelope(value: unknown): ReviewPairEnvelope
 parseReviewRequest(value: unknown): ReviewRequest
 parseReviewerVerdict(value: unknown): ReviewerVerdict
 parseReviewJoinRecord(value: unknown): ReviewJoinRecord
@@ -281,7 +283,8 @@ parseReviewJoinRecord(value: unknown): ReviewJoinRecord
 
 - [ ] Add valid, invalid, unknown-field, wrong-version, foreign-workspace,
   terminal-inconsistency, stale-evidence, invalid-reviewer, and reviewer replay
-  fixtures with changed artifact/obligation/interface/authority digests. Run
+  fixtures with changed pair-envelope/request/artifact/obligation/interface/
+  authority digests. Run
   `node --test packages/contracts/test/runtime-contracts.test.mjs`; expect
   module-not-found failure.
 - [ ] Implement closed schemas and parsers using the exact entity fields and
@@ -318,12 +321,14 @@ def parse_contract(kind: str, value: object) -> dict[str, object]: ...
 def canonical_contract_digest(kind: str, value: object) -> str: ...
 ```
 
-- [ ] Add fixtures for every entity named in Plan Phase 0 and every nested
-  boundary type in `data-model.md`, including ConditionPairLock,
+- [ ] Add fixtures for every protected entity named in Plan Phase 0 that is not
+  owned by T003 and every protected nested boundary type in `data-model.md`,
+  including EvaluationClaim, ConditionPairLock,
   PrecisionPowerLock, BlindedBaselineInput, WorkerInvocation,
   UnclassifiedStagedAttemptOutcome, StagedAttemptOutcome, pre-worker RunRecord,
-  ApprovalRecord, ReleaseCandidateLock, and
-  ProvenanceApprovalRecord. Run the focused pytest
+  ApprovalRecord, ReleaseCandidateLock, ProvenanceApprovalRecord,
+  ReleaseGateDecision, PackageArchiveRecord, PreparedSchedule,
+  SealedOpeningJournal, and PublicationRecord. Run the focused pytest
   file; expect import failure.
 - [ ] Implement JSON Schema 2020-12 validation with unknown-field rejection,
   stable reason-code normalization, and cross-object checks that JSON Schema
@@ -694,8 +699,7 @@ node /opt/abe/verify-image.mjs \
   exact path; run the focused pytest and expect runtime invocation plus all
   layer/boundary probes to pass.
 - [ ] Launch two workers with distinct profile/repository/output mounts and prove
-  neither can see the other's canary, controller-owned hidden directory, host
-  `.gemini` tree, ordinary profile, or control socket.
+  neither can see the other's canary or controller-owned hidden directory.
 - [ ] Review the image history, exported filesystem inventory, and public build
   context for protected material.
 
@@ -727,6 +731,19 @@ def qualify_environment(worker: WorkerHandle, protocol: QualificationProtocol) -
 def preflight_attempt(worker: WorkerHandle, condition: ConditionLock) -> AttemptQualificationRecord: ...
 def run_matrix(matrix: MatrixLock, qualification: EnvironmentQualificationRecord) -> tuple[RunRecord, ...]: ...
 ```
+
+**Qualification command**:
+
+```text
+uv run --project evaluator abe-eval qualify \
+  --protocol evals/protocols/qualification.json --scope cli_core \
+  --cli-artifact "$ABE_AUTHORIZED_CLI_PATH" \
+  --output evidence/raw/qualification/local/qualification.json
+```
+
+The command resolves both exact target slugs from the live catalog, records the
+observed model/effort evidence, and rejects rather than substitutes an
+unavailable or unobservable configuration.
 
 - [ ] Add fake-CLI tests for argument-vector construction without shell
   interpolation, exactly one init/result event, duplicates/out-of-order/malformed
@@ -1062,6 +1079,7 @@ b36e0829c6d0140e93cfef2ca599b1b07d4a7797
 ```text
 uv run --project evaluator abe-eval run-matrix \
   --matrix evals/formative/superpowers-pilot.matrix.json \
+  --condition-pair bare superpowers \
   --qualification evidence/raw/qualification/local/qualification.json \
   --raw-root evidence/raw/formative/incumbent-baseline
 uv run --project evaluator abe-eval grade \
@@ -1343,18 +1361,24 @@ mainAgent: false
 subagent: true
 reviewerRole: requirements
 input: approved requirements + real diff/artifact + verification interface + authority
-output: ReviewerVerdict bound to artifact, obligations, interface, and authority digests
+output: ReviewerVerdict bound to the shared pair envelope, exact role request,
+artifact, obligations, interface, and authority digests
 ```
 
 **Production interfaces**:
 
 ```javascript
-buildReviewPackage(input: ReviewPackageInput, root: string): Promise<ReviewRequest>
+buildReviewPairEnvelope(input: ReviewPackageInput): ReviewPairEnvelope
+buildReviewPackage(envelope: ReviewPairEnvelope,
+                   role: "requirements" | "quality",
+                   root: string): Promise<ReviewRequest>
 validateReviewerVerdict(request: ReviewRequest, value: unknown): ReviewerVerdict
 ```
 
 - [ ] Add the requirements-role test for exact read-only tools, clean context,
-  inheritance, timeout/permission handling, all four digest bindings, planted
+  inheritance, timeout/permission handling, the parent envelope, role request,
+  non-circular manifest/request hashing, and all four content digest bindings,
+  planted
   requirement defects, and defect-free controls. Expect missing agent.
 - [ ] Author only the requirements-falsification role and the content-addressed
   minimum-package builder/verdict validator without the implementer's conclusion,
@@ -1397,9 +1421,11 @@ after both terminal verdicts.
 **Production interface**:
 
 ```javascript
-joinReviewerVerdicts(request: ReviewRequest,
-                     requirements: unknown,
-                     quality: unknown): ReviewJoinRecord
+joinReviewerVerdicts(envelope: ReviewPairEnvelope,
+                     requirementsRequest: ReviewRequest,
+                     requirementsVerdict: unknown,
+                     qualityRequest: ReviewRequest,
+                     qualityVerdict: unknown): ReviewJoinRecord
 ```
 
 - [ ] Add a quality-role test for exact read-only tools, clean context,
@@ -1411,7 +1437,9 @@ joinReviewerVerdicts(request: ReviewRequest,
 - [ ] Add the aggregate topology test and production joiner for valid tool names, sandbox policy,
   cleanup, invalid/timed-out verdicts, role isolation, join behavior, frozen
   recall/precision/agreement/resources, mechanical role-tagged finding union,
-  indeterminate missing/invalid roles, and no hidden routing; run self-review,
+  distinct role requests with identical shared parent content, rejection of
+  crossed/mismatched request or envelope digests, indeterminate missing/invalid
+  roles, and no hidden routing; run self-review,
   either one-role, and paired treatments for both models.
 - [ ] Retain only a topology that improves defect discovery and repair within
   its frozen envelope; otherwise remove the unearned role/pairing and record the
@@ -1531,6 +1559,8 @@ a hard finite bound and never becomes a hidden grader or perpetual loop.
 - Create: `packages/plugin-tooling/bin/pack-plugin.mjs`
 - Create: `packages/plugin-tooling/bin/validate-plugin.mjs`
 - Test: `tests/plugin/package-integrity.test.mjs`
+- Create protected, outside Git: `evidence/raw/package-candidates/t031/antigravity-behavior.tgz`
+- Create protected, outside Git: `evidence/raw/package-candidates/t031/package-archive-record.json`
 
 **Interfaces**:
 
@@ -1540,14 +1570,25 @@ inspectComponents(root: string): Promise<readonly ComponentInspection[]>
 packPlugin(root: string, output: string): Promise<PackageArchiveRecord>
 ```
 
+**Commands**:
+
+```text
+node packages/plugin-tooling/bin/validate-plugin.mjs --root plugin
+node packages/plugin-tooling/bin/pack-plugin.mjs \
+  --root plugin \
+  --output evidence/raw/package-candidates/t031/antigravity-behavior.tgz \
+  --manifest-out evidence/raw/package-candidates/t031/package-archive-record.json
+```
+
 - [ ] Add tests for exact file inventory/digests, selected and not-selected
   components, minimum CLI/OS/Node support, upstream locks, collisions, unknown
-  files, executable bits, manifest minimality, and no evaluator/hidden material
-  inside `plugin/`. Expect package validation failure.
+  files, executable bits, the one explicit self-lock inventory exclusion,
+  manifest minimality, deterministic archive/manifest comparison flags, and no
+  evaluator/hidden material inside `plugin/`. Expect package validation failure.
 - [ ] Generate the lock from the actually selected rule/skills/agents/hooks and
   scripts; record rejected candidates explicitly without packaging absent files.
-- [ ] Run `node packages/plugin-tooling/bin/validate-plugin.mjs --root plugin`
-  and the focused test; expect a complete deterministic inspection report.
+- [ ] Run the validation command and the focused test; expect a complete
+  deterministic inspection report.
 - [ ] Pack into a temporary archive, unpack, and rerun validation; expect the
   same package digest and component inventory.
 - [ ] Review the archive manually for upstream body copies, evaluator code,
@@ -1665,6 +1706,15 @@ grading; post-treatment diagnostics cannot enter causal selection evidence.
 ```python
 def verify_component_registry(lock: PackageLock, registry: ComponentRegistry,
                               results: Scorecard) -> ComponentDecisionSet: ...
+```
+
+**Final pack command**:
+
+```text
+node packages/plugin-tooling/bin/pack-plugin.mjs \
+  --root plugin \
+  --output dist/antigravity-behavior.tgz \
+  --manifest-out docs/release/final-package-manifest.json
 ```
 
 - [ ] Add a failing registry test requiring one claim, positive family,
@@ -1793,27 +1843,41 @@ and a complete, digest-bound packet ready for genuine human provenance approval.
 **Command contract**:
 
 ```text
-abe-eval confirm \
+uv run --project evaluator abe-eval confirm \
   --mode prepare \
   --release-lock docs/release/candidate-lock.json \
   --approval docs/release/candidate-freeze-approval.json \
   --sealed-bundle "$ABE_SEALED_BUNDLE_PATH" \
   --qualification evidence/raw/qualification/release/qualification.json \
-  --schedule-out evidence/raw/releases/${candidateDigest}/prepared-schedule.json
-abe-eval confirm \
+  --release-root evidence/raw/releases \
+  --schedule-out prepared-schedule.json \
+  --journal-out opening-journal.json
+uv run --project evaluator abe-eval confirm \
   --mode resume \
-  --journal evidence/raw/releases/${candidateDigest}/opening-journal.json
+  --release-lock docs/release/candidate-lock.json \
+  --release-root evidence/raw/releases \
+  --journal opening-journal.json
 ```
+
+`confirm` validates the ReleaseCandidateLock, derives its canonical digest, and
+creates exactly `evidence/raw/releases/<candidate-digest>/`. The schedule,
+journal-output, and journal-input name flags accept normalized basenames only;
+the command rejects paths,
+traversal, a pre-existing mismatched root, or a resume lock/root whose derived
+digest does not match the journal. No shell variable supplies candidate
+identity.
 
 - [ ] Add fake-bundle tests for missing/rejected/forged/stale approval,
   mismatched candidate/protocol/analysis/power/sample/stopping/exclusion/resource/
-  provenance digests, second opening, treatment mutation, and valid one-use
+  provenance digests, derived-root mismatch, path/traversal output names,
+  missing journal output, second opening, treatment mutation, and valid one-use
   fixture approval. Expect missing subcommand failure.
 - [ ] Implement signature/mechanism verification and a one-use `prepare`/
   `resume` opening journal. Prepare may open once and atomically persist the
-  complete schedule but dispatches no worker; resume accepts only that exact
-  validated journal/schedule and cannot reopen. Keep
-  keep sealed task instances outside Git and workers until all bound digests
+  complete schedule and journal under the lock-derived candidate root but
+  dispatches no worker; resume accepts only that exact
+  validated journal/schedule and cannot reopen. Keep sealed task instances
+  outside Git and workers until all bound digests
   match. Fake tests use only their fixture path; set `ABE_SEALED_BUNDLE_PATH` to
   the authorized protected bundle only after the real candidate-freeze gate.
 - [ ] Run fake tests; expect every invalid gate to exit before bundle access and
@@ -1840,6 +1904,8 @@ and cannot open real sealed tasks without a genuine candidate-freeze approval.
 - Create only after human decision: `docs/release/candidate-freeze-approval.json`
 - Test: `tests/release/candidate-freeze.test.mjs`
 - Create protected, outside Git: `evidence/raw/qualification/release/qualification.json`
+- Create protected, outside Git: `evidence/raw/release-candidate/repacked.tgz`
+- Create protected, outside Git: `evidence/raw/release-candidate/repacked-record.json`
 
 **Bound approval set**:
 
@@ -1856,6 +1922,12 @@ uv run --project evaluator abe-eval qualify \
   --protocol evals/protocols/qualification.json --scope release_candidate \
   --cli-artifact "$ABE_AUTHORIZED_CLI_PATH" \
   --output evidence/raw/qualification/release/qualification.json
+node packages/plugin-tooling/bin/pack-plugin.mjs \
+  --root plugin \
+  --output evidence/raw/release-candidate/repacked.tgz \
+  --manifest-out evidence/raw/release-candidate/repacked-record.json \
+  --require-archive-match dist/antigravity-behavior.tgz \
+  --require-manifest-match docs/release/final-package-manifest.json
 ```
 
 The first command MUST fail before genuine approvals exist and MUST pass only
@@ -1870,8 +1942,10 @@ copy of the CLI.
   from current immutable artifacts, and rerun package, lifecycle, regression,
   provenance, precision/power, and confirmation-gate tests immediately before
   presentation. Re-run T031's pack command to a temporary comparison path and require its
-  bytes to match `dist/antigravity-behavior.tgz`; bind that exact archive and
-  `final-package-manifest.json` digest into ReleaseCandidateLock. Any mismatch
+  archive bytes and canonical PackageArchiveRecord bytes to match
+  `dist/antigravity-behavior.tgz` and `final-package-manifest.json`; validate
+  both records, then bind the exact archive digest and
+  `packageArchiveRecordDigest` into ReleaseCandidateLock. Any mismatch
   returns to T034 before human presentation.
 - [ ] Present the provenance packet to an authorized human reviewer and stop
   until they record a real decision; do not infer approval from task-set approval.
@@ -1898,10 +1972,10 @@ instance is opened.
 
 **Files**:
 
-- Create protected, outside Git: `evidence/raw/releases/${candidateDigest}/`
-- Create publishable staging, outside Git: `evidence/publishable/releases/${candidateDigest}/`
-- Create protected during prepare: `evidence/raw/releases/${candidateDigest}/prepared-schedule.json`
-- Create protected during prepare: `evidence/raw/releases/${candidateDigest}/opening-journal.json`
+- Create protected, outside Git: `evidence/raw/releases/<candidate-digest>/`
+- Create publishable staging, outside Git: `evidence/publishable/releases/<candidate-digest>/`
+- Create protected during prepare: `evidence/raw/releases/<candidate-digest>/prepared-schedule.json`
+- Create protected during prepare: `evidence/raw/releases/<candidate-digest>/opening-journal.json`
 - Create: `docs/evaluation/sealed-execution-log.md`
 - Test: `evaluator/tests/test_sealed_execution_accounting.py`
 
@@ -1923,11 +1997,15 @@ uv run --project evaluator abe-eval confirm \
   --approval docs/release/candidate-freeze-approval.json \
   --sealed-bundle "$ABE_SEALED_BUNDLE_PATH" \
   --qualification evidence/raw/qualification/release/qualification.json \
-  --schedule-out evidence/raw/releases/${candidateDigest}/prepared-schedule.json
+  --release-root evidence/raw/releases \
+  --schedule-out prepared-schedule.json \
+  --journal-out opening-journal.json
 uv run --project evaluator pytest evaluator/tests/test_sealed_execution_accounting.py -q
 uv run --project evaluator abe-eval confirm \
   --mode resume \
-  --journal evidence/raw/releases/${candidateDigest}/opening-journal.json
+  --release-lock docs/release/candidate-lock.json \
+  --release-root evidence/raw/releases \
+  --journal opening-journal.json
 ```
 
 The first accounting command MUST fail because no prepared schedule exists.
@@ -1974,8 +2052,10 @@ Plan Phase 9
 **Gate function**:
 
 ```python
+def decide_model_release(spec: SuccessCriteria, lock: ReleaseCandidateLock,
+                         scorecard: Scorecard) -> ModelReleaseDecision: ...
 def decide_release(spec: SuccessCriteria, lock: ReleaseCandidateLock,
-                   scorecard: Scorecard) -> ReleaseGateDecision: ...
+                   scorecards: Mapping[str, Scorecard]) -> ReleaseGateDecision: ...
 ```
 
 - [ ] Add release-analysis known-answer tests for every estimand, model
@@ -1988,7 +2068,8 @@ def decide_release(spec: SuccessCriteria, lock: ReleaseCandidateLock,
 - [ ] Add gate boundary tests for every SC-001 and SC-003–SC-013 threshold,
   model separation, family non-inferiority, safety regression, ResourceEnvelope,
   differential attrition, missing required evidence, and a failing single-model
-  result. Expect missing report failure.
+  result. Require exactly the two locked target slugs, reject duplicate/missing/
+  extra or scorecard-key/model mismatch, and expect missing report failure.
 - [ ] Run both focused tests and the frozen end-to-end analysis without
   metric additions or exclusion changes; report separately by model and fail if
   either honesty condition has fewer than 59 evaluable negative variants or any
@@ -2013,6 +2094,8 @@ candidate, analysis, or protected evidence.
 
 - Create: `docs/release/public-evidence-manifest.json`
 - Create: `docs/evaluation/redaction-audit.md`
+- Modify: `evaluator/src/abe_eval/cli.py`
+- Modify: `evaluator/src/abe_eval/redact.py`
 - Test: `evaluator/tests/test_release_redaction.py`
 
 **Command**:
@@ -2020,16 +2103,18 @@ candidate, analysis, or protected evidence.
 ```text
 uv run --project evaluator abe-eval report \
   --analysis docs/evaluation/sealed-analysis.json \
-  --raw-root "evidence/raw/releases/${candidateDigest}" \
-  --output "evidence/publishable/releases/${candidateDigest}"
+  --release-lock docs/release/candidate-lock.json \
+  --raw-release-root evidence/raw/releases \
+  --publishable-release-root evidence/publishable/releases
 ```
 
 - [ ] Add a failing public-projection test for credentials, private paths,
   potentially confidential content, hidden checks, sealed protocols, private
   reasoning, model/condition leakage, missing dispositions, broken digests, and
   incomplete RunRecord/GradeRecord coverage.
-- [ ] Run T009's frozen redactor over every T039 record into the separate
-  publishable tree; never mutate protected bytes or invent plausible
+- [ ] Add only the lock-derived release-root adapter to the existing CLI/redactor
+  interface, then run T009's frozen redactor over every T039 record into the
+  separate publishable tree; never mutate protected bytes or invent plausible
   replacements for missing evidence.
 - [ ] Generate the public-evidence manifest and field-level disposition audit;
   link every aggregate claim to exact run/config/grader/analysis digests while
@@ -2114,7 +2199,9 @@ harness/version/date + pre-registered public/synthetic sample + tools + authorit
   resources, preserving opacity rather than inventing unavailable metadata.
 - [ ] Produce a separate calibration distribution and only then compute the
   durable-goal decision requiring both models to pass the automated CLI margins
-  and completion of this calibration. Redact any publishable calibration
+  and completion of this calibration. Record `publicationRecordDigest` as
+  `not_published` and `overallDecision` as `indeterminate` until T046 verifies
+  T045; a failed model margin remains `fail`. Redact any publishable calibration
   summary into a separate tree, then run T005 public-safety/provenance scanners
   before it is referenced by public documentation; raw desktop evidence and
   private paths remain protected.

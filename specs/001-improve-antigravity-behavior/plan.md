@@ -186,7 +186,12 @@ plugin/
 └── schemas/
     ├── task-state.schema.json
     ├── evidence-event.schema.json
-    └── reviewer-verdict.schema.json
+    ├── completion-gate-event.schema.json
+    ├── review-package-input.schema.json
+    ├── review-pair-envelope.schema.json
+    ├── review-request.schema.json
+    ├── reviewer-verdict.schema.json
+    └── reviewer-join.schema.json
 
 packages/
 ├── contracts/
@@ -288,8 +293,10 @@ quality roles and are not the release graders.
 - root `package.json`, pinned `pnpm-workspace.yaml`, lockfile, formatting and
   verification commands;
 - evaluator `pyproject.toml` and `uv.lock`;
-- JSON Schemas for PackageLock, TaskState, CompletionGateEvent, EvidenceEvent,
-  ReviewPackageInput, ReviewRequest, ReviewerFinding, ReviewJoinRecord,
+- JSON Schemas for PackageLock, EvaluationClaim, TaskState,
+  CompletionGateEvent, EvidenceEvent,
+  ReviewPackageInput, ReviewPairEnvelope, ReviewRequest, ReviewerFinding,
+  ReviewJoinRecord,
   ScenarioCard, ConditionLock, ConditionPairLock, BlockSpec, MatrixLock,
   AnalysisLock, ResourceEnvelope, ScheduledAttempt, WorkerInvocation,
   AttemptLifecycleEvent, EnvironmentQualificationRecord,
@@ -298,7 +305,10 @@ quality roles and are not the release graders.
   StagedAttemptOutcome, RunRecord, GradeRecord, PrecisionPowerLock,
   Scorecard, SafetyReport, ProvenanceInventory, BlindedBaselineInput,
   ReleaseCandidateLock, ApprovalRecord, ProvenanceApprovalRecord,
-  ReleaseGateDecision, and ReviewerVerdict;
+  ReleaseGateDecision, ModelReleaseDecision, PackageArchiveRecord,
+  PreparedSchedule,
+  SealedOpeningJournal, PublicationRecord, RedactedRun, CodexReferenceConfig,
+  PublicScenario, ReferenceRunRecord, DurableGoalDecision, and ReviewerVerdict;
 - canonical JSON, digest, path-boundary, atomic-write, and manifest libraries;
 - public-safety, license, provenance, placeholder, collision, and manifest
   validators;
@@ -322,7 +332,8 @@ quality roles and are not the release graders.
 - preallocated ScheduledAttempt ledger and randomized block scheduler;
 - allocation of `runId` with every schedule, a monotonic attempt lifecycle, and
   explicit replacement links for capped retries;
-- runner-owned StagedAttemptOutcome through `execution_terminal`, followed by
+- runner-owned UnclassifiedStagedAttemptOutcome through `execution_terminal`,
+  a frozen-classifier-owned StagedAttemptOutcome, followed by
   evidence-importer-only atomic RunRecord finalization and `run_finalized` event;
 - fake worker covering pre-start auth failure, valid-start timeout, soft denial,
   malformed NDJSON, safety refusal, capture truncation, grader leakage, test
