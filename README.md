@@ -38,7 +38,6 @@ separate human-only gates. Automation must not issue or infer any of them.
 ## Publication Status
 
 The selected public specification repository is
-`selamy-labs/antigravity-behavior-engineering`. Its initial push is pending the
-GitHub ownership transfer and successful validation of the reconciled handoff.
-This does not authorize implementation or the later product-release publication
-gate.
+`selamy-labs/antigravity-behavior-engineering`. Publishing this specification
+handoff does not authorize implementation or the later product-release
+publication gate.

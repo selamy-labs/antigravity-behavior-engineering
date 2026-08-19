@@ -54,9 +54,9 @@ These values cannot safely be inferred from the public repository:
    publication authority.
 
 The selected public target is
-`selamy-labs/antigravity-behavior-engineering`; transfer and initial push are
-still pending. No secret value, private path, or approver identity belongs in
-the public handoff.
+`selamy-labs/antigravity-behavior-engineering`. Publishing this handoff does not
+grant implementation or product-release authority. No secret value, private
+path, or approver identity belongs in the public handoff.
 
 ## Known Bootstrap Observation
 
