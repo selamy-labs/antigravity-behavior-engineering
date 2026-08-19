@@ -1,0 +1,21 @@
+# Node artifacts
+data/
+node_modules/
+.pnpm-store/
+
+# Python artifacts
+.venv/
+__pycache__/
+*.pyc
+
+# Protected evidence and runtime workspaces
+/evidence/raw/
+/evidence/publishable/
+/evidence/qualification/
+/evidence/locked/
+/output/
+/tmp/workspace/
+
+# Task artifacts
+/tmp/
+.DS_Store

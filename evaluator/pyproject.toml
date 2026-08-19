@@ -1,0 +1,23 @@
+[project]
+name = "abe-eval"
+version = "0.0.0"
+description = "Protected evaluator control plane for Antigravity behavior engineering"
+readme = ""
+requires-python = ">=3.12,<3.14"
+license = "Apache-2.0"
+dependencies = []
+
+authors = [
+  {name = "Antigravity Behavior Engineering"}
+]
+
+[project.scripts]
+abe-eval = "abe_eval.cli:main"
+
+[dependency-groups]
+dev = []
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]

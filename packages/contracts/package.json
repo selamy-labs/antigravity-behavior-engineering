@@ -1,0 +1,17 @@
+{
+  "name": "@antigravity/abe-contracts",
+  "version": "0.0.0",
+  "description": "Shared immutable JSON contracts for Antigravity behavior engineering",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "bin": {
+    "abe-contracts": "bin/abi.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

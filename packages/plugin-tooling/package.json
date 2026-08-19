@@ -1,0 +1,17 @@
+{
+  "name": "@antigravity/abe-plugin-tooling",
+  "version": "0.0.0",
+  "description": "Plugin tooling and manifest helpers for Antigravity behavior engineering",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "bin": {
+    "abe-plugin-tooling": "bin/tooling.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
