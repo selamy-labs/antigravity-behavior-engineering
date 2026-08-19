@@ -26,7 +26,7 @@
     "taskSetDigest": { "$ref": "#/$defs/sha256" },
     "decision": { "const": "approved" },
     "ownerApprovalSentence": {
-      "const": "I approve the final reviewed 46-task set in specs/001-improve-antigravity-behavior/tasks.md and authorize Ralph to begin T001 only under AGENTS.md and handoff/ralph-execution-contract.md."
+      "const": "I approve the final reviewed 46-task set in specs/001-improve-antigravity-behavior/tasks.md and authorize jump-box Codex to begin T001 only under AGENTS.md and handoff/codex-execution-contract.md."
     },
     "approvedAt": { "type": "string", "format": "date-time" },
     "approver": { "type": "string", "minLength": 1 },

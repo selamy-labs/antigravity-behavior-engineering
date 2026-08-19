@@ -19,14 +19,18 @@ upstream; confidential material and private evaluation data stay out of Git.
 3. Validate the checkout with `./handoff/validate-handoff.sh`.
 4. Follow [handoff/bootstrap.md](handoff/bootstrap.md).
 5. Stop at the task-set approval gate. After the exact owner approval sentence
-   is recorded outside Git, initialize Ralph state and execute exactly one
-   approved task from [tasks.md](specs/001-improve-antigravity-behavior/tasks.md)
-   per PR, beginning with T001.
+   is recorded outside Git, initialize jump-box Codex execution state and
+   execute exactly one task authorized by that approval from
+   [tasks.md](specs/001-improve-antigravity-behavior/tasks.md) per PR, beginning
+   with T001.
 
 The architecture is summarized in
-[docs/architecture/overview.md](docs/architecture/overview.md). The loop contract
-and resumable state format are in
-[handoff/ralph-execution-contract.md](handoff/ralph-execution-contract.md).
+[docs/architecture/overview.md](docs/architecture/overview.md). The jump-box
+Codex contract and resumable execution-state format are in
+[handoff/codex-execution-contract.md](handoff/codex-execution-contract.md).
+Antigravity is the hermetic system under test, never an implementation or
+failover writer. No Ralph runner or work-machine agent is required by this
+handoff.
 
 ## Authority and Gates
 

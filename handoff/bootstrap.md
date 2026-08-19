@@ -10,17 +10,22 @@ Set these outside the repository:
 
 ```bash
 export ABE_HANDOFF_REPOSITORY_URL='https://github.com/selamy-labs/antigravity-behavior-engineering.git'
-export RALPH_STATE_DIR='/durable/private/path/antigravity-behavior-engineering'
-export RALPH_TASK_SET_APPROVAL_RECORD='/durable/private/path/task-set-approval.json'
+export CODEX_EXECUTION_STATE_DIR='/durable/private/path/antigravity-behavior-engineering'
+export CODEX_TASK_SET_APPROVAL_RECORD='/durable/private/path/task-set-approval.json'
 ```
 
-`RALPH_STATE_DIR` must already be an authorized, durable, non-public directory.
-`RALPH_TASK_SET_APPROVAL_RECORD` must name the external human approval record
-created only after the owner approval sentence is given. Do not commit the
-state-directory or approval-record values.
+`CODEX_EXECUTION_STATE_DIR` must already be an authorized, durable, non-public
+directory. `CODEX_TASK_SET_APPROVAL_RECORD` must name the external human approval
+record created only after the owner approval sentence is given. Do not commit
+the state-directory or approval-record values.
 
 Git credentials, commit identity, model authentication, the authorized CLI,
 protected evaluations, and merge authority are also human/environment supplied.
+
+Jump-box Codex is the only implementation writer. Antigravity has no repository
+write lease and runs only as the hermetic system under test inside disposable OCI
+workers when the owning task requires it. Do not launch a Ralph runner or depend
+on a work-machine implementation agent for this handoff.
 
 ## Required Handoff Tools
 
@@ -87,20 +92,20 @@ This handoff stops here until the project owner records this exact sentence in
 an approval record outside Git:
 
 ```text
-I approve the final reviewed 46-task set in specs/001-improve-antigravity-behavior/tasks.md and authorize Ralph to begin T001 only under AGENTS.md and handoff/ralph-execution-contract.md.
+I approve the final reviewed 46-task set in specs/001-improve-antigravity-behavior/tasks.md and authorize jump-box Codex to begin T001 only under AGENTS.md and handoff/codex-execution-contract.md.
 ```
 
 The approval record must bind the current `git rev-parse HEAD` value and the
 SHA-256 of `specs/001-improve-antigravity-behavior/tasks.md`. Do not create a
 branch or run T001 before that record exists.
 
-## Initialize Ralph State
+## Initialize Jump-Box Codex Execution State
 
 ```bash
-mkdir -p "$RALPH_STATE_DIR"
-python3 handoff/init-ralph-state.py \
-  --state-dir "$RALPH_STATE_DIR" \
-  --task-set-approval-record "$RALPH_TASK_SET_APPROVAL_RECORD"
+mkdir -p "$CODEX_EXECUTION_STATE_DIR"
+python3 handoff/init-execution-state.py \
+  --state-dir "$CODEX_EXECUTION_STATE_DIR" \
+  --task-set-approval-record "$CODEX_TASK_SET_APPROVAL_RECORD"
 ```
 
 The initializer refuses to overwrite state, requires a clean Git checkout,
@@ -113,17 +118,17 @@ git rev-parse HEAD
 shasum -a 256 specs/001-improve-antigravity-behavior/tasks.md
 ```
 
-Validate `state.json` against `handoff/ralph-state.schema.json` using a
+Validate `state.json` against `handoff/execution-state.schema.json` using a
 standards-compliant JSON Schema 2020-12 validator approved in the downstream
 environment. No validator dependency is added before T001; absence of one is an
 environment bootstrap stop, not permission to skip validation.
 
 ## Begin After Approval
 
-Read `AGENTS.md` and `handoff/ralph-execution-contract.md`, then create only:
+Read `AGENTS.md` and `handoff/codex-execution-contract.md`, then create only:
 
 ```text
-branch: ralph/T001-bootstrap-the-reproducible-maintainer-workspace
+branch: codex/T001-bootstrap-the-reproducible-maintainer-workspace
 PR title: [T001] Bootstrap the reproducible maintainer workspace
 ```
 

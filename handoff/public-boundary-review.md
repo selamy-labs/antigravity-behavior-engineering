@@ -21,9 +21,10 @@ exists.
    `evals/`, `environments/`, or `tests/` implementation root before T001.
 6. Confirmed `.agents/` contains only the public Spec Kit integration skills
    listed in `.specify/integrations/agy.manifest.json`.
-7. Checked that no task-set approval record is committed, Ralph's task-set gate
-   is pending in the example state, and initialization requires an external
-   signed approval record bound to the current commit and `tasks.md` digest.
+7. Checked that no task-set approval record is committed, the execution-state
+   task-set gate is pending in the example state, and initialization requires an
+   external signed approval record bound to the current commit and `tasks.md`
+   digest.
 
 The protected terminology denylist is intentionally not committed. A downstream
 reviewer can supply it through `PUBLIC_BOUNDARY_DENYLIST_FILE` when running
@@ -34,7 +35,7 @@ reviewer can supply it through `PUBLIC_BOUNDARY_DENYLIST_FILE` when running
 | Finding | Disposition |
 |---|---|
 | One research note recorded an absolute local CLI path | Replaced with `command -v agy`; no private path remains |
-| Handoff needed mutable loop state | State moved outside Git under human-supplied `RALPH_STATE_DIR`; committed example is synthetic and null-initialized |
+| Handoff needed mutable execution state | State moved outside Git under human-supplied `CODEX_EXECUTION_STATE_DIR`; committed example is synthetic and null-initialized |
 | Public specification-repository target changed during handoff | Bound clone and status text to `selamy-labs/antigravity-behavior-engineering`; repository publication remains separate from implementation authority |
 | Stale text inferred final task-set approval | Replaced with an unsigned task-set gate and validator checks that reject approval inference before T001 |
 | Worker boundary could be read as allowing ambient user state | Strengthened runner and task contracts to prohibit mounting ordinary home/workspace, `.gemini`, Antigravity state, caches, conversations, credential stores, and Docker socket |

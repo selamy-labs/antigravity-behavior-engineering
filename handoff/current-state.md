@@ -40,8 +40,8 @@ support matrix rather than inventing a compatibility fallback.
 These values cannot safely be inferred from the public repository:
 
 1. Git repository access and a configured commit identity.
-2. A durable directory for Ralph state (`RALPH_STATE_DIR`) outside the public
-   checkout.
+2. A durable directory for jump-box Codex execution state
+   (`CODEX_EXECUTION_STATE_DIR`) outside the public checkout.
 3. An authorized Antigravity CLI artifact and legitimate authentication/model
    access, required beginning at T013.
 4. An OCI-capable disposable execution substrate, required beginning at T012.
@@ -52,6 +52,10 @@ These values cannot safely be inferred from the public repository:
 7. Human approvers for provenance, candidate freeze, and public release.
 8. For publication only: one exact GitHub `owner/repository` and explicit
    publication authority.
+
+Jump-box Codex is the implementation writer. Antigravity is only the hermetic
+system under test and receives no repository write lease. This handoff requires
+neither a Ralph runner nor a work-machine implementation agent.
 
 The selected public target is
 `selamy-labs/antigravity-behavior-engineering`. Publishing this handoff does not

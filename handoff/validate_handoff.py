@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import sys
@@ -14,8 +15,9 @@ TASK_RE = re.compile(r"^- \[ \] (T\d{3}) (.+)$", re.MULTILINE)
 DEP_RE = re.compile(r"T\d{3}")
 APPROVAL_SENTENCE = (
     "I approve the final reviewed 46-task set in "
-    "specs/001-improve-antigravity-behavior/tasks.md and authorize Ralph to "
-    "begin T001 only under AGENTS.md and handoff/ralph-execution-contract.md."
+    "specs/001-improve-antigravity-behavior/tasks.md and authorize jump-box "
+    "Codex to begin T001 only under AGENTS.md and "
+    "handoff/codex-execution-contract.md."
 )
 
 
@@ -172,7 +174,7 @@ def validate_approval_gate() -> None:
     if forbidden_records:
         fail(f"committed approval records are not allowed before human gates: {forbidden_records}")
 
-    example = json.loads((ROOT / "handoff/ralph-state.example.json").read_text(encoding="utf-8"))
+    example = json.loads((ROOT / "handoff/execution-state.example.json").read_text(encoding="utf-8"))
     task_gate = example.get("humanGates", {}).get("taskSet")
     if task_gate != {
         "status": "pending",
@@ -180,15 +182,27 @@ def validate_approval_gate() -> None:
         "approvedCommit": None,
         "approvedTaskSetDigest": None,
     }:
-        fail("Ralph example state must keep task-set gate pending")
+        fail("execution example state must keep task-set gate pending")
 
-    init_script = (ROOT / "handoff/init-ralph-state.py").read_text(encoding="utf-8")
-    if (
-        "--task-set-approval-record" not in init_script
-        or "final reviewed 46-task set" not in init_script
-        or "authorize Ralph to" not in init_script
-    ):
-        fail("Ralph initializer must require the exact external task-set approval")
+    approval_schema = json.loads(
+        (ROOT / "handoff/task-set-approval.schema.json").read_text(encoding="utf-8")
+    )
+    schema_sentence = approval_schema["properties"]["ownerApprovalSentence"]["const"]
+    if schema_sentence != APPROVAL_SENTENCE:
+        fail("task-set approval schema sentence differs from the handoff authority")
+
+    init_script = (ROOT / "handoff/init-execution-state.py").read_text(encoding="utf-8")
+    init_module = ast.parse(init_script)
+    init_sentence = None
+    for node in init_module.body:
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) and target.id == "APPROVAL_SENTENCE"
+            for target in node.targets
+        ):
+            init_sentence = ast.literal_eval(node.value)
+            break
+    if "--task-set-approval-record" not in init_script or init_sentence != APPROVAL_SENTENCE:
+        fail("execution initializer must require the exact external task-set approval")
 
 
 def main() -> None:

@@ -1,14 +1,17 @@
-# Agent-Neutral Ralph Execution Contract
+# Jump-Box Codex Execution Contract
 
 ## Purpose
 
-After explicit task-set approval, run the 46-task plan aggressively but safely,
-one task per PR, with durable state and no architecture invention. “Ralph” names
-the control loop, not a specific model or vendor implementation.
+After explicit task-set approval, jump-box Codex is the sole implementation
+writer and runs the 46-task plan one task per PR, with durable state and no
+architecture invention. Antigravity is not an implementation or failover writer:
+it runs only as the hermetic system under test inside the repository-defined
+disposable OCI boundary when a task explicitly requires it. This is a
+human-supervised execution protocol, not a Ralph or autonomous-resumption loop.
 
 ## Sources of Truth
 
-Use the authority order in `AGENTS.md`. The loop may resolve transcription or
+Use the authority order in `AGENTS.md`. The executor may resolve transcription or
 formatting errors only when every authoritative artifact has one unambiguous
 meaning. Any architectural, product, metric, model, schema, or gate ambiguity is
 `needs_human`, not an invitation to improvise.
@@ -16,14 +19,14 @@ meaning. Any architectural, product, metric, model, schema, or gate ambiguity is
 ## State
 
 - Store the single authoritative mutable file at
-  `$RALPH_STATE_DIR/state.json`, outside Git.
-- Validate it against `handoff/ralph-state.schema.json` on every load and before
+  `$CODEX_EXECUTION_STATE_DIR/state.json`, outside Git.
+- Validate it against `handoff/execution-state.schema.json` on every load and before
   every atomic replacement.
 - Write `state.json.tmp`, fsync where available, then rename atomically. Never
   repair malformed state heuristically.
 - Each PR commits `docs/task-checkpoints/TNNN.json`, validated against
   `handoff/task-checkpoint.schema.json`. This is the durable public reconstruction
-  seam; private loop state may be lost without losing merged-task evidence.
+  seam; private execution state may be lost without losing merged-task evidence.
 - State and checkpoints contain no credentials, protected evidence, private
   paths, or hidden evaluation labels.
 - A ready state must include `humanGates.taskSet.status: approved` bound to the
@@ -43,13 +46,13 @@ meaning. Any architectural, product, metric, model, schema, or gate ambiguity is
    dependency or gate.
 6. Never start a second task while one is active or has an unmerged PR.
 
-## Single-Task PR Loop
+## Single-Task PR Protocol
 
 For selected TNNN:
 
 1. Fetch the base branch and require a clean worktree. Record base commit and
    task-entry digest. Do not use destructive reset to obtain cleanliness.
-2. Create `ralph/TNNN-<exact-title-kebab-case>` from the recorded base.
+2. Create `codex/TNNN-<exact-title-kebab-case>` from the recorded base.
 3. Read only the task's normative read set. Verify every named prerequisite and
    human-supplied input before editing.
 4. Write the named focused test first. Run the exact red command and record its
@@ -132,7 +135,7 @@ blocked task is not a dependency of that work.
 
 ## Stop Conditions
 
-The loop stops when:
+Execution stops when:
 
 - a human input/gate or failure budget requires `needs_human`;
 - a PR is awaiting review, checks, or merge without authority to continue;

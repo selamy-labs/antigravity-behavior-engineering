@@ -3,7 +3,7 @@
 The checksum authority is `handoff/artifact-manifest.sha256`. It covers every
 authoritative handoff/specification artifact needed to stop at the task-set
 approval gate and excludes Git internals, the checksum file itself, and
-generated/private Ralph state.
+generated/private execution state.
 
 | Artifact family | Authoritative paths | Version/reference |
 |---|---|---|
@@ -13,7 +13,7 @@ generated/private Ralph state.
 | Feature package | `specs/001-improve-antigravity-behavior/` | Spec and plan approved 2026-08-18; 46-task set pending owner approval |
 | Architecture decisions | `docs/architecture/`, `docs/decisions/` | ADR-0001 and ADR-0002 accepted |
 | Research and review | `research/` | Public sources and adversarial review records |
-| Execution handoff | `handoff/` excluding mutable state | Ralph contract and JSON Schema 2020-12 formats |
+| Execution handoff | `handoff/` excluding mutable state | Jump-box Codex contract and JSON Schema 2020-12 formats |
 
 The repository commit is intentionally reported by Git rather than embedded in a
 file inside that same commit, which would create a circular identity. Verify it

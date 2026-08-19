@@ -15,8 +15,9 @@ from pathlib import Path
 
 APPROVAL_SENTENCE = (
     "I approve the final reviewed 46-task set in "
-    "specs/001-improve-antigravity-behavior/tasks.md and authorize Ralph to "
-    "begin T001 only under AGENTS.md and handoff/ralph-execution-contract.md."
+    "specs/001-improve-antigravity-behavior/tasks.md and authorize jump-box "
+    "Codex to begin T001 only under AGENTS.md and "
+    "handoff/codex-execution-contract.md."
 )
 
 
@@ -98,9 +99,9 @@ def main() -> None:
     state_dir = args.state_dir.resolve()
     target = state_dir / "state.json"
     if target.exists():
-        raise SystemExit(f"refusing to overwrite existing Ralph state: {target}")
+        raise SystemExit(f"refusing to overwrite existing execution state: {target}")
     if git(repo, "status", "--short"):
-        raise SystemExit("Ralph state initialization requires a clean checkout")
+        raise SystemExit("execution state initialization requires a clean checkout")
 
     base_commit = git(repo, "rev-parse", "HEAD")
     task_path = repo / "specs/001-improve-antigravity-behavior/tasks.md"
@@ -109,7 +110,7 @@ def main() -> None:
         args.task_set_approval_record.resolve(), base_commit, task_digest
     )
     now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-    payload = json.loads((repo / "handoff/ralph-state.example.json").read_text())
+    payload = json.loads((repo / "handoff/execution-state.example.json").read_text())
     payload.update(
         {
             "runId": f"abe-{now.strftime('%Y%m%dT%H%M%SZ')}-{uuid.uuid4().hex[:8]}",

@@ -15,7 +15,7 @@ is instructed to refute executability and coverage, and makes no edits.
 | Finding | Severity | Disposition |
 |---|---|---|
 | README, current-state, artifact manifest, and traceability text inferred that the 46-task set already had downstream execution authority. | Critical | Rewritten to state that only `spec.md` and `plan.md` are approved; `tasks.md` remains a draft pending owner approval before T001. |
-| Ralph state could be initialized with all tasks `not_started` without a bound task-set approval gate. | Critical | Added `taskSet` to Ralph state, required an external signed task-set approval record in `init-ralph-state.py`, and made ready state require an approved digest-bound gate. |
+| Execution state could be initialized with all tasks `not_started` without a bound task-set approval gate. | Critical | Added `taskSet` to execution state, required an external signed task-set approval record in `init-execution-state.py`, and made ready state require an approved digest-bound gate. |
 | Handoff validation did not fail closed on stale task approval claims or committed approval records. | High | Extended `handoff/validate_handoff.py` to reject stale approval wording, committed approval records, missing pending task-gate state, and an initializer that lacks the exact approval requirement. |
 | Worker boundary could be read as allowing ambient user state. | High | Strengthened plan, runner, and task contracts to prohibit ordinary home/workspace, `.gemini`, Antigravity state, caches, conversations, credential stores, and Docker-socket mounts. |
 | Local CLI notes overfit stale version observations and could be misread as release evidence. | Medium | Reworded local observations as non-release notes and preserved the `1.1.14`-or-newer hashed authorized-artifact requirement for T013. |
@@ -54,7 +54,7 @@ repository text to the owner-selected
 `selamy-labs/antigravity-behavior-engineering` target. The merged task graph
 still contains exactly T001 through T046 in coherent order, and the structural
 validator rejects implementation roots, stale approval claims, committed
-approval records, or an unbound Ralph initializer.
+approval records, or an unbound execution-state initializer.
 
 Independent verification counted all 33 file decisions as 24
 `KEEP_CANDIDATE`, 5 `MERGE`, and 4 `TAKE_INCOMING`. That corrects a
