@@ -417,7 +417,7 @@ def _check_package_lock(value: dict[str, Any]) -> None:
         _fail(ReasonCodes.BINDING_MISMATCH, "$.components")
     for path in value["files"]:
         segments = path.split("/")
-        if path.startswith("/") or any(segment in {"", ".."} for segment in segments) or "\\" in path or "\x00" in path:
+        if path.startswith("/") or any(segment in {"", ".", ".."} for segment in segments) or "\\" in path or "\x00" in path:
             _fail(ReasonCodes.INVALID_FIELD, "$.files")
 
 
