@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T004",
+  "taskTitle": "Define protected evaluator and approval contracts",
+  "taskEntryDigest": "sha256:237922e4e97acb2cff1a7e8c1c9e37d4bc5d8a76a2c94324260297803e6eab1f",
+  "baseCommit": "6be8d7ed39ffe0f93bd17d057d05187cc1fc5d2d",
+  "implementationCommit": "5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3",
+  "treeDigest": "sha256:82287150d9f86c73930615cd9122b030566403c5e259a3dadc2a1b13a28b91e2",
+  "outcome": "implemented",
+  "files": {
+    "evals/schemas/approval.schema.json": "sha256:c75bd9b17fc7da7ac558bd519f3985900bfe4388acc6e797ee88e227da462c1a",
+    "evals/schemas/evaluation.schema.json": "sha256:5e7e615a21d34b615c8bcd69ddde463768a03888e398e784e3d64850ff06fc22",
+    "evaluator/src/abe_eval/contracts.py": "sha256:cf2e5dcab0fc3e27267a64126dc63706c41ccc35b1168d26858e60da31063e7e",
+    "evaluator/tests/test_evaluation_contracts.py": "sha256:f4865bfae0434d8a2ae22aac008d96cb28631445963490a16b2840745267ee09",
+    "tests/contract/fixtures/evaluation-contracts.json": "sha256:b9e5b39d126df302c25c2e8ab884141ffcfdf9deaf0b08bf62db54d22c4ae9c1"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_evaluation_contracts.py",
+        "-q"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:fabd21208ffd4e11c28cea1b1aac1b597910589e4e597051b7f1d1db95a1c554"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_evaluation_contracts.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c52a630c04da144bd8cf7a4490a2bdae34d7984707b7b57113b59079d7f29ae8"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:b1fa1a3874c30aa04a24663976f4be679850519fc63b903aeba708b7d38e2a15"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "install",
+        "--offline",
+        "--frozen-lockfile"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9c404150c134643815f2ef30424d3d1bfbcd7dc0b9378e382461e373f00193d9"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "uv",
+        "lock",
+        "--project",
+        "evaluator",
+        "--check",
+        "--offline"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "uv",
+        "sync",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t004-package-path-dot-probe",
+        "5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:78a5ef832570cb71fc92477937644ede9f8c1fd11baf14e9dc9d634c35071851"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t004-public-boundary-scan",
+        "5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c70009479df5f04191a708cfecc23cd56097a3d024e6b92eed613fee4fc625a7"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--name-only",
+        "6be8d7ed39ffe0f93bd17d057d05187cc1fc5d2d..5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:796802909efedf798b0be2301a0b73566ab1da6b43199f451466cdcddd3bbe66"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:d5dd0c2530e1a9968533fd018322504f17b7a12fe2861a484bdbd6f933114746",
+      "verdictDigest": "sha256:0650df7819b5e3f78546c96021af69ef856e8ed0c5fbf2addd125cea79258da9",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:db312c7a44acb809da42adbd8075dc4ed4f408c22160fa0bbd6e76e5ee83ad2b",
+      "verdictDigest": "sha256:9822f526d38fe59ce8beda2ad1e3c8892cd8d85f729b682503dfe8e420b4ca67",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:c70009479df5f04191a708cfecc23cd56097a3d024e6b92eed613fee4fc625a7",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon this branch; after merge, open a new T004-linked revert PR without rewriting history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-20T22:44:21Z"
+}
