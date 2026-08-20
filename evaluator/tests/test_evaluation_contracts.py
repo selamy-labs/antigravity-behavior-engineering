@@ -13,7 +13,7 @@ FIXTURE_PATH = Path("tests/contract/fixtures/evaluation-contracts.json")
 EVALUATION_SCHEMA_PATH = Path("evals/schemas/evaluation.schema.json")
 APPROVAL_SCHEMA_PATH = Path("evals/schemas/approval.schema.json")
 
-TARGET_MODELS = ("gemini-2.5-pro", "gemini-3-pro")
+TARGET_MODELS = ("gemini-3.7-flash-high", "gemini-3.1-pro-high")
 PUBLIC_CRITERIA = ("SC-001",) + tuple(f"SC-{index:03d}" for index in range(3, 14))
 FIXTURE_EVIDENCE_DIGEST = "sha256:" + "5" * 64
 FIXTURE_SIGNATURE_DIGEST = "sha256:" + "6" * 64
@@ -270,14 +270,36 @@ def test_public_release_bundle_rejects_candidate_freeze_for_other_candidate_or_p
 
 def test_release_gate_requires_exact_target_models_and_complete_public_criteria():
     missing_criterion = _case_value("ReleaseGateDecision")
-    missing_criterion["perModelDecisions"]["gemini-2.5-pro"]["criterionResults"].pop("SC-013")
+    missing_criterion["perModelDecisions"]["gemini-3.7-flash-high"]["criterionResults"].pop("SC-013")
     expect_reason("ReleaseGateDecision", missing_criterion, "contract.binding_mismatch")
 
     wrong_model_keys = _case_value("ReleaseGateDecision")
-    renamed = wrong_model_keys["perModelDecisions"].pop("gemini-3-pro")
+    renamed = wrong_model_keys["perModelDecisions"].pop("gemini-3.1-pro-high")
     renamed["modelRequest"] = "gemini-4-pro"
     wrong_model_keys["perModelDecisions"]["gemini-4-pro"] = renamed
     expect_reason("ReleaseGateDecision", wrong_model_keys, "contract.binding_mismatch")
+
+
+def test_target_model_slugs_match_quickstart_release_targets():
+    decision = _case_value("ReleaseGateDecision")
+    first = decision["perModelDecisions"].pop("gemini-3.7-flash-high")
+    second = decision["perModelDecisions"].pop("gemini-3.1-pro-high")
+    first["modelRequest"] = TARGET_MODELS[0]
+    second["modelRequest"] = TARGET_MODELS[1]
+    decision["perModelDecisions"] = {
+        TARGET_MODELS[0]: first,
+        TARGET_MODELS[1]: second,
+    }
+    parse_contract("ReleaseGateDecision", decision)
+
+    candidate = _case_value("ReleaseCandidateLock")
+    candidate["conditionLockDigests"] = {
+        TARGET_MODELS[0] + "/bare": "sha256:" + "1" * 64,
+        TARGET_MODELS[0] + "/full": "sha256:" + "2" * 64,
+        TARGET_MODELS[1] + "/bare": "sha256:" + "3" * 64,
+        TARGET_MODELS[1] + "/full": "sha256:" + "4" * 64,
+    }
+    parse_contract("ReleaseCandidateLock", candidate)
 
 
 def test_production_approval_bundles_reject_fixture_signatures():
@@ -329,11 +351,11 @@ def test_condition_pair_uses_authoritative_reasoning_request_and_treatment_only_
 
 def test_release_candidate_requires_exact_condition_lock_keys():
     missing_condition = _case_value("ReleaseCandidateLock")
-    missing_condition["conditionLockDigests"].pop("gemini-3-pro/full")
+    missing_condition["conditionLockDigests"].pop("gemini-3.1-pro-high/full")
     expect_reason("ReleaseCandidateLock", missing_condition, "contract.binding_mismatch")
 
     extra_condition = _case_value("ReleaseCandidateLock")
-    extra_condition["conditionLockDigests"]["gemini-3-pro/pooled"] = "sha256:" + "0" * 64
+    extra_condition["conditionLockDigests"]["gemini-3.1-pro-high/pooled"] = "sha256:" + "0" * 64
     expect_reason("ReleaseCandidateLock", extra_condition, "contract.binding_mismatch")
 
 
@@ -515,7 +537,7 @@ def test_approval_bound_digest_maps_are_order_insensitive():
             lambda objects: {
                 "schemaVersion": 1,
                 "packageArchiveRecord": objects["packageArchiveRecord"],
-                "releaseGateDecision": {**objects["releaseGateDecision"], "overallDecision": "fail", "blockingCriteria": ["gemini-2.5-pro/SC-001"]},
+                "releaseGateDecision": {**objects["releaseGateDecision"], "overallDecision": "fail", "blockingCriteria": ["gemini-3.7-flash-high/SC-001"]},
                 "approvalRecord": objects["publicReleaseApprovalRecord"],
                 "publicationRecord": objects["publicationRecord"],
             },
@@ -550,7 +572,7 @@ def test_parser_owned_invariants_not_expressible_in_json_schema():
     expect_reason("RunRecord", pre_worker, "contract.binding_mismatch")
 
     decision = _case_value("ReleaseGateDecision")
-    decision["blockingCriteria"] = ["gemini-2.5-pro/SC-001"]
+    decision["blockingCriteria"] = ["gemini-3.7-flash-high/SC-001"]
     expect_reason("ReleaseGateDecision", decision, "contract.binding_mismatch")
 
     worker = _case_value("WorkerInvocation")

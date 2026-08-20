@@ -80,13 +80,13 @@
         },
         "confidenceLevel": "0.95",
         "perModelSampleSizes": {
-          "gemini-2.5-pro": {
+          "gemini-3.7-flash-high": {
             "schemaVersion": 1,
             "bare": 120,
             "full": 120,
             "families": 2
           },
-          "gemini-3-pro": {
+          "gemini-3.1-pro-high": {
             "schemaVersion": 1,
             "bare": 120,
             "full": 120,
@@ -309,7 +309,7 @@
       "kind": "ObservedModel",
       "value": {
         "schemaVersion": 1,
-        "requestedModel": "gemini-2.5-pro",
+        "requestedModel": "gemini-3.7-flash-high",
         "requestedReasoning": "high",
         "servedIdentityEvidence": [
           {
@@ -412,7 +412,7 @@
         },
         "observedModel": {
           "schemaVersion": 1,
-          "requestedModel": "gemini-2.5-pro",
+          "requestedModel": "gemini-3.7-flash-high",
           "requestedReasoning": "high",
           "servedIdentityEvidence": [
             {
@@ -514,7 +514,7 @@
         },
         "observedModel": {
           "schemaVersion": 1,
-          "requestedModel": "gemini-2.5-pro",
+          "requestedModel": "gemini-3.7-flash-high",
           "requestedReasoning": "high",
           "servedIdentityEvidence": [
             {
@@ -623,7 +623,7 @@
         },
         "observedModel": {
           "schemaVersion": 1,
-          "requestedModel": "gemini-2.5-pro",
+          "requestedModel": "gemini-3.7-flash-high",
           "requestedReasoning": "high",
           "servedIdentityEvidence": [
             {
@@ -695,10 +695,10 @@
         "packageLockDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "qualificationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "conditionLockDigests": {
-          "gemini-2.5-pro/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
-          "gemini-2.5-pro/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
-          "gemini-3-pro/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
-          "gemini-3-pro/full": "sha256:0404040404040404040404040404040404040404040404040404040404040404"
+          "gemini-3.7-flash-high/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "gemini-3.7-flash-high/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "gemini-3.1-pro-high/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
+          "gemini-3.1-pro-high/full": "sha256:0404040404040404040404040404040404040404040404040404040404040404"
         },
         "taskFamilyProtocolDigests": [
           "sha256:1111111111111111111111111111111111111111111111111111111111111111",
@@ -806,7 +806,7 @@
       "kind": "ModelReleaseDecision",
       "value": {
         "schemaVersion": 1,
-        "modelRequest": "gemini-2.5-pro",
+        "modelRequest": "gemini-3.7-flash-high",
         "scorecardDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "criterionResults": {
           "SC-001": {
@@ -892,7 +892,7 @@
       "kind": "ModelReleaseDecision",
       "value": {
         "schemaVersion": 1,
-        "modelRequest": "gemini-3-pro",
+        "modelRequest": "gemini-3.1-pro-high",
         "scorecardDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "criterionResults": {
           "SC-001": {
@@ -987,9 +987,9 @@
         "analysisDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "publicCriteriaDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "perModelDecisions": {
-          "gemini-2.5-pro": {
+          "gemini-3.7-flash-high": {
             "schemaVersion": 1,
-            "modelRequest": "gemini-2.5-pro",
+            "modelRequest": "gemini-3.7-flash-high",
             "scorecardDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
             "criterionResults": {
               "SC-001": {
@@ -1069,9 +1069,9 @@
             "blockingCriteria": [],
             "limitations": []
           },
-          "gemini-3-pro": {
+          "gemini-3.1-pro-high": {
             "schemaVersion": 1,
-            "modelRequest": "gemini-3-pro",
+            "modelRequest": "gemini-3.1-pro-high",
             "scorecardDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
             "criterionResults": {
               "SC-001": {
@@ -1333,9 +1333,9 @@
       "base": "ReleaseCandidateLock",
       "patch": {
         "conditionLockDigests": {
-          "gemini-2.5-pro/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
-          "gemini-2.5-pro/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
-          "gemini-3-pro/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303"
+          "gemini-3.7-flash-high/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "gemini-3.7-flash-high/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "gemini-3.1-pro-high/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303"
         }
       },
       "reasonCode": "contract.binding_mismatch"

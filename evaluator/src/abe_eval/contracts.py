@@ -93,7 +93,7 @@ _REQUIRED_PAIR_EQUAL_FIELDS = frozenset(
 
 _ALLOWED_CONDITION_PAIR_DIFFERENCES = frozenset({"/enabledComponents"})
 
-_TARGET_MODEL_KEYS = frozenset({"gemini-2.5-pro", "gemini-3-pro"})
+_TARGET_MODEL_KEYS = frozenset({"gemini-3.7-flash-high", "gemini-3.1-pro-high"})
 
 _REQUIRED_CONDITION_LOCK_DIGEST_KEYS = frozenset(
     model + "/" + condition for model in _TARGET_MODEL_KEYS for condition in ("bare", "full")
