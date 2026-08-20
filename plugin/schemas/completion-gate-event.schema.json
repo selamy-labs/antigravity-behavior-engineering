@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity-behavior-engineering.dev/schemas/completion-gate-event.schema.json",
+  "title": "CompletionGateEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "taskId",
+    "workspaceDigest",
+    "requestDigest",
+    "eventKind",
+    "stopSequenceId",
+    "continuationOrdinal",
+    "frozenBound",
+    "decision",
+    "reasonCode",
+    "previousEventDigest",
+    "occurredAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+    "taskId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+    "workspaceDigest": { "$ref": "#/$defs/digest" },
+    "requestDigest": { "$ref": "#/$defs/digest" },
+    "eventKind": { "enum": ["initialized", "continued"] },
+    "stopSequenceId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+    "continuationOrdinal": { "$ref": "#/$defs/nonnegativeInteger" },
+    "frozenBound": { "$ref": "#/$defs/nonnegativeInteger" },
+    "decision": { "enum": ["none", "continue"] },
+    "reasonCode": {
+      "enum": [
+        "task_state_initialized",
+        "active_work",
+        "invalid_task_state",
+        "unresolved_required_obligation",
+        "stale_passing_evidence",
+        "accepted_finding_unverified",
+        "retry_bound_reached"
+      ]
+    },
+    "previousEventDigest": {
+      "oneOf": [
+        { "const": "genesis" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "occurredAt": { "$ref": "#/$defs/timestamp" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "eventKind": { "const": "initialized" } },
+        "required": ["eventKind"]
+      },
+      "then": {
+        "properties": {
+          "stopSequenceId": { "const": "not_applicable" },
+          "continuationOrdinal": { "const": 0 },
+          "decision": { "const": "none" },
+          "reasonCode": { "const": "task_state_initialized" },
+          "previousEventDigest": { "const": "genesis" }
+        }
+      },
+      "else": {
+        "properties": {
+          "stopSequenceId": { "not": { "const": "not_applicable" } },
+          "continuationOrdinal": { "minimum": 1 },
+          "previousEventDigest": { "$ref": "#/$defs/digest" }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "decision": { "const": "continue" },
+              "reasonCode": {
+                "not": { "enum": ["task_state_initialized", "retry_bound_reached"] }
+              }
+            }
+          },
+          {
+            "properties": {
+              "decision": { "const": "none" },
+              "reasonCode": { "const": "retry_bound_reached" }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|02-(?:0[1-9]|1\\d|2[0-9])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+      "allOf": [{
+        "if": { "pattern": "^\\d{4}-02-29T" },
+        "then": {
+          "pattern": "^(?:\\d{2}(?:0[48]|[2468][048]|[13579][26])|(?:00|0[48]|[2468][048]|[13579][26])00)-02-29T"
+        }
+      }]
+    },
+    "nonnegativeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    }
+  }
+}

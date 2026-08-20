@@ -1,0 +1,421 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity-behavior-engineering.dev/schemas/task-state.schema.json",
+  "title": "TaskState",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "workspaceDigest",
+    "requestDigest",
+    "workflowTier",
+    "intent",
+    "assumptions",
+    "obligations",
+    "iterations",
+    "reviewFindings",
+    "terminalState",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "taskId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+    "workspaceDigest": { "$ref": "#/$defs/digest" },
+    "requestDigest": { "$ref": "#/$defs/digest" },
+    "workflowTier": { "enum": ["trivial", "substantial"] },
+    "intent": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+    "assumptions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/assumption" }
+    },
+    "obligations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/proofObligation" }
+    },
+    "iterations": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/iterationCheckpoint" }
+    },
+    "reviewFindings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reviewFinding" }
+    },
+    "terminalState": { "$ref": "#/$defs/terminalState" },
+    "updatedAt": { "$ref": "#/$defs/timestamp" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "workflowTier": { "const": "substantial" } },
+        "required": ["workflowTier"]
+      },
+      "then": {
+        "properties": { "obligations": { "minItems": 1 } }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "terminalState": {
+            "properties": { "declared": { "const": "complete" } },
+            "required": ["declared"]
+          }
+        },
+        "required": ["terminalState"]
+      },
+      "then": {
+        "properties": {
+          "terminalState": {
+            "properties": {
+              "activeWork": { "const": false },
+              "unresolvedObligationIds": { "maxItems": 0 }
+            }
+          },
+          "reviewFindings": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "severity": { "enum": ["critical", "important"] },
+                  "status": { "not": { "enum": ["rejected", "verified"] } }
+                },
+                "required": ["severity", "status"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "digestOrNone": {
+      "oneOf": [
+        { "const": "none" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|02-(?:0[1-9]|1\\d|2[0-9])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+      "allOf": [{
+        "if": { "pattern": "^\\d{4}-02-29T" },
+        "then": {
+          "pattern": "^(?:\\d{2}(?:0[48]|[2468][048]|[13579][26])|(?:00|0[48]|[2468][048]|[13579][26])00)-02-29T"
+        }
+      }]
+    },
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^\\u0000]+$"
+      }
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "locator",
+        "observedAt",
+        "afterChangeDigest",
+        "result"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "enum": ["test", "command", "artifact", "diff", "review", "observation"] },
+        "locator": { "$ref": "#/$defs/relativePath" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "observedAt": { "$ref": "#/$defs/timestamp" },
+        "afterChangeDigest": { "$ref": "#/$defs/digestOrNone" },
+        "result": { "enum": ["pass", "fail", "indeterminate"] }
+      }
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\u0000)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*\\\\)[^/]+(?:/[^/]+)*$"
+    },
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "question",
+        "disposition",
+        "evidence",
+        "reversible",
+        "material"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "id": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "question": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "disposition": {
+          "enum": ["user_direction", "safe_default", "bounded_out", "needs_input"]
+        },
+        "decision": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidenceReference" }
+        },
+        "reversible": { "type": "boolean" },
+        "material": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "disposition": { "const": "needs_input" } },
+            "required": ["disposition"]
+          },
+          "then": { "not": { "required": ["decision"] } },
+          "else": { "required": ["decision"] }
+        },
+        {
+          "if": {
+            "properties": { "disposition": { "const": "safe_default" } },
+            "required": ["disposition"]
+          },
+          "then": {
+            "properties": { "reversible": { "const": true } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "disposition": { "const": "user_direction" } },
+            "required": ["disposition"]
+          },
+          "else": {
+            "properties": { "evidence": { "minItems": 1 } }
+          }
+        }
+      ]
+    },
+    "proofObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "requirement",
+        "evidenceSeam",
+        "negativeCases",
+        "authority",
+        "required",
+        "status",
+        "evidence",
+        "lastRelevantChangeDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "id": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "requirement": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "evidenceSeam": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "negativeCases": { "$ref": "#/$defs/stringArray" },
+        "authority": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "required": { "type": "boolean" },
+        "status": {
+          "enum": ["pending", "passing", "failing", "blocked", "indeterminate", "not_applicable"]
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidenceReference" }
+        },
+        "lastRelevantChangeDigest": { "$ref": "#/$defs/digestOrNone" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "passing" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "lastRelevantChangeDigest": { "$ref": "#/$defs/digest" },
+              "evidence": {
+                "minItems": 1,
+                "contains": {
+                  "properties": { "result": { "const": "pass" } },
+                  "required": ["result"]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "iterationCheckpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "sequence",
+        "scope",
+        "changeDigest",
+        "impactedObligationIds",
+        "impactedEvidenceIds",
+        "sentinelEvidenceIds",
+        "result",
+        "nextAction"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "scope": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "changeDigest": { "$ref": "#/$defs/digest" },
+        "impactedObligationIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "minItems": 1, "uniqueItems": true }
+          ]
+        },
+        "impactedEvidenceIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "uniqueItems": true }
+          ]
+        },
+        "sentinelEvidenceIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "uniqueItems": true }
+          ]
+        },
+        "result": { "enum": ["passing", "failing", "blocked", "indeterminate"] },
+        "nextAction": { "type": "string", "pattern": "^[^\\u0000]*$" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "result": { "const": "passing" } },
+            "required": ["result"]
+          },
+          "then": {
+            "properties": { "impactedEvidenceIds": { "minItems": 1 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "sentinelEvidenceIds": { "maxItems": 0 } },
+            "required": ["sentinelEvidenceIds"]
+          },
+          "then": {
+            "properties": { "nextAction": { "minLength": 1 } }
+          }
+        }
+      ]
+    },
+    "reviewFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "reviewerRole",
+        "severity",
+        "claim",
+        "evidence",
+        "status",
+        "dispositionReason",
+        "repairChangeDigest",
+        "verificationEvidenceIds"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "id": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "reviewerRole": { "enum": ["requirements", "quality"] },
+        "severity": { "enum": ["critical", "important", "minor"] },
+        "claim": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidenceReference" }
+        },
+        "status": { "enum": ["open", "accepted", "rejected", "repaired", "verified"] },
+        "dispositionReason": {
+          "type": "string",
+          "pattern": "^[^\\u0000]*$"
+        },
+        "repairChangeDigest": { "$ref": "#/$defs/digestOrNone" },
+        "verificationEvidenceIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "uniqueItems": true }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": { "enum": ["rejected", "repaired", "verified"] }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "dispositionReason": { "minLength": 1 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "status": { "enum": ["repaired", "verified"] } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "repairChangeDigest": { "$ref": "#/$defs/digest" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "status": { "const": "verified" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "verificationEvidenceIds": { "minItems": 1 } }
+          }
+        }
+      ]
+    },
+    "terminalState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "declared",
+        "reason",
+        "unresolvedObligationIds",
+        "activeWork"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "declared": {
+          "enum": ["complete", "incomplete", "blocked", "failed", "indeterminate", "needs_input"]
+        },
+        "reason": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "unresolvedObligationIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "uniqueItems": true }
+          ]
+        },
+        "activeWork": { "type": "boolean" }
+      }
+    }
+  }
+}

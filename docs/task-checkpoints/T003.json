@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T003",
+  "taskTitle": "Define and validate agent-visible runtime contracts",
+  "taskEntryDigest": "sha256:81e23b2e776d288589187bbf05d818bdddfc610b22de68d0db67e36b6eb46d46",
+  "baseCommit": "b11241ebb837e6deca4799c18001671150f29748",
+  "implementationCommit": "93e8719d1923a2512e0b05083567d8b16c636e28",
+  "treeDigest": "sha256:79b1c4d18a0fac3ddd0b037970cb3ec39feb54e80f3493fd2fb7491ca2c1fb4b",
+  "outcome": "implemented",
+  "files": {
+    "packages/contracts/src/runtime-contracts.mjs": "sha256:29def19fd93c0c51091d040e61cc02d10149fe063134dbc98d23eae21c913364",
+    "packages/contracts/test/runtime-contracts.test.mjs": "sha256:588ce56a752b6bde854eb3ab46f99f0b17aee400c4ca2b130b997393318a0e0f",
+    "plugin/schemas/completion-gate-event.schema.json": "sha256:56e300ae674a3629ed46ecf0c80e16ceed20f04c48cfc3514cbb87656db7cbf0",
+    "plugin/schemas/evidence-event.schema.json": "sha256:3472b8868fcd0aba73f2db94fc8b9c311eed86cc3b3a70b0a6bd85c6c6ebc79c",
+    "plugin/schemas/review-package-input.schema.json": "sha256:9d616a3b7ce9c67f6d37e641f1f82f3a7bb6f1947d03b86b13ea0137723e0170",
+    "plugin/schemas/review-pair-envelope.schema.json": "sha256:3f7e4838bc475a09f600ab1c57a5130d73fdf80d9b5b7db7da3d2634f95976ed",
+    "plugin/schemas/review-request.schema.json": "sha256:d0f2d3014b2945cabe38181bc4cb6b4ff8db48d295d86d7bd5bac83f6ac52c5d",
+    "plugin/schemas/reviewer-join.schema.json": "sha256:05b4a7ce1c6700656505c40f66c6a2ad58ce887593b80c37081e8f3a3513a0ea",
+    "plugin/schemas/reviewer-verdict.schema.json": "sha256:79b848fa598bd631918022c0f890d16d689568bd04e2220176f2972b44ce77db",
+    "plugin/schemas/task-state.schema.json": "sha256:8d62a0a890d16f2087ff21dfad3df8a886049bddf39cd6d6c8476931b2e59b2a"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "packages/contracts/test/runtime-contracts.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:2c03ebbc4d8b1bf278832ff7483bb2f25a17508b7adb3c30890f49c0ec0ff827"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "node",
+        "--test",
+        "packages/contracts/test/runtime-contracts.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:db65d6322107c0bc1971e09d6cf124fdfe4c2e75784e6096e9b454ee61a3c210"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "node",
+        "--test",
+        "packages/contracts/test/canonical-json.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:baaaa147358fa97fc672cb374438ce37f992f0a1d65793b09604d0ef55858657"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests/test_canonical_parity.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:edf3d333fef3a773826ab22829091a2348d9f8a79032da0074fd997d1b9f76d9"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:df586fe83b09fbc7ddf1a68e1f996fb56b432e1db3d96023c893d6b79570252f"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "install",
+        "--offline",
+        "--frozen-lockfile"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:491052ee7955dc7e178502904913e7e5575a605582d6b3a2341b6d012832c776"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "uv",
+        "lock",
+        "--project",
+        "evaluator",
+        "--check",
+        "--offline"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:bbba2f910718a6a5e9e3f8f6e998f3f93d8147077b23833124d196fe39a70b54"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "uv",
+        "sync",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:97a4e5481f77abf39db6f657ea156fb814a6ac0463d59e271ecf558f8e68f159"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "node",
+        "--check",
+        "packages/contracts/src/runtime-contracts.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "b11241ebb837e6deca4799c18001671150f29748..HEAD"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t003-scope-scan",
+        "b11241ebb837e6deca4799c18001671150f29748..93e8719",
+        "95f96da..93e8719"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:821092b557941fdd88357fd21be6c28cb2f89e194a5f34cb9255f3d04c7e579f"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "public-boundary-scan",
+        "93e8719d1923a2512e0b05083567d8b16c636e28"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:7501cdbe614ebc00b701a986ad4e5aea743ee5ebf4589d3e9c07c402f58fe19f"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:ce022bbe4ac406082c5603600c801c54fb04cf60e9cfce5e74830e768d97273f",
+      "verdictDigest": "sha256:1d50a966b3976551ae804ca53f291955d3ed6c1197dcee7df667f1d0966dc5ef",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:a8ca71750bc3c61c9d5d597a0bc3670f15440579050139a315b0f6fff76b5eeb",
+      "verdictDigest": "sha256:2c1502c09c7900541a92c47cbf06301541982d1a5718d2fa93b78bc8b189959c",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:7501cdbe614ebc00b701a986ad4e5aea743ee5ebf4589d3e9c07c402f58fe19f",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon this branch; after merge, open a new T003-linked revert PR without rewriting history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-20T20:18:00Z"
+}

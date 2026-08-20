@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity-behavior-engineering.dev/schemas/reviewer-verdict.schema.json",
+  "title": "ReviewerVerdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviewerRole",
+    "reviewRequestDigest",
+    "reviewPairEnvelopeDigest",
+    "artifactDigest",
+    "obligationDigest",
+    "verificationInterfaceDigest",
+    "authorityDigest",
+    "findings",
+    "verdict",
+    "inspectedEvidence",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "reviewerRole": { "enum": ["requirements", "quality"] },
+    "reviewRequestDigest": { "$ref": "#/$defs/digest" },
+    "reviewPairEnvelopeDigest": { "$ref": "#/$defs/digest" },
+    "artifactDigest": { "$ref": "#/$defs/digest" },
+    "obligationDigest": { "$ref": "#/$defs/digest" },
+    "verificationInterfaceDigest": { "$ref": "#/$defs/digest" },
+    "authorityDigest": { "$ref": "#/$defs/digest" },
+    "findings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/reviewerFinding" }
+    },
+    "verdict": { "enum": ["pass", "fail", "indeterminate"] },
+    "inspectedEvidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidenceReference" }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^\\u0000]+$"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "anyOf": [
+          {
+            "properties": { "verdict": { "not": { "const": "indeterminate" } } },
+            "required": ["verdict"]
+          },
+          {
+            "properties": { "findings": { "minItems": 1 } },
+            "required": ["findings"]
+          }
+        ]
+      },
+      "then": {
+        "properties": { "inspectedEvidence": { "minItems": 1 } }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "digestOrNone": {
+      "oneOf": [
+        { "const": "none" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|02-(?:0[1-9]|1\\d|2[0-9])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+      "allOf": [{
+        "if": { "pattern": "^\\d{4}-02-29T" },
+        "then": {
+          "pattern": "^(?:\\d{2}(?:0[48]|[2468][048]|[13579][26])|(?:00|0[48]|[2468][048]|[13579][26])00)-02-29T"
+        }
+      }]
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\u0000)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*\\\\)[^/]+(?:/[^/]+)*$"
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "locator",
+        "observedAt",
+        "afterChangeDigest",
+        "result"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "enum": ["test", "command", "artifact", "diff", "review", "observation"] },
+        "locator": { "$ref": "#/$defs/relativePath" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "observedAt": { "$ref": "#/$defs/timestamp" },
+        "afterChangeDigest": { "$ref": "#/$defs/digestOrNone" },
+        "result": { "enum": ["pass", "fail", "indeterminate"] }
+      }
+    },
+    "reviewerFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "severity",
+        "claim",
+        "evidence",
+        "affectedObligationIds",
+        "suggestedFalsification"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "id": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "severity": { "enum": ["critical", "important", "minor"] },
+        "claim": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidenceReference" }
+        },
+        "affectedObligationIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\u0000]+$"
+          }
+        },
+        "suggestedFalsification": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\u0000]+$"
+        }
+      }
+    }
+  }
+}

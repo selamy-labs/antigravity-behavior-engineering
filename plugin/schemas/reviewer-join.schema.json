@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity-behavior-engineering.dev/schemas/reviewer-join.schema.json",
+  "title": "ReviewJoinRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviewPairEnvelopeDigest",
+    "requirementsReviewRequestDigest",
+    "qualityReviewRequestDigest",
+    "requirementsVerdictDigest",
+    "qualityVerdictDigest",
+    "roleSeparationEvidenceDigest",
+    "findings",
+    "joinState",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "reviewPairEnvelopeDigest": { "$ref": "#/$defs/digest" },
+    "requirementsReviewRequestDigest": { "$ref": "#/$defs/digest" },
+    "qualityReviewRequestDigest": { "$ref": "#/$defs/digest" },
+    "requirementsVerdictDigest": { "$ref": "#/$defs/digestOrIndeterminate" },
+    "qualityVerdictDigest": { "$ref": "#/$defs/digestOrIndeterminate" },
+    "roleSeparationEvidenceDigest": { "$ref": "#/$defs/digest" },
+    "findings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/findingReference" }
+    },
+    "joinState": { "enum": ["complete", "indeterminate"] },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^\\u0000]+$"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "joinState": { "const": "complete" } },
+        "required": ["joinState"]
+      },
+      "then": {
+        "properties": {
+          "requirementsVerdictDigest": { "$ref": "#/$defs/digest" },
+          "qualityVerdictDigest": { "$ref": "#/$defs/digest" }
+        }
+      },
+      "else": {
+        "anyOf": [
+          {
+            "properties": {
+              "requirementsVerdictDigest": { "const": "indeterminate" }
+            }
+          },
+          {
+            "properties": {
+              "qualityVerdictDigest": { "const": "indeterminate" }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "requirementsVerdictDigest": { "const": "indeterminate" }
+        },
+        "required": ["requirementsVerdictDigest"]
+      },
+      "then": {
+        "properties": {
+          "findings": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "reviewerRole": { "const": "requirements" }
+                },
+                "required": ["reviewerRole"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "qualityVerdictDigest": { "const": "indeterminate" }
+        },
+        "required": ["qualityVerdictDigest"]
+      },
+      "then": {
+        "properties": {
+          "findings": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "reviewerRole": { "const": "quality" }
+                },
+                "required": ["reviewerRole"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "digestOrIndeterminate": {
+      "oneOf": [
+        { "const": "indeterminate" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "findingReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "reviewerRole", "findingId"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "reviewerRole": { "enum": ["requirements", "quality"] },
+        "findingId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" }
+      }
+    }
+  }
+}
