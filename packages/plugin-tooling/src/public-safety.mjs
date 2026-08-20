@@ -5,6 +5,7 @@ import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json
 
 const encoder = new TextEncoder();
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
+const SEVERITIES = new Set(["critical", "important", "minor"]);
 
 const DETECTORS = Object.freeze([
   {
@@ -119,10 +120,16 @@ const assertDigest = (value, name) => {
   }
 };
 
+const assertSeverity = (value, name) => {
+  if (!SEVERITIES.has(value)) {
+    throw new TypeError(name + " severity must be critical, important, or minor");
+  }
+};
+
 const rootDigest = (files) => digestObject(Object.fromEntries(files.map((file) => [file.relativePath, digestBytes(file.bytes)])));
 
 const policyDigest = (policy) => {
-  if (typeof policy.policyDigest === "string") {
+  if (Object.hasOwn(policy, "policyDigest")) {
     assertDigest(policy.policyDigest, "policyDigest");
     return policy.policyDigest;
   }
@@ -173,6 +180,18 @@ const addCopiedBodyFindings = (candidates, file, policy) => {
   const fingerprints = Array.isArray(policy.copiedBodyFingerprints) ? policy.copiedBodyFingerprints : [];
   if (fingerprints.length === 0) {
     return;
+  }
+  for (const [index, fingerprint] of fingerprints.entries()) {
+    if (fingerprint === null || typeof fingerprint !== "object" || Array.isArray(fingerprint)) {
+      throw new TypeError("copiedBodyFingerprints[" + index + "] must be an object");
+    }
+    assertDigest(fingerprint.digest, "copiedBodyFingerprints[" + index + "].digest");
+    if (Object.hasOwn(fingerprint, "severity")) {
+      assertSeverity(fingerprint.severity, "copiedBodyFingerprints[" + index + "]");
+    }
+    if (Object.hasOwn(fingerprint, "normalizedTokenCount") && (!Number.isSafeInteger(fingerprint.normalizedTokenCount) || fingerprint.normalizedTokenCount < 1)) {
+      throw new TypeError("copiedBodyFingerprints[" + index + "].normalizedTokenCount must be a positive integer");
+    }
   }
   const byDigest = new Map(fingerprints.map((fingerprint) => [fingerprint.digest, fingerprint]));
   const text = Buffer.from(file.bytes).toString("utf8");

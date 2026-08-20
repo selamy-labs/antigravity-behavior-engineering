@@ -122,6 +122,30 @@ test("safety reports fail visibly instead of emitting schema-invalid policy dige
       () => scanPublicTree(root, { ...policyFor(Object.keys(fixtures.benignFiles).sort()), policyDigest: "not-a-digest" }),
       /policyDigest/u,
     );
+    await assert.rejects(
+      () => scanPublicTree(root, { ...policyFor(Object.keys(fixtures.benignFiles).sort()), policyDigest: 7 }),
+      /policyDigest/u,
+    );
+  });
+});
+
+test("copied-body policy records fail visibly before they can emit schema-invalid findings", async () => {
+  await withTree({ README: fixtures.copiedBodyText + "\n", NOTICE: "notice\n" }, async (root) => {
+    const expectedFiles = ["NOTICE", "README"];
+    await assert.rejects(
+      () => scanPublicTree(root, {
+        ...policyFor(expectedFiles),
+        copiedBodyFingerprints: [{ digest: rawDigest(fixtures.copiedBodyText), severity: "blocker" }],
+      }),
+      /severity/u,
+    );
+    await assert.rejects(
+      () => scanPublicTree(root, {
+        ...policyFor(expectedFiles),
+        copiedBodyFingerprints: [{ digest: "not-a-digest", severity: "critical" }],
+      }),
+      /copiedBodyFingerprints/u,
+    );
   });
 });
 
