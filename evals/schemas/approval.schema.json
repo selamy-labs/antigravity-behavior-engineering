@@ -31,9 +31,10 @@
       "required": ["schemaVersion", "mechanism", "signer", "signedPayloadDigest", "signatureDigest"],
       "properties": {
         "schemaVersion": { "const": 1 },
-        "mechanism": { "type": "string", "minLength": 1 },
+        "mechanism": { "enum": ["fixture_signature", "documented_local_approval", "external_signature"] },
         "signer": { "type": "string", "minLength": 1 },
         "signedPayloadDigest": { "$ref": "#/$defs/Digest" },
+        "approvalEvidenceDigest": { "$ref": "#/$defs/Digest" },
         "signatureDigest": { "$ref": "#/$defs/Digest" }
       }
     },

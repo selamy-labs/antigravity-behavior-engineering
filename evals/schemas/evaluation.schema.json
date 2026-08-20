@@ -604,6 +604,16 @@
         "stagingManifestDigest": { "$ref": "#/$defs/Digest" }
       }
     },
+    "StagedAttemptOutcomeBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "unclassifiedOutcome", "stagedOutcome"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "unclassifiedOutcome": { "$ref": "#/$defs/UnclassifiedStagedAttemptOutcome" },
+        "stagedOutcome": { "$ref": "#/$defs/StagedAttemptOutcome" }
+      }
+    },
     "RunRecord": {
       "type": "object",
       "additionalProperties": false,

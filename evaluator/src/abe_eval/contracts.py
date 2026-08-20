@@ -53,6 +53,7 @@ _EVALUATION_KINDS = frozenset(
         "Classification",
         "UnclassifiedStagedAttemptOutcome",
         "StagedAttemptOutcome",
+        "StagedAttemptOutcomeBundle",
         "RunRecord",
     }
 )
@@ -81,7 +82,7 @@ _APPROVAL_KINDS = frozenset(
 _REQUIRED_PAIR_EQUAL_FIELDS = frozenset(
     {
         "/modelRequest",
-        "/reasoningConfigurationDigest",
+        "/reasoningRequest",
         "/authorityManifestDigest",
         "/toolInventoryDigest",
         "/permissionDigest",
@@ -89,6 +90,18 @@ _REQUIRED_PAIR_EQUAL_FIELDS = frozenset(
         "/environmentDigest",
     }
 )
+
+_ALLOWED_CONDITION_PAIR_DIFFERENCES = frozenset({"/enabledComponents"})
+
+_TARGET_MODEL_KEYS = frozenset({"gemini-2.5-pro", "gemini-3-pro"})
+
+_REQUIRED_CONDITION_LOCK_DIGEST_KEYS = frozenset(
+    model + "/" + condition for model in _TARGET_MODEL_KEYS for condition in ("bare", "full")
+)
+
+_PUBLIC_CRITERIA = frozenset({"SC-001", *("SC-" + f"{index:03d}" for index in range(3, 14))})
+
+_PRODUCTION_APPROVAL_MECHANISMS = frozenset({"documented_local_approval", "external_signature"})
 
 _CANDIDATE_FREEZE_BOUND_FIELDS = (
     "candidateDigest",
@@ -248,7 +261,9 @@ def _require_sorted_unique(items: list[Any], path: str) -> None:
 
 
 def _require_exact_map(actual: dict[str, Any], expected: dict[str, Any], path: str = "$.boundDigests") -> None:
-    if actual != expected:
+    if set(actual) != set(expected):
+        _fail(ReasonCodes.BINDING_MISMATCH, path)
+    if any(actual[key] != expected[key] for key in expected):
         _fail(ReasonCodes.BINDING_MISMATCH, path)
 
 
@@ -263,6 +278,18 @@ def _check_signature_payload(record: dict[str, Any], path: str = "$.signature.si
         _fail(ReasonCodes.BINDING_MISMATCH, path)
 
 
+def _check_production_approval(record: dict[str, Any], path: str) -> None:
+    signature = record["signature"]
+    if signature["mechanism"] not in _PRODUCTION_APPROVAL_MECHANISMS:
+        _fail(ReasonCodes.BINDING_MISMATCH, path + ".signature.mechanism")
+    if "approvalEvidenceDigest" not in signature:
+        _fail(ReasonCodes.BINDING_MISMATCH, path + ".signature.approvalEvidenceDigest")
+    if signature["signatureDigest"] == signature["signedPayloadDigest"]:
+        _fail(ReasonCodes.BINDING_MISMATCH, path + ".signature.signatureDigest")
+    if signature["approvalEvidenceDigest"] == signature["signedPayloadDigest"]:
+        _fail(ReasonCodes.BINDING_MISMATCH, path + ".signature.approvalEvidenceDigest")
+
+
 def _digest_value(kind: str, value: dict[str, Any]) -> str:
     parsed = parse_contract(kind, value)
     if kind == "ReleaseCandidateLock":
@@ -273,8 +300,10 @@ def _digest_value(kind: str, value: dict[str, Any]) -> str:
 def _check_condition_pair(value: dict[str, Any]) -> None:
     required = set(value["requiredEqualFields"])
     allowed = set(value["allowedDifferences"])
-    if not _REQUIRED_PAIR_EQUAL_FIELDS.issubset(required) or required.intersection(allowed):
+    if required != _REQUIRED_PAIR_EQUAL_FIELDS or required.intersection(allowed):
         _fail(ReasonCodes.BINDING_MISMATCH, "$.requiredEqualFields")
+    if allowed != _ALLOWED_CONDITION_PAIR_DIFFERENCES:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.allowedDifferences")
     _require_sorted_unique(value["requiredEqualFields"], "$.requiredEqualFields")
     _require_sorted_unique(value["allowedDifferences"], "$.allowedDifferences")
 
@@ -297,6 +326,10 @@ def _check_pre_worker_run(value: dict[str, Any]) -> None:
 
 def _check_model_release_decision(value: dict[str, Any], path: str = "$") -> None:
     _require_sorted_unique(value["blockingCriteria"], path + ".blockingCriteria")
+    if value["modelRequest"] not in _TARGET_MODEL_KEYS:
+        _fail(ReasonCodes.BINDING_MISMATCH, path + ".modelRequest")
+    if set(value["criterionResults"]) != _PUBLIC_CRITERIA:
+        _fail(ReasonCodes.BINDING_MISMATCH, path + ".criterionResults")
     all_pass = all(result["result"] == "pass" for result in value["criterionResults"].values())
     if value["decision"] == "pass" and (not all_pass or value["blockingCriteria"]):
         _fail(ReasonCodes.BINDING_MISMATCH, path + ".decision")
@@ -306,6 +339,8 @@ def _check_model_release_decision(value: dict[str, Any], path: str = "$") -> Non
 
 def _check_release_gate_decision(value: dict[str, Any]) -> None:
     _require_sorted_unique(value["blockingCriteria"], "$.blockingCriteria")
+    if set(value["perModelDecisions"]) != _TARGET_MODEL_KEYS:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.perModelDecisions")
     for key, decision in value["perModelDecisions"].items():
         if key != decision["modelRequest"]:
             _fail(ReasonCodes.BINDING_MISMATCH, "$.perModelDecisions." + key)
@@ -322,14 +357,14 @@ def _check_approval_record(value: dict[str, Any]) -> None:
     if value["gate"] == "candidate_freeze":
         if value["publicationTargetDigest"] != "not_applicable" or value["publicationChannelAuthorityDigest"] != "not_applicable":
             _fail(ReasonCodes.BINDING_MISMATCH, "$.publicationTargetDigest")
-        if tuple(value["boundDigests"].keys()) != _CANDIDATE_FREEZE_BOUND_FIELDS:
+        if set(value["boundDigests"]) != set(_CANDIDATE_FREEZE_BOUND_FIELDS):
             _fail(ReasonCodes.BINDING_MISMATCH, "$.boundDigests")
         for field in ("protocolDigests", "analysisLockDigests", "stoppingRuleDigests", "exclusionPolicyDigests", "resourceEnvelopeDigests"):
             _require_sorted_unique(value["boundDigests"][field], "$.boundDigests." + field)
         return
     if value["publicationTargetDigest"] == "not_applicable" or value["publicationChannelAuthorityDigest"] == "not_applicable":
         _fail(ReasonCodes.BINDING_MISMATCH, "$.publicationTargetDigest")
-    if tuple(value["boundDigests"].keys()) != _PUBLIC_RELEASE_BOUND_FIELDS:
+    if set(value["boundDigests"]) != set(_PUBLIC_RELEASE_BOUND_FIELDS):
         _fail(ReasonCodes.BINDING_MISMATCH, "$.boundDigests")
 
 
@@ -338,6 +373,8 @@ def _check_provenance_approval(value: dict[str, Any]) -> None:
 
 
 def _check_release_candidate(value: dict[str, Any]) -> None:
+    if set(value["conditionLockDigests"]) != _REQUIRED_CONDITION_LOCK_DIGEST_KEYS:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.conditionLockDigests")
     for field in (
         "taskFamilyProtocolDigests",
         "analysisLockDigests",
@@ -373,6 +410,8 @@ def _check_candidate_freeze_bundle(value: dict[str, Any]) -> None:
     candidate = parse_contract("ReleaseCandidateLock", value["releaseCandidateLock"])
     provenance = parse_contract("ProvenanceApprovalRecord", value["provenanceApprovalRecord"])
     approval = parse_contract("ApprovalRecord", value["approvalRecord"])
+    _check_production_approval(provenance, "$.provenanceApprovalRecord")
+    _check_production_approval(approval, "$.approvalRecord")
     candidate_digest = _digest_value("ReleaseCandidateLock", candidate)
     provenance_digest = _digest_value("ProvenanceApprovalRecord", provenance)
     if provenance["decision"] != "approved" or approval["decision"] != "approved" or approval["gate"] != "candidate_freeze":
@@ -400,6 +439,7 @@ def _check_candidate_freeze_bundle(value: dict[str, Any]) -> None:
 def _check_release_candidate_provenance_bundle(value: dict[str, Any]) -> None:
     candidate = parse_contract("ReleaseCandidateLock", value["releaseCandidateLock"])
     provenance = parse_contract("ProvenanceApprovalRecord", value["provenanceApprovalRecord"])
+    _check_production_approval(provenance, "$.provenanceApprovalRecord")
     if provenance["decision"] != "approved":
         _fail(ReasonCodes.BINDING_MISMATCH, "$.provenanceApprovalRecord.decision")
     if candidate["provenanceApprovalDigest"] != _digest_value("ProvenanceApprovalRecord", provenance):
@@ -424,6 +464,7 @@ def _check_sealed_opening_bundle(value: dict[str, Any]) -> None:
     approval = parse_contract("ApprovalRecord", value["approvalRecord"])
     schedule = parse_contract("PreparedSchedule", value["preparedSchedule"])
     journal = parse_contract("SealedOpeningJournal", value["sealedOpeningJournal"])
+    _check_production_approval(approval, "$.approvalRecord")
     candidate_digest = _digest_value("ReleaseCandidateLock", candidate)
     approval_digest = _digest_value("ApprovalRecord", approval)
     schedule_digest = _digest_value("PreparedSchedule", schedule)
@@ -458,19 +499,27 @@ def _check_public_release_bundle(value: dict[str, Any]) -> None:
     provenance = parse_contract("ProvenanceApprovalRecord", value["provenanceApprovalRecord"])
     candidate_approval = parse_contract("ApprovalRecord", value["candidateFreezeApprovalRecord"])
     approval = parse_contract("ApprovalRecord", value["approvalRecord"])
+    _check_production_approval(provenance, "$.provenanceApprovalRecord")
+    _check_production_approval(candidate_approval, "$.candidateFreezeApprovalRecord")
+    _check_production_approval(approval, "$.approvalRecord")
     if decision["overallDecision"] != "pass" or provenance["decision"] != "approved":
         _fail(ReasonCodes.BINDING_MISMATCH, "$.releaseGateDecision")
     if candidate_approval["gate"] != "candidate_freeze" or candidate_approval["decision"] != "approved":
         _fail(ReasonCodes.BINDING_MISMATCH, "$.candidateFreezeApprovalRecord")
     if approval["gate"] != "public_release" or approval["decision"] != "approved":
         _fail(ReasonCodes.BINDING_MISMATCH, "$.approvalRecord")
+    provenance_digest = _digest_value("ProvenanceApprovalRecord", provenance)
+    if candidate_approval["boundDigests"]["candidateDigest"] != decision["candidateDigest"]:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.candidateFreezeApprovalRecord.boundDigests.candidateDigest")
+    if candidate_approval["boundDigests"]["provenanceApprovalDigest"] != provenance_digest:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.candidateFreezeApprovalRecord.boundDigests.provenanceApprovalDigest")
     expected = copy.deepcopy(approval["boundDigests"])
     expected.update(
         {
             "finalArchiveDigest": package["archiveDigest"],
             "packageArchiveRecordDigest": _digest_value("PackageArchiveRecord", package),
             "releaseDecisionDigest": _digest_value("ReleaseGateDecision", decision),
-            "provenanceApprovalDigest": _digest_value("ProvenanceApprovalRecord", provenance),
+            "provenanceApprovalDigest": provenance_digest,
             "candidateFreezeApprovalDigest": _digest_value("ApprovalRecord", candidate_approval),
         }
     )
@@ -487,6 +536,7 @@ def _check_publication_bundle(value: dict[str, Any]) -> None:
     decision = parse_contract("ReleaseGateDecision", value["releaseGateDecision"])
     approval = parse_contract("ApprovalRecord", value["approvalRecord"])
     publication = parse_contract("PublicationRecord", value["publicationRecord"])
+    _check_production_approval(approval, "$.approvalRecord")
     if decision["overallDecision"] != "pass" or approval["gate"] != "public_release" or approval["decision"] != "approved":
         _fail(ReasonCodes.BINDING_MISMATCH, "$.approvalRecord")
     if approval["boundDigests"]["finalArchiveDigest"] != package["archiveDigest"]:
@@ -512,6 +562,33 @@ def _check_publication_bundle(value: dict[str, Any]) -> None:
     value["publicationRecord"] = publication
 
 
+def _check_staged_outcome_bundle(value: dict[str, Any]) -> None:
+    unclassified = parse_contract("UnclassifiedStagedAttemptOutcome", value["unclassifiedOutcome"])
+    staged = parse_contract("StagedAttemptOutcome", value["stagedOutcome"])
+    if staged["unclassifiedOutcomeDigest"] != _digest_value("UnclassifiedStagedAttemptOutcome", unclassified):
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.stagedOutcome.unclassifiedOutcomeDigest")
+    for field in (
+        "attemptId",
+        "runId",
+        "conditionDigest",
+        "scenarioDigest",
+        "environmentQualificationDigest",
+        "lifecycleEventDigests",
+        "attemptQualification",
+        "observedModel",
+        "processState",
+        "agentDeclaredState",
+        "inputPermissionState",
+        "infrastructureValidity",
+        "consumption",
+        "stagingManifestDigest",
+    ):
+        if staged[field] != unclassified[field]:
+            _fail(ReasonCodes.BINDING_MISMATCH, "$.stagedOutcome." + field)
+    value["unclassifiedOutcome"] = unclassified
+    value["stagedOutcome"] = staged
+
+
 def _run_parser_checks(kind: str, value: dict[str, Any]) -> None:
     if kind == "EvaluationClaim":
         _check_evaluation_claim(value)
@@ -523,6 +600,8 @@ def _run_parser_checks(kind: str, value: dict[str, Any]) -> None:
         _check_blinded_baseline(value)
     elif kind in {"ProcessState"}:
         _check_process_state(value, "$")
+    elif kind == "StagedAttemptOutcomeBundle":
+        _check_staged_outcome_bundle(value)
     elif kind == "RunRecord":
         _check_pre_worker_run(value)
     elif kind == "ReleaseCandidateLock":

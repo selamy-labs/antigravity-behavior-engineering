@@ -13,6 +13,11 @@ FIXTURE_PATH = Path("tests/contract/fixtures/evaluation-contracts.json")
 EVALUATION_SCHEMA_PATH = Path("evals/schemas/evaluation.schema.json")
 APPROVAL_SCHEMA_PATH = Path("evals/schemas/approval.schema.json")
 
+TARGET_MODELS = ("gemini-2.5-pro", "gemini-3-pro")
+PUBLIC_CRITERIA = ("SC-001",) + tuple(f"SC-{index:03d}" for index in range(3, 14))
+FIXTURE_EVIDENCE_DIGEST = "sha256:" + "5" * 64
+FIXTURE_SIGNATURE_DIGEST = "sha256:" + "6" * 64
+
 
 def _fixtures():
     return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
@@ -45,12 +50,21 @@ def _sign(record):
     return signed
 
 
+def _production_sign(record):
+    signed = copy.deepcopy(record)
+    signed["signature"]["mechanism"] = "documented_local_approval"
+    signed["signature"]["approvalEvidenceDigest"] = FIXTURE_EVIDENCE_DIGEST
+    signed["signature"]["signatureDigest"] = FIXTURE_SIGNATURE_DIGEST
+    signed["signature"]["signedPayloadDigest"] = _payload_signature_digest(signed)
+    return signed
+
+
 def _digest(kind, value):
     return canonical_contract_digest(kind, value)
 
 
 def _release_objects():
-    provenance = _sign(_case_value("ProvenanceApprovalRecord"))
+    provenance = _production_sign(_case_value("ProvenanceApprovalRecord"))
     provenance_digest = _digest("ProvenanceApprovalRecord", provenance)
 
     candidate = _case_value("ReleaseCandidateLock")
@@ -70,7 +84,7 @@ def _release_objects():
         "resourceEnvelopeDigests": candidate["resourceEnvelopeDigests"],
         "provenanceApprovalDigest": provenance_digest,
     }
-    candidate_approval = _sign(candidate_approval)
+    candidate_approval = _production_sign(candidate_approval)
     candidate_approval_digest = _digest("ApprovalRecord", candidate_approval)
 
     schedule = _case_value("PreparedSchedule")
@@ -100,7 +114,7 @@ def _release_objects():
         "provenanceApprovalDigest": provenance_digest,
         "candidateFreezeApprovalDigest": candidate_approval_digest,
     }
-    public_approval = _sign(public_approval)
+    public_approval = _production_sign(public_approval)
     public_approval_digest = _digest("ApprovalRecord", public_approval)
 
     publication = _case_value("PublicationRecord")
@@ -154,6 +168,20 @@ def test_boundary_contract_fixtures_parse(case):
         assert parsed[key] == expected
 
 
+def test_invalid_and_forward_version_fixture_sections_fail_closed():
+    fixtures = _fixtures()
+    assert fixtures["invalidCases"]
+    assert fixtures["forwardVersionCases"]
+
+    for case in fixtures["invalidCases"]:
+        value = _apply_patch(_case_value(case["base"]), case["patch"])
+        expect_reason(case["kind"], value, case["reasonCode"])
+
+    for case in fixtures["forwardVersionCases"]:
+        value = _apply_patch(_case_value(case["base"]), case["patch"])
+        expect_reason(case["kind"], value, "contract.unsupported_schema_version")
+
+
 def test_unknown_missing_version_and_reason_normalization_have_stable_codes():
     claim = _case_value("EvaluationClaim")
     expect_reason("EvaluationClaim", {**claim, "unexpected": True}, "contract.unknown_field")
@@ -188,6 +216,165 @@ def test_protected_cross_object_bundles_validate_digest_bindings():
             "schemaVersion": 1,
             "releaseCandidateLock": objects["releaseCandidateLock"],
             "provenanceApprovalRecord": objects["provenanceApprovalRecord"],
+        },
+    )
+
+
+def test_public_release_bundle_rejects_candidate_freeze_for_other_candidate_or_provenance():
+    objects = _release_objects()
+
+    other_candidate_approval = copy.deepcopy(objects["candidateFreezeApprovalRecord"])
+    other_candidate_approval["boundDigests"]["candidateDigest"] = "sha256:" + "0" * 64
+    other_candidate_approval = _production_sign(other_candidate_approval)
+    public_approval = copy.deepcopy(objects["publicReleaseApprovalRecord"])
+    public_approval["boundDigests"]["candidateFreezeApprovalDigest"] = _digest(
+        "ApprovalRecord", other_candidate_approval
+    )
+    public_approval = _production_sign(public_approval)
+    with pytest.raises(ContractValidationError) as excinfo:
+        parse_contract(
+            "PublicReleaseApprovalBundle",
+            {
+                "schemaVersion": 1,
+                "packageArchiveRecord": objects["packageArchiveRecord"],
+                "releaseGateDecision": objects["releaseGateDecision"],
+                "provenanceApprovalRecord": objects["provenanceApprovalRecord"],
+                "candidateFreezeApprovalRecord": other_candidate_approval,
+                "approvalRecord": public_approval,
+            },
+        )
+    assert excinfo.value.reason_code == "contract.binding_mismatch"
+
+    other_provenance_approval = copy.deepcopy(objects["candidateFreezeApprovalRecord"])
+    other_provenance_approval["boundDigests"]["provenanceApprovalDigest"] = "sha256:" + "1" * 64
+    other_provenance_approval = _production_sign(other_provenance_approval)
+    public_approval = copy.deepcopy(objects["publicReleaseApprovalRecord"])
+    public_approval["boundDigests"]["candidateFreezeApprovalDigest"] = _digest(
+        "ApprovalRecord", other_provenance_approval
+    )
+    public_approval = _production_sign(public_approval)
+    with pytest.raises(ContractValidationError) as excinfo:
+        parse_contract(
+            "PublicReleaseApprovalBundle",
+            {
+                "schemaVersion": 1,
+                "packageArchiveRecord": objects["packageArchiveRecord"],
+                "releaseGateDecision": objects["releaseGateDecision"],
+                "provenanceApprovalRecord": objects["provenanceApprovalRecord"],
+                "candidateFreezeApprovalRecord": other_provenance_approval,
+                "approvalRecord": public_approval,
+            },
+        )
+    assert excinfo.value.reason_code == "contract.binding_mismatch"
+
+
+def test_release_gate_requires_exact_target_models_and_complete_public_criteria():
+    missing_criterion = _case_value("ReleaseGateDecision")
+    missing_criterion["perModelDecisions"]["gemini-2.5-pro"]["criterionResults"].pop("SC-013")
+    expect_reason("ReleaseGateDecision", missing_criterion, "contract.binding_mismatch")
+
+    wrong_model_keys = _case_value("ReleaseGateDecision")
+    renamed = wrong_model_keys["perModelDecisions"].pop("gemini-3-pro")
+    renamed["modelRequest"] = "gemini-4-pro"
+    wrong_model_keys["perModelDecisions"]["gemini-4-pro"] = renamed
+    expect_reason("ReleaseGateDecision", wrong_model_keys, "contract.binding_mismatch")
+
+
+def test_production_approval_bundles_reject_fixture_signatures():
+    objects = _release_objects()
+
+    fixture_candidate_approval = copy.deepcopy(objects["candidateFreezeApprovalRecord"])
+    fixture_candidate_approval["signature"]["mechanism"] = "fixture_signature"
+    fixture_candidate_approval = _sign(fixture_candidate_approval)
+    expect_reason(
+        "CandidateFreezeApprovalBundle",
+        {
+            "schemaVersion": 1,
+            "releaseCandidateLock": objects["releaseCandidateLock"],
+            "provenanceApprovalRecord": objects["provenanceApprovalRecord"],
+            "approvalRecord": fixture_candidate_approval,
+        },
+        "contract.binding_mismatch",
+    )
+
+    fixture_public_approval = copy.deepcopy(objects["publicReleaseApprovalRecord"])
+    fixture_public_approval["signature"]["mechanism"] = "fixture_signature"
+    fixture_public_approval = _sign(fixture_public_approval)
+    expect_reason(
+        "PublicReleaseApprovalBundle",
+        {
+            "schemaVersion": 1,
+            "packageArchiveRecord": objects["packageArchiveRecord"],
+            "releaseGateDecision": objects["releaseGateDecision"],
+            "provenanceApprovalRecord": objects["provenanceApprovalRecord"],
+            "candidateFreezeApprovalRecord": objects["candidateFreezeApprovalRecord"],
+            "approvalRecord": fixture_public_approval,
+        },
+        "contract.binding_mismatch",
+    )
+
+
+def test_condition_pair_uses_authoritative_reasoning_request_and_treatment_only_difference():
+    old_reasoning_pointer = _case_value("ConditionPairLock")
+    old_reasoning_pointer["requiredEqualFields"] = [
+        "/reasoningConfigurationDigest" if pointer == "/reasoningRequest" else pointer
+        for pointer in old_reasoning_pointer["requiredEqualFields"]
+    ]
+    expect_reason("ConditionPairLock", old_reasoning_pointer, "contract.binding_mismatch")
+
+    hidden_difference = _case_value("ConditionPairLock")
+    hidden_difference["allowedDifferences"] = ["/enabledComponents", "/hiddenChecks"]
+    expect_reason("ConditionPairLock", hidden_difference, "contract.binding_mismatch")
+
+
+def test_release_candidate_requires_exact_condition_lock_keys():
+    missing_condition = _case_value("ReleaseCandidateLock")
+    missing_condition["conditionLockDigests"].pop("gemini-3-pro/full")
+    expect_reason("ReleaseCandidateLock", missing_condition, "contract.binding_mismatch")
+
+    extra_condition = _case_value("ReleaseCandidateLock")
+    extra_condition["conditionLockDigests"]["gemini-3-pro/pooled"] = "sha256:" + "0" * 64
+    expect_reason("ReleaseCandidateLock", extra_condition, "contract.binding_mismatch")
+
+
+def test_staged_attempt_outcome_bundle_binds_unclassified_input_digest():
+    unclassified = _case_value("UnclassifiedStagedAttemptOutcome")
+    staged = _case_value("StagedAttemptOutcome")
+    staged["unclassifiedOutcomeDigest"] = _digest("UnclassifiedStagedAttemptOutcome", unclassified)
+    parse_contract(
+        "StagedAttemptOutcomeBundle",
+        {
+            "schemaVersion": 1,
+            "unclassifiedOutcome": unclassified,
+            "stagedOutcome": staged,
+        },
+    )
+
+    tampered = copy.deepcopy(staged)
+    tampered["unclassifiedOutcomeDigest"] = "sha256:" + "0" * 64
+    expect_reason(
+        "StagedAttemptOutcomeBundle",
+        {
+            "schemaVersion": 1,
+            "unclassifiedOutcome": unclassified,
+            "stagedOutcome": tampered,
+        },
+        "contract.binding_mismatch",
+    )
+
+
+def test_approval_bound_digest_maps_are_order_insensitive():
+    objects = _release_objects()
+    reordered = copy.deepcopy(objects["candidateFreezeApprovalRecord"])
+    reordered["boundDigests"] = dict(reversed(list(reordered["boundDigests"].items())))
+    reordered = _production_sign(reordered)
+    parse_contract(
+        "CandidateFreezeApprovalBundle",
+        {
+            "schemaVersion": 1,
+            "releaseCandidateLock": objects["releaseCandidateLock"],
+            "provenanceApprovalRecord": objects["provenanceApprovalRecord"],
+            "approvalRecord": reordered,
         },
     )
     parse_contract(

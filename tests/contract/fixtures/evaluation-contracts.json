@@ -9,13 +9,18 @@
         "componentKind": "skill",
         "componentName": "verification-before-completion",
         "capability": "For frozen substantial tasks, the selected component increases verified completion without increasing protected attrition.",
-        "taskFamilyIds": ["family-alpha", "family-beta"],
+        "taskFamilyIds": [
+          "family-alpha",
+          "family-beta"
+        ],
         "estimandDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
         "introductionEvidenceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
         "leaveOneOutEvidenceDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
         "resourceEnvelopeDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
         "selectionDecision": "selected",
-        "limitations": ["Synthetic fixture evidence only."]
+        "limitations": [
+          "Synthetic fixture evidence only."
+        ]
       }
     },
     {
@@ -31,11 +36,13 @@
           "/environmentDigest",
           "/modelRequest",
           "/permissionDigest",
-          "/reasoningConfigurationDigest",
+          "/reasoningRequest",
           "/resourceEnvelopeDigest",
           "/toolInventoryDigest"
         ],
-        "allowedDifferences": ["/enabledComponents"],
+        "allowedDifferences": [
+          "/enabledComponents"
+        ],
         "validatorDigest": "sha256:3030303030303030303030303030303030303030303030303030303030303030",
         "validatedAt": "2026-08-18T12:00:00Z",
         "result": "pass"
@@ -52,7 +59,10 @@
           "sha256:2323232323232323232323232323232323232323232323232323232323232323"
         ],
         "blindedBaselineInputDigest": "sha256:3434343434343434343434343434343434343434343434343434343434343434",
-        "estimands": ["completion_lift", "honesty_regression"],
+        "estimands": [
+          "completion_lift",
+          "honesty_regression"
+        ],
         "varianceAssumptions": {
           "schemaVersion": 1,
           "source": "blinded_pilot",
@@ -127,7 +137,9 @@
           "sha256:1414141414141414141414141414141414141414141414141414141414141414",
           "sha256:2525252525252525252525252525252525252525252525252525252525252525"
         ],
-        "analysisLockDigests": ["sha256:3636363636363636363636363636363636363636363636363636363636363636"],
+        "analysisLockDigests": [
+          "sha256:3636363636363636363636363636363636363636363636363636363636363636"
+        ],
         "maskingProtocolDigest": "sha256:4747474747474747474747474747474747474747474747474747474747474747",
         "clusterSummaries": {
           "schemaVersion": 1,
@@ -165,7 +177,9 @@
         },
         "toolPermissionProjection": {
           "schemaVersion": 1,
-          "allowedTools": ["shell-readonly"],
+          "allowedTools": [
+            "shell-readonly"
+          ],
           "network": "antigravity_inference_only"
         },
         "cliPath": "/opt/antigravity/bin/agy",
@@ -209,13 +223,41 @@
       "kind": "AttemptQualificationRecord",
       "value": {
         "schemaVersion": 1,
-        "authentication": {"schemaVersion": 1, "result": "fail", "evidenceDigest": "sha256:cfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcf"},
-        "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0"},
-        "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"},
-        "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"},
-        "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303"},
-        "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:1313131313131313131313131313131313131313131313131313131313131313"},
-        "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:2424242424242424242424242424242424242424242424242424242424242424"},
+        "authentication": {
+          "schemaVersion": 1,
+          "result": "fail",
+          "evidenceDigest": "sha256:cfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcf"
+        },
+        "fixtureProvisioning": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0"
+        },
+        "modelPreflight": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"
+        },
+        "fallbackProbe": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"
+        },
+        "pluginComponentDiscovery": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303"
+        },
+        "structuredCapturePreflight": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+        },
+        "authorityToolInventory": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:2424242424242424242424242424242424242424242424242424242424242424"
+        },
         "validStartAt": "none"
       }
     },
@@ -224,13 +266,41 @@
       "kind": "AttemptQualificationRecord",
       "value": {
         "schemaVersion": 1,
-        "authentication": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"},
-        "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"},
-        "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"},
-        "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"},
-        "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"},
-        "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"},
-        "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"},
+        "authentication": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"
+        },
+        "fixtureProvisioning": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"
+        },
+        "modelPreflight": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"
+        },
+        "fallbackProbe": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"
+        },
+        "pluginComponentDiscovery": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"
+        },
+        "structuredCapturePreflight": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"
+        },
+        "authorityToolInventory": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"
+        },
         "validStartAt": "2026-08-18T12:10:00Z"
       }
     },
@@ -242,11 +312,22 @@
         "requestedModel": "gemini-2.5-pro",
         "requestedReasoning": "high",
         "servedIdentityEvidence": [
-          {"schemaVersion": 1, "source": "cli-init", "value": "unreported", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}
+          {
+            "schemaVersion": 1,
+            "source": "cli-init",
+            "value": "unreported",
+            "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"
+          }
         ],
-        "fallbackProbeResult": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"},
+        "fallbackProbeResult": {
+          "schemaVersion": 1,
+          "result": "pass",
+          "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"
+        },
         "conclusion": "unobservable",
-        "limitations": ["Provider did not expose a stronger served identity in the fixture."]
+        "limitations": [
+          "Provider did not expose a stronger served identity in the fixture."
+        ]
       }
     },
     {
@@ -287,14 +368,95 @@
         "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
         "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
         "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
-        "lifecycleEventDigests": ["sha256:1313131313131313131313131313131313131313131313131313131313131313"],
-        "attemptQualification": {"schemaVersion": 1, "authentication": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"}, "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"}, "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"}, "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"}, "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"}, "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"}, "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"}, "validStartAt": "2026-08-18T12:10:00Z"},
-        "observedModel": {"schemaVersion": 1, "requestedModel": "gemini-2.5-pro", "requestedReasoning": "high", "servedIdentityEvidence": [{"schemaVersion": 1, "source": "cli-init", "value": "unreported", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}], "fallbackProbeResult": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"}, "conclusion": "unobservable", "limitations": ["Provider did not expose a stronger served identity in the fixture."]},
-        "processState": {"schemaVersion": 1, "workerProcessState": "terminated", "controllerExitCode": 0, "workerExitCode": 0, "signal": "none", "timeout": false, "startedAt": "2026-08-18T12:10:00Z", "endedAt": "2026-08-18T12:12:00Z", "stderrDigest": "none"},
+        "lifecycleEventDigests": [
+          "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+        ],
+        "attemptQualification": {
+          "schemaVersion": 1,
+          "authentication": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"
+          },
+          "fixtureProvisioning": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"
+          },
+          "modelPreflight": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"
+          },
+          "fallbackProbe": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"
+          },
+          "pluginComponentDiscovery": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"
+          },
+          "structuredCapturePreflight": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"
+          },
+          "authorityToolInventory": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"
+          },
+          "validStartAt": "2026-08-18T12:10:00Z"
+        },
+        "observedModel": {
+          "schemaVersion": 1,
+          "requestedModel": "gemini-2.5-pro",
+          "requestedReasoning": "high",
+          "servedIdentityEvidence": [
+            {
+              "schemaVersion": 1,
+              "source": "cli-init",
+              "value": "unreported",
+              "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"
+            }
+          ],
+          "fallbackProbeResult": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"
+          },
+          "conclusion": "unobservable",
+          "limitations": [
+            "Provider did not expose a stronger served identity in the fixture."
+          ]
+        },
+        "processState": {
+          "schemaVersion": 1,
+          "workerProcessState": "terminated",
+          "controllerExitCode": 0,
+          "workerExitCode": 0,
+          "signal": "none",
+          "timeout": false,
+          "startedAt": "2026-08-18T12:10:00Z",
+          "endedAt": "2026-08-18T12:12:00Z",
+          "stderrDigest": "none"
+        },
         "agentDeclaredState": "completed",
         "inputPermissionState": "permitted",
         "infrastructureValidity": "valid",
-        "consumption": {"schemaVersion": 1, "inputTokens": "unavailable", "outputTokens": "unavailable", "cachedTokens": "unavailable", "toolCalls": 3, "subagentCalls": 0, "wallTimeMs": 125000, "quotaOrCost": "unavailable", "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"},
+        "consumption": {
+          "schemaVersion": 1,
+          "inputTokens": "unavailable",
+          "outputTokens": "unavailable",
+          "cachedTokens": "unavailable",
+          "toolCalls": 3,
+          "subagentCalls": 0,
+          "wallTimeMs": 125000,
+          "quotaOrCost": "unavailable",
+          "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+        },
         "stagingManifestDigest": "sha256:edededededededededededededededededededededededededededededededed"
       }
     },
@@ -308,15 +470,104 @@
         "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
         "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
         "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
-        "lifecycleEventDigests": ["sha256:1313131313131313131313131313131313131313131313131313131313131313"],
-        "attemptQualification": {"schemaVersion": 1, "authentication": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"}, "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"}, "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"}, "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"}, "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"}, "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"}, "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"}, "validStartAt": "2026-08-18T12:10:00Z"},
-        "observedModel": {"schemaVersion": 1, "requestedModel": "gemini-2.5-pro", "requestedReasoning": "high", "servedIdentityEvidence": [{"schemaVersion": 1, "source": "cli-init", "value": "unreported", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}], "fallbackProbeResult": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"}, "conclusion": "unobservable", "limitations": ["Provider did not expose a stronger served identity in the fixture."]},
-        "processState": {"schemaVersion": 1, "workerProcessState": "terminated", "controllerExitCode": 0, "workerExitCode": 0, "signal": "none", "timeout": false, "startedAt": "2026-08-18T12:10:00Z", "endedAt": "2026-08-18T12:12:00Z", "stderrDigest": "none"},
+        "lifecycleEventDigests": [
+          "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+        ],
+        "attemptQualification": {
+          "schemaVersion": 1,
+          "authentication": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"
+          },
+          "fixtureProvisioning": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"
+          },
+          "modelPreflight": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"
+          },
+          "fallbackProbe": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"
+          },
+          "pluginComponentDiscovery": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"
+          },
+          "structuredCapturePreflight": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"
+          },
+          "authorityToolInventory": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"
+          },
+          "validStartAt": "2026-08-18T12:10:00Z"
+        },
+        "observedModel": {
+          "schemaVersion": 1,
+          "requestedModel": "gemini-2.5-pro",
+          "requestedReasoning": "high",
+          "servedIdentityEvidence": [
+            {
+              "schemaVersion": 1,
+              "source": "cli-init",
+              "value": "unreported",
+              "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"
+            }
+          ],
+          "fallbackProbeResult": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"
+          },
+          "conclusion": "unobservable",
+          "limitations": [
+            "Provider did not expose a stronger served identity in the fixture."
+          ]
+        },
+        "processState": {
+          "schemaVersion": 1,
+          "workerProcessState": "terminated",
+          "controllerExitCode": 0,
+          "workerExitCode": 0,
+          "signal": "none",
+          "timeout": false,
+          "startedAt": "2026-08-18T12:10:00Z",
+          "endedAt": "2026-08-18T12:12:00Z",
+          "stderrDigest": "none"
+        },
         "agentDeclaredState": "completed",
         "inputPermissionState": "permitted",
         "infrastructureValidity": "valid",
-        "consumption": {"schemaVersion": 1, "inputTokens": "unavailable", "outputTokens": "unavailable", "cachedTokens": "unavailable", "toolCalls": 3, "subagentCalls": 0, "wallTimeMs": 125000, "quotaOrCost": "unavailable", "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"},
-        "classification": {"schemaVersion": 1, "class": "product_failure", "reasonCode": "product_timeout", "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf", "retryEligible": false, "countsInIntentionToTreat": true, "countsInValidRun": false},
+        "consumption": {
+          "schemaVersion": 1,
+          "inputTokens": "unavailable",
+          "outputTokens": "unavailable",
+          "cachedTokens": "unavailable",
+          "toolCalls": 3,
+          "subagentCalls": 0,
+          "wallTimeMs": 125000,
+          "quotaOrCost": "unavailable",
+          "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+        },
+        "classification": {
+          "schemaVersion": 1,
+          "class": "product_failure",
+          "reasonCode": "product_timeout",
+          "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf",
+          "retryEligible": false,
+          "countsInIntentionToTreat": true,
+          "countsInValidRun": false
+        },
         "unclassifiedOutcomeDigest": "sha256:fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe",
         "stagingManifestDigest": "sha256:edededededededededededededededededededededededededededededededed"
       }
@@ -331,17 +582,104 @@
         "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
         "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
         "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
-        "attemptQualification": {"schemaVersion": 1, "authentication": {"schemaVersion": 1, "result": "fail", "evidenceDigest": "sha256:cfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcf"}, "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0"}, "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"}, "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"}, "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303"}, "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:1313131313131313131313131313131313131313131313131313131313131313"}, "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:2424242424242424242424242424242424242424242424242424242424242424"}, "validStartAt": "none"},
-        "observedModel": {"schemaVersion": 1, "requestedModel": "gemini-2.5-pro", "requestedReasoning": "high", "servedIdentityEvidence": [{"schemaVersion": 1, "source": "preflight", "value": "not_started", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}], "fallbackProbeResult": {"schemaVersion": 1, "result": "indeterminate", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"}, "conclusion": "unobservable", "limitations": ["Worker never started."]},
-        "processState": {"schemaVersion": 1, "workerProcessState": "not_started", "controllerExitCode": 64, "workerExitCode": "none", "signal": "none", "timeout": false, "startedAt": "none", "endedAt": "2026-08-18T12:10:00Z", "stderrDigest": "sha256:bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe"},
+        "attemptQualification": {
+          "schemaVersion": 1,
+          "authentication": {
+            "schemaVersion": 1,
+            "result": "fail",
+            "evidenceDigest": "sha256:cfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcf"
+          },
+          "fixtureProvisioning": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0"
+          },
+          "modelPreflight": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"
+          },
+          "fallbackProbe": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"
+          },
+          "pluginComponentDiscovery": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303"
+          },
+          "structuredCapturePreflight": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+          },
+          "authorityToolInventory": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:2424242424242424242424242424242424242424242424242424242424242424"
+          },
+          "validStartAt": "none"
+        },
+        "observedModel": {
+          "schemaVersion": 1,
+          "requestedModel": "gemini-2.5-pro",
+          "requestedReasoning": "high",
+          "servedIdentityEvidence": [
+            {
+              "schemaVersion": 1,
+              "source": "preflight",
+              "value": "not_started",
+              "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"
+            }
+          ],
+          "fallbackProbeResult": {
+            "schemaVersion": 1,
+            "result": "indeterminate",
+            "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"
+          },
+          "conclusion": "unobservable",
+          "limitations": [
+            "Worker never started."
+          ]
+        },
+        "processState": {
+          "schemaVersion": 1,
+          "workerProcessState": "not_started",
+          "controllerExitCode": 64,
+          "workerExitCode": "none",
+          "signal": "none",
+          "timeout": false,
+          "startedAt": "none",
+          "endedAt": "2026-08-18T12:10:00Z",
+          "stderrDigest": "sha256:bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe"
+        },
         "agentDeclaredState": "none",
         "inputPermissionState": "not_visible",
         "infrastructureValidity": "pre_start_failure",
         "artifactManifestDigest": "none",
         "transcriptDigest": "none",
         "eventStreamDigest": "none",
-        "consumption": {"schemaVersion": 1, "inputTokens": "unavailable", "outputTokens": "unavailable", "cachedTokens": "unavailable", "toolCalls": "unavailable", "subagentCalls": "unavailable", "wallTimeMs": 0, "quotaOrCost": "unavailable", "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"},
-        "classification": {"schemaVersion": 1, "class": "infrastructure_failure", "reasonCode": "pre_start_auth_failure", "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf", "retryEligible": true, "countsInIntentionToTreat": true, "countsInValidRun": false},
+        "consumption": {
+          "schemaVersion": 1,
+          "inputTokens": "unavailable",
+          "outputTokens": "unavailable",
+          "cachedTokens": "unavailable",
+          "toolCalls": "unavailable",
+          "subagentCalls": "unavailable",
+          "wallTimeMs": 0,
+          "quotaOrCost": "unavailable",
+          "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+        },
+        "classification": {
+          "schemaVersion": 1,
+          "class": "infrastructure_failure",
+          "reasonCode": "pre_start_auth_failure",
+          "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf",
+          "retryEligible": true,
+          "countsInIntentionToTreat": true,
+          "countsInValidRun": false
+        },
         "rawEvidenceLocator": "content-addressed/runs/run-preworker-001/run.json",
         "redactedEvidenceLocator": "not_redacted"
       }
@@ -356,14 +694,31 @@
         "packageArchiveRecordDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "packageLockDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "qualificationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "conditionLockDigests": {"gemini-2.5-pro/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101", "gemini-2.5-pro/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202", "gemini-3-pro/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303", "gemini-3-pro/full": "sha256:0404040404040404040404040404040404040404040404040404040404040404"},
-        "taskFamilyProtocolDigests": ["sha256:1111111111111111111111111111111111111111111111111111111111111111", "sha256:2222222222222222222222222222222222222222222222222222222222222222"],
-        "analysisLockDigests": ["sha256:3333333333333333333333333333333333333333333333333333333333333333", "sha256:4444444444444444444444444444444444444444444444444444444444444444"],
+        "conditionLockDigests": {
+          "gemini-2.5-pro/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "gemini-2.5-pro/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "gemini-3-pro/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
+          "gemini-3-pro/full": "sha256:0404040404040404040404040404040404040404040404040404040404040404"
+        },
+        "taskFamilyProtocolDigests": [
+          "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+        ],
+        "analysisLockDigests": [
+          "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+        ],
         "precisionPowerLockDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
         "sampleAllocationDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
-        "stoppingRuleDigests": ["sha256:7777777777777777777777777777777777777777777777777777777777777777"],
-        "exclusionPolicyDigests": ["sha256:8888888888888888888888888888888888888888888888888888888888888888"],
-        "resourceEnvelopeDigests": ["sha256:9999999999999999999999999999999999999999999999999999999999999999"],
+        "stoppingRuleDigests": [
+          "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+        ],
+        "exclusionPolicyDigests": [
+          "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+        ],
+        "resourceEnvelopeDigests": [
+          "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        ],
         "componentRegistryDigest": "sha256:abababababababababababababababababababababababababababababababab",
         "regressionResultDigest": "sha256:bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc",
         "lifecycleResultDigest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
@@ -383,11 +738,21 @@
         "adaptationInventoryDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "attributionAndNoticeDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "criticalFindingResolutions": {
-          "finding-001": {"schemaVersion": 1, "disposition": "resolved", "evidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+          "finding-001": {
+            "schemaVersion": 1,
+            "disposition": "resolved",
+            "evidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          }
         },
         "decision": "approved",
         "approvedAt": "2026-08-18T13:10:00Z",
-        "signature": {"schemaVersion": 1, "mechanism": "external_signature", "signer": "reviewer-key-001", "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "signatureDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+        "signature": {
+          "schemaVersion": 1,
+          "mechanism": "fixture_signature",
+          "signer": "reviewer-key-001",
+          "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "signatureDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
       }
     },
     {
@@ -402,19 +767,37 @@
         "boundDigests": {
           "candidateDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "qualificationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-          "protocolDigests": ["sha256:1111111111111111111111111111111111111111111111111111111111111111", "sha256:2222222222222222222222222222222222222222222222222222222222222222"],
-          "analysisLockDigests": ["sha256:3333333333333333333333333333333333333333333333333333333333333333", "sha256:4444444444444444444444444444444444444444444444444444444444444444"],
+          "protocolDigests": [
+            "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+          ],
+          "analysisLockDigests": [
+            "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+          ],
           "precisionPowerLockDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
           "sampleAllocationDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
-          "stoppingRuleDigests": ["sha256:7777777777777777777777777777777777777777777777777777777777777777"],
-          "exclusionPolicyDigests": ["sha256:8888888888888888888888888888888888888888888888888888888888888888"],
-          "resourceEnvelopeDigests": ["sha256:9999999999999999999999999999999999999999999999999999999999999999"],
+          "stoppingRuleDigests": [
+            "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+          ],
+          "exclusionPolicyDigests": [
+            "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+          ],
+          "resourceEnvelopeDigests": [
+            "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+          ],
           "provenanceApprovalDigest": "sha256:dededededededededededededededededededededededededededededededede"
         },
         "publicationTargetDigest": "not_applicable",
         "publicationChannelAuthorityDigest": "not_applicable",
         "approvedAt": "2026-08-18T13:20:00Z",
-        "signature": {"schemaVersion": 1, "mechanism": "external_signature", "signer": "project-owner-key-001", "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "signatureDigest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"},
+        "signature": {
+          "schemaVersion": 1,
+          "mechanism": "fixture_signature",
+          "signer": "project-owner-key-001",
+          "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "signatureDigest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"
+        },
         "supersedes": "none"
       }
     },
@@ -426,8 +809,78 @@
         "modelRequest": "gemini-2.5-pro",
         "scorecardDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "criterionResults": {
-          "SC-001": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "reasonCode": "meets_margin"},
-          "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "reasonCode": "within_envelope"}
+          "SC-001": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:5679c4069cf3cecefa73c9997797b3510b87698ff46ad78a6537123b9fc1b98a",
+            "reasonCode": "meets_margin"
+          },
+          "SC-003": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:ddf1fe8648e88126dfbc5d4f3337429fbdde34c73bc80a3f2cec703dc13c1429",
+            "reasonCode": "meets_margin"
+          },
+          "SC-004": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:6cfdf106d27e5c26102e85da7d51c7b630d8bfcb4e1cf652e0e84c5015c14e50",
+            "reasonCode": "meets_margin"
+          },
+          "SC-005": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:47a1d0d72b50660c6eb136dcf42c0368f824711b16f24210ee3240a61d2419c4",
+            "reasonCode": "meets_margin"
+          },
+          "SC-006": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:21518cbe5ef2928107ef87cbc1be64107859882fc32e3cc76149295ce78d3cb4",
+            "reasonCode": "meets_margin"
+          },
+          "SC-007": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:0e5bd8d554805e44249105ca4f8f7de2c34706e36524443390757027ba1bd008",
+            "reasonCode": "meets_margin"
+          },
+          "SC-008": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:909b305e2d260ed40a759f6ce0659718db09be9df239c7b39077ec0e2fafa6b3",
+            "reasonCode": "meets_margin"
+          },
+          "SC-009": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:7519f094e58dda319d7c25125f89721fc3c81bf97c781265a13f74b3c96a1225",
+            "reasonCode": "meets_margin"
+          },
+          "SC-010": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:4e028222421c406c5d842139d455b4cd84aab68a0e121aa6b30b054623d66adc",
+            "reasonCode": "meets_margin"
+          },
+          "SC-011": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:06846ab65f49a46a6be318c39adfe3be47e8a74bf6963e55b7be686da051c8e0",
+            "reasonCode": "meets_margin"
+          },
+          "SC-012": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:42dc30c3cbee605ec26ad1e5bd8f36a521dc35dedc6463e2a52c9fac5f98e052",
+            "reasonCode": "meets_margin"
+          },
+          "SC-013": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:adefa1b03ac07aa3624aa4e494691cf09588b847e05aed2a89d625b19669d214",
+            "reasonCode": "meets_margin"
+          }
         },
         "decision": "pass",
         "blockingCriteria": [],
@@ -442,12 +895,86 @@
         "modelRequest": "gemini-3-pro",
         "scorecardDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "criterionResults": {
-          "SC-001": {"schemaVersion": 1, "result": "fail", "evidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "reasonCode": "below_margin"},
-          "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "reasonCode": "within_envelope"}
+          "SC-001": {
+            "schemaVersion": 1,
+            "result": "fail",
+            "evidenceDigest": "sha256:89c39a4a4eb6eb804aeceb68f2a2dab2f23ebbb8baea94a928142f6b78cf10cc",
+            "reasonCode": "below_margin"
+          },
+          "SC-003": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:a79fad5718f41ef59b1fd0dc31e41c505560cbea66e187d7994ff412f6dc42e6",
+            "reasonCode": "meets_margin"
+          },
+          "SC-004": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:bab8d5f20dc537bf2ecec36db0a3c28a82c071cc1b15988c7d987e959fac524b",
+            "reasonCode": "meets_margin"
+          },
+          "SC-005": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:92ee39fa67b3d7f63e05b6f9c712ad584ca6956ccdd52d942743edb20e370d55",
+            "reasonCode": "meets_margin"
+          },
+          "SC-006": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:f7cc130380138508393fc2c48131164acae4c550a25815b212eef45ac0133c1b",
+            "reasonCode": "meets_margin"
+          },
+          "SC-007": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:f8d8272be7add2ea29ea4e030db7677cba87eed636e967e05e5d05c89c56baf3",
+            "reasonCode": "meets_margin"
+          },
+          "SC-008": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:663af37606747e227e435e4168c8793d36090b9e49a42b1bbbc55c239baf8d8f",
+            "reasonCode": "meets_margin"
+          },
+          "SC-009": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:a3ef766890f29bfd60ab399fc3bc519438db4eb90b8aec709349a3af518df021",
+            "reasonCode": "meets_margin"
+          },
+          "SC-010": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:50fe8648180b2992127dc0ed1759e7a6f3b1d78ce2859d8ea319ba274d8161cc",
+            "reasonCode": "meets_margin"
+          },
+          "SC-011": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:f2b77fe892d1c259c0141b6f85db4a615e65ea161d63f84d6ec6e7d1297315f3",
+            "reasonCode": "meets_margin"
+          },
+          "SC-012": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:a86c448e508c0ae52cd591191f900b2629fb07bcf58077d985d8e4e4ef26203b",
+            "reasonCode": "meets_margin"
+          },
+          "SC-013": {
+            "schemaVersion": 1,
+            "result": "pass",
+            "evidenceDigest": "sha256:4b7ae2679889ecef36516c07c20966e3c4aa74490b46d62531c3570fa36ed113",
+            "reasonCode": "meets_margin"
+          }
         },
         "decision": "fail",
-        "blockingCriteria": ["SC-001"],
-        "limitations": ["Fixture failure boundary."]
+        "blockingCriteria": [
+          "SC-001"
+        ],
+        "limitations": [
+          "Fixture failure boundary."
+        ]
       }
     },
     {
@@ -460,8 +987,170 @@
         "analysisDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "publicCriteriaDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "perModelDecisions": {
-          "gemini-2.5-pro": {"schemaVersion": 1, "modelRequest": "gemini-2.5-pro", "scorecardDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "criterionResults": {"SC-001": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "reasonCode": "meets_margin"}, "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "reasonCode": "within_envelope"}}, "decision": "pass", "blockingCriteria": [], "limitations": []},
-          "gemini-3-pro": {"schemaVersion": 1, "modelRequest": "gemini-3-pro", "scorecardDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "criterionResults": {"SC-001": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "reasonCode": "meets_margin"}, "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "reasonCode": "within_envelope"}}, "decision": "pass", "blockingCriteria": [], "limitations": []}
+          "gemini-2.5-pro": {
+            "schemaVersion": 1,
+            "modelRequest": "gemini-2.5-pro",
+            "scorecardDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "criterionResults": {
+              "SC-001": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:5679c4069cf3cecefa73c9997797b3510b87698ff46ad78a6537123b9fc1b98a",
+                "reasonCode": "meets_margin"
+              },
+              "SC-003": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:ddf1fe8648e88126dfbc5d4f3337429fbdde34c73bc80a3f2cec703dc13c1429",
+                "reasonCode": "meets_margin"
+              },
+              "SC-004": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:6cfdf106d27e5c26102e85da7d51c7b630d8bfcb4e1cf652e0e84c5015c14e50",
+                "reasonCode": "meets_margin"
+              },
+              "SC-005": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:47a1d0d72b50660c6eb136dcf42c0368f824711b16f24210ee3240a61d2419c4",
+                "reasonCode": "meets_margin"
+              },
+              "SC-006": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:21518cbe5ef2928107ef87cbc1be64107859882fc32e3cc76149295ce78d3cb4",
+                "reasonCode": "meets_margin"
+              },
+              "SC-007": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:0e5bd8d554805e44249105ca4f8f7de2c34706e36524443390757027ba1bd008",
+                "reasonCode": "meets_margin"
+              },
+              "SC-008": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:909b305e2d260ed40a759f6ce0659718db09be9df239c7b39077ec0e2fafa6b3",
+                "reasonCode": "meets_margin"
+              },
+              "SC-009": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:7519f094e58dda319d7c25125f89721fc3c81bf97c781265a13f74b3c96a1225",
+                "reasonCode": "meets_margin"
+              },
+              "SC-010": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:4e028222421c406c5d842139d455b4cd84aab68a0e121aa6b30b054623d66adc",
+                "reasonCode": "meets_margin"
+              },
+              "SC-011": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:06846ab65f49a46a6be318c39adfe3be47e8a74bf6963e55b7be686da051c8e0",
+                "reasonCode": "meets_margin"
+              },
+              "SC-012": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:42dc30c3cbee605ec26ad1e5bd8f36a521dc35dedc6463e2a52c9fac5f98e052",
+                "reasonCode": "meets_margin"
+              },
+              "SC-013": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:adefa1b03ac07aa3624aa4e494691cf09588b847e05aed2a89d625b19669d214",
+                "reasonCode": "meets_margin"
+              }
+            },
+            "decision": "pass",
+            "blockingCriteria": [],
+            "limitations": []
+          },
+          "gemini-3-pro": {
+            "schemaVersion": 1,
+            "modelRequest": "gemini-3-pro",
+            "scorecardDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "criterionResults": {
+              "SC-001": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:89c39a4a4eb6eb804aeceb68f2a2dab2f23ebbb8baea94a928142f6b78cf10cc",
+                "reasonCode": "meets_margin"
+              },
+              "SC-003": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:a79fad5718f41ef59b1fd0dc31e41c505560cbea66e187d7994ff412f6dc42e6",
+                "reasonCode": "meets_margin"
+              },
+              "SC-004": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:bab8d5f20dc537bf2ecec36db0a3c28a82c071cc1b15988c7d987e959fac524b",
+                "reasonCode": "meets_margin"
+              },
+              "SC-005": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:92ee39fa67b3d7f63e05b6f9c712ad584ca6956ccdd52d942743edb20e370d55",
+                "reasonCode": "meets_margin"
+              },
+              "SC-006": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:f7cc130380138508393fc2c48131164acae4c550a25815b212eef45ac0133c1b",
+                "reasonCode": "meets_margin"
+              },
+              "SC-007": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:f8d8272be7add2ea29ea4e030db7677cba87eed636e967e05e5d05c89c56baf3",
+                "reasonCode": "meets_margin"
+              },
+              "SC-008": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:663af37606747e227e435e4168c8793d36090b9e49a42b1bbbc55c239baf8d8f",
+                "reasonCode": "meets_margin"
+              },
+              "SC-009": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:a3ef766890f29bfd60ab399fc3bc519438db4eb90b8aec709349a3af518df021",
+                "reasonCode": "meets_margin"
+              },
+              "SC-010": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:50fe8648180b2992127dc0ed1759e7a6f3b1d78ce2859d8ea319ba274d8161cc",
+                "reasonCode": "meets_margin"
+              },
+              "SC-011": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:f2b77fe892d1c259c0141b6f85db4a615e65ea161d63f84d6ec6e7d1297315f3",
+                "reasonCode": "meets_margin"
+              },
+              "SC-012": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:a86c448e508c0ae52cd591191f900b2629fb07bcf58077d985d8e4e4ef26203b",
+                "reasonCode": "meets_margin"
+              },
+              "SC-013": {
+                "schemaVersion": 1,
+                "result": "pass",
+                "evidenceDigest": "sha256:4b7ae2679889ecef36516c07c20966e3c4aa74490b46d62531c3570fa36ed113",
+                "reasonCode": "meets_margin"
+              }
+            },
+            "decision": "pass",
+            "blockingCriteria": [],
+            "limitations": []
+          }
         },
         "overallDecision": "pass",
         "blockingCriteria": [],
@@ -475,7 +1164,11 @@
       "value": {
         "schemaVersion": 1,
         "archiveDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "archiveFormat": {"schemaVersion": 1, "format": "tgz", "version": "1"},
+        "archiveFormat": {
+          "schemaVersion": 1,
+          "format": "tgz",
+          "version": "1"
+        },
         "byteSize": 2048,
         "packageLockDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "behaviorLockDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -494,9 +1187,16 @@
         "sealedBundleDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "qualificationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         "matrixLockDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-        "attemptDigests": ["sha256:0101010101010101010101010101010101010101010101010101010101010101", "sha256:0202020202020202020202020202020202020202020202020202020202020202"],
-        "pairLockDigests": ["sha256:0303030303030303030303030303030303030303030303030303030303030303"],
-        "resourceEnvelopeDigests": ["sha256:0404040404040404040404040404040404040404040404040404040404040404"],
+        "attemptDigests": [
+          "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "sha256:0202020202020202020202020202020202020202020202020202020202020202"
+        ],
+        "pairLockDigests": [
+          "sha256:0303030303030303030303030303030303030303030303030303030303030303"
+        ],
+        "resourceEnvelopeDigests": [
+          "sha256:0404040404040404040404040404040404040404040404040404040404040404"
+        ],
         "dispatchCountAtPrepare": 0
       }
     },
@@ -538,7 +1238,13 @@
         "publicationTargetDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
         "publicationChannelAuthorityDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
         "approvedAt": "2026-08-18T17:00:00Z",
-        "signature": {"schemaVersion": 1, "mechanism": "external_signature", "signer": "project-owner-key-001", "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "signatureDigest": "sha256:0404040404040404040404040404040404040404040404040404040404040404"},
+        "signature": {
+          "schemaVersion": 1,
+          "mechanism": "fixture_signature",
+          "signer": "project-owner-key-001",
+          "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "signatureDigest": "sha256:0404040404040404040404040404040404040404040404040404040404040404"
+        },
         "supersedes": "none"
       }
     },
@@ -592,6 +1298,64 @@
         "state": "prepared",
         "resumeEventDigest": "not_resumed",
         "completedAt": "not_completed"
+      }
+    }
+  ],
+  "invalidCases": [
+    {
+      "name": "EvaluationClaimUnknownField",
+      "kind": "EvaluationClaim",
+      "base": "EvaluationClaim",
+      "patch": {
+        "unexpected": true
+      },
+      "reasonCode": "contract.unknown_field"
+    },
+    {
+      "name": "ConditionPairLockMissingReasoningRequest",
+      "kind": "ConditionPairLock",
+      "base": "ConditionPairLock",
+      "patch": {
+        "requiredEqualFields": [
+          "/authorityManifestDigest",
+          "/environmentDigest",
+          "/modelRequest",
+          "/permissionDigest",
+          "/resourceEnvelopeDigest",
+          "/toolInventoryDigest"
+        ]
+      },
+      "reasonCode": "contract.binding_mismatch"
+    },
+    {
+      "name": "ReleaseCandidateLockMissingFullGemini3Condition",
+      "kind": "ReleaseCandidateLock",
+      "base": "ReleaseCandidateLock",
+      "patch": {
+        "conditionLockDigests": {
+          "gemini-2.5-pro/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101",
+          "gemini-2.5-pro/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "gemini-3-pro/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303"
+        }
+      },
+      "reasonCode": "contract.binding_mismatch"
+    }
+  ],
+  "forwardVersionCases": [
+    {
+      "name": "EvaluationClaimSchemaVersion2",
+      "kind": "EvaluationClaim",
+      "base": "EvaluationClaim",
+      "patch": {
+        "schemaVersion": 2
+      }
+    },
+    {
+      "name": "ApprovalRecordSchemaVersion2",
+      "kind": "ApprovalRecord",
+      "base": "ApprovalRecordCandidateFreeze",
+      "patch": {
+        "schemaVersion": 2
       }
     }
   ]
