@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "abe-eval"
+version = "0.0.0"
+description = "Protected evaluator control plane for Antigravity behavior engineering"
+requires-python = ">=3.12,<3.14"
+license = "Apache-2.0"
+dependencies = ["jsonschema>=4.23,<5"]
+
+authors = [
+  {name = "Antigravity Behavior Engineering"}
+]
+
+[project.scripts]
+abe-eval = "abe_eval.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3,<10", "setuptools==84.0.0"]
+
+[tool.uv]
+package = true
+
+# Inventory input for T005 human legal review; not a compatibility or release verdict.
+[tool.abe.locked-licenses]
+attrs = { version = "26.1.0", spdx = "MIT" }
+colorama = { version = "0.4.6", spdx = "BSD-3-Clause" }
+iniconfig = { version = "2.3.0", spdx = "MIT" }
+jsonschema = { version = "4.26.0", spdx = "MIT" }
+jsonschema-specifications = { version = "2025.9.1", spdx = "MIT" }
+packaging = { version = "26.3", spdx = "Apache-2.0 OR BSD-2-Clause" }
+pluggy = { version = "1.6.0", spdx = "MIT" }
+pygments = { version = "2.21.0", spdx = "BSD-2-Clause" }
+pytest = { version = "9.1.1", spdx = "MIT" }
+referencing = { version = "0.37.0", spdx = "MIT" }
+rpds-py = { version = "2026.6.3", spdx = "MIT" }
+setuptools = { version = "84.0.0", spdx = "MIT" }
+typing-extensions = { version = "4.16.0", spdx = "PSF-2.0" }

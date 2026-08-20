@@ -1,0 +1,26 @@
+{
+  "name": "antigravity-behavior-engineering",
+  "version": "0.0.0",
+  "description": "Antigravity behavior-engineering maintainer workspace",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "format:check": "node --test tests/contract/workspace.test.mjs",
+    "test:node": "node --test",
+    "test:python": "uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), \"requires Python >=3.12,<3.14\"' && if [ -d evaluator/tests ]; then uv run --project evaluator --locked --offline pytest evaluator/tests; fi",
+    "verify": "corepack pnpm verify:offline",
+    "verify:offline": "corepack pnpm format:check && corepack pnpm test:node && corepack pnpm test:python && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py"
+  },
+  "workspaces": [
+    "packages/contracts",
+    "packages/plugin-tooling"
+  ],
+  "engines": {
+    "node": ">=22 <25",
+    "pnpm": ">=10 <12"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T001",
+  "taskTitle": "Bootstrap the reproducible maintainer workspace",
+  "taskEntryDigest": "sha256:5029da8c88ac7a6c809641f7a103ec9bf88dc79fb5ed99b26a01b81076580113",
+  "baseCommit": "1a2c86a8976c6f4fba9ff0e5bfcdb9a7cf837431",
+  "implementationCommit": "a11926d904b78596f786a1b41eaba742bc21cf71",
+  "treeDigest": "sha256:f5ce5aa2ce7302b65a2a786e812946429e151cbc8f8d209ad44d7273ceb5f3ba",
+  "outcome": "implemented",
+  "files": {
+    ".gitignore": "sha256:9f144b83e21c4b7b77f6b0a240f1aa9f069b08508096e0a52f9e456705ba252b",
+    "evaluator/pyproject.toml": "sha256:08579c30dc62bddfd7311184968516e8f227aa5ba5f5e4c9035a5db3bf542ebd",
+    "evaluator/src/abe_eval/__init__.py": "sha256:35a3bdfe1b17c04db4d1a5f3e91629d54c80d362c7b8d245c55827f1087e325d",
+    "evaluator/uv.lock": "sha256:7c262c1419e13fc1fffca80b9ec1b3490faf27674726fef4a08445084c5199e5",
+    "package.json": "sha256:07ec496ed929e0780b620138326324636cb141b813956767ae412278c8c9b90e",
+    "packages/contracts/package.json": "sha256:c964153dc70276e00955bcd45f563abe7389c009fbd4646b7441221de1934304",
+    "packages/plugin-tooling/package.json": "sha256:4015541cc0c61ef4a03176e794762b0d3eec837e8d7792d258d344264d6d8957",
+    "pnpm-lock.yaml": "sha256:ecf92763baccdef0ebacd47ffe0bacfccecabf9a011e8677bcafcf67d98a9f28",
+    "pnpm-workspace.yaml": "sha256:2321049eca2e321de0a2f08c6da9a0dde4e471ec688d8a475b56d25cfbab2d0e",
+    "tests/contract/workspace.test.mjs": "sha256:00cca2d7d75e40b1e97654b9dcf317624a8da6fece84d0c815b8b5b5d9a47536"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/contract/workspace.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:9a0c5d3f610f798e5efe175ab348d490f9901a3945c4345b0f5c1b675df4ace8"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "tests/contract/workspace.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:441b5974528c546fb43870e8a97e73ec31a38a6615e679cd9fc929fa062147b8"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["corepack", "pnpm", "install", "--frozen-lockfile"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:b92708bd00a560d05a37091e0f13860350871e231bff081211646f8b3a73bd76"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["uv", "lock", "--project", "evaluator", "--check"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:38794ebfb6044dd2098cf0609289a2c29d9b8bd53f93a7eaa031e565b942917d"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["corepack", "pnpm", "test:node"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:f4a1e50575006c64b5b756bf23fc018509d56d1b8f567c491af88f4a15e7570a"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["uv", "run", "--project", "evaluator", "python", "-c", "import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["corepack", "pnpm", "verify:offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:144fa8fd8f44c539bcf5ea72eb304660584f9e7da0544e10d8c0937d9e135130"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["corepack", "pnpm", "verify"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:7d3cf066d567f5220b279cc60ed602588a08519c2fd40b4ca3769f6b34148838"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["uv", "build", "--project", "evaluator"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c1576f914172229bf98dad0927f3b9a2a17b700f33d7abe76af3f316412f50eb"
+    },
+    {
+      "phase": "gate",
+      "argv": ["public-boundary-scan", "a11926d904b78596f786a1b41eaba742bc21cf71"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:98d6ad1e16907cef3f2059c4a801d9c2cc8bd532f5a9f6284657b4d9fb34aac9"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:507d185ac1c7489bca0b1038b301fc97e6040fd081be48253cdc44a3aed96534",
+      "verdictDigest": "sha256:7668dc84500ea01ffe82c56935b98ca7e7b85a69136ca0e3366df0c4d074a158",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:ae86f7763bfea19c90279028a7f8725b2628487d2f6ae39e015956457c1df74a",
+      "verdictDigest": "sha256:5b6bf32fc43c8622c333b616b35d17c13e5324473672fe2b4f6b10dd80ba17b4",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:98d6ad1e16907cef3f2059c4a801d9c2cc8bd532f5a9f6284657b4d9fb34aac9",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon this branch; after merge, open a new T001-linked revert PR without rewriting history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-20T15:44:29Z"
+}
