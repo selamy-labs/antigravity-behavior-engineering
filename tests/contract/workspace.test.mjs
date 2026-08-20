@@ -53,10 +53,13 @@ assert.match(projectSection, /^version\s*=\s*"0\.0\.0"\s*$/m, 'evaluator: versio
 assert.match(projectSection, /^license\s*=\s*"Apache-2\.0"\s*$/m, 'evaluator: license');
 assert.match(projectSection, /^dependencies\s*=\s*\[\]\s*$/m, 'evaluator: runtime dependencies');
 assert.match(scriptsSection, /^abe-eval\s*=\s*"abe_eval\.cli:main"\s*$/m, 'evaluator: CLI entry point');
-assert.match(dependencyGroupsSection, /^dev\s*=\s*\[\]\s*$/m, 'evaluator: dev dependency group');
+assert.match(
+  dependencyGroupsSection,
+  /^dev\s*=\s*\["pytest>=8\.3,<10"\]\s*$/m,
+  'evaluator: dev dependency group',
+);
 assert.match(pyproject, /^package\s*=\s*true\s*$/m, 'evaluator: uv package mode');
 assert.ok(fs.existsSync(path.join(ROOT, 'evaluator', 'src', 'abe_eval', '__init__.py')), 'evaluator: package marker');
-assert.ok(fs.existsSync(path.join(ROOT, 'evaluator', 'src', 'abe_eval', 'cli.py')), 'evaluator: CLI module');
 
 const pnpmWorkspaceMembers = pnpmWorkspace
   .split('\n')
@@ -74,7 +77,11 @@ assert.deepEqual(
   ['.', 'packages/contracts', 'packages/plugin-tooling'],
   'pnpm lock importers',
 );
-assert.equal((uvLock.match(/^\[\[package\]\]$/gm) ?? []).length, 1, 'uv lock package count');
+const uvPackageNames = [...uvLock.matchAll(/^\[\[package\]\]\nname = "([^"]+)"$/gm)].map(
+  (match) => match[1],
+);
+assert.ok(uvPackageNames.length > 1, 'uv lock must resolve evaluator dev tools');
+assert.ok(uvPackageNames.includes('pytest'), 'uv lock must resolve pytest');
 assert.match(uvLock, /^name = "abe-eval"$/m, 'uv lock evaluator package');
 
 for (const expected of [
@@ -89,12 +96,13 @@ for (const expected of [
       packageManager: 'pnpm@11.9.0',
       scripts: {
         'test:node': 'node --test tests/contract/workspace.test.mjs',
-        'test:python': "uv run --project evaluator --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)'",
-        'verify:offline': 'node --check tests/contract/workspace.test.mjs && uv run --project evaluator --offline python -m py_compile evaluator/src/abe_eval/__init__.py evaluator/src/abe_eval/cli.py',
+        'test:python': "uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)'",
+        'verify:offline': 'node --test tests/contract/workspace.test.mjs && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py',
       },
       workspaces: ['packages/contracts', 'packages/plugin-tooling'],
       dependencies: {},
       devDependencies: {},
+      main: undefined,
       exports: undefined,
       bin: undefined,
       ignoredPaths: [
@@ -113,8 +121,9 @@ for (const expected of [
       version: '0.0.0',
       license: 'Apache-2.0',
       type: 'module',
-      exports: { '.': './src/index.mjs' },
-      bin: { 'abe-contracts': 'bin/abi.js' },
+      main: undefined,
+      exports: undefined,
+      bin: undefined,
       dependencies: {},
       devDependencies: {},
     },
@@ -127,8 +136,9 @@ for (const expected of [
       version: '0.0.0',
       license: 'Apache-2.0',
       type: 'module',
-      exports: { '.': './src/index.mjs' },
-      bin: { 'abe-plugin-tooling': 'bin/tooling.js' },
+      main: undefined,
+      exports: undefined,
+      bin: undefined,
       dependencies: {},
       devDependencies: {},
     },
@@ -150,6 +160,7 @@ for (const expected of [
   if (expected.spec.devDependencies) {
     assert.deepEqual(loaded.devDependencies, expected.spec.devDependencies, `${expected.id}: devDependencies`);
   }
+  assert.deepEqual(loaded.main, expected.spec.main, `${expected.id}: main`);
   assert.deepEqual(loaded.exports, expected.spec.exports, `${expected.id}: exports`);
   assert.deepEqual(loaded.bin, expected.spec.bin, `${expected.id}: bin`);
   if (expected.spec.scripts) {
