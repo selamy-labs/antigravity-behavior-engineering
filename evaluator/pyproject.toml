@@ -19,5 +19,3 @@ dev = []
 
 [tool.uv]
 package = true
-
-[tool.uv.sources]

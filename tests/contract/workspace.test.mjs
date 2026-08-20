@@ -11,6 +11,9 @@ const readJson = (relativePath) => {
 
 const packageJson = readJson('package.json');
 const pyproject = fs.readFileSync(path.join(ROOT, 'evaluator', 'pyproject.toml'), 'utf8');
+const pnpmWorkspace = fs.readFileSync(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8');
+const pnpmLock = fs.readFileSync(path.join(ROOT, 'pnpm-lock.yaml'), 'utf8');
+const uvLock = fs.readFileSync(path.join(ROOT, 'evaluator', 'uv.lock'), 'utf8');
 const ignoreLines = fs
   .readFileSync(path.join(ROOT, '.gitignore'), 'utf8')
   .split('\n')
@@ -19,16 +22,60 @@ const ignoreLines = fs
 
 const nodeVersion = process.versions.node.split('.').map((value) => Number(value));
 assert(nodeVersion[0] >= 22 && nodeVersion[0] < 25, `node range unsupported: ${process.version}`);
-
-const pythonRangeLine = pyproject
-  .split('\n')
-  .find((line) => line.trim().startsWith('requires-python'));
-assert.ok(pythonRangeLine, 'evaluator pyproject must define requires-python');
-assert.equal(
-  pythonRangeLine.split('=')[1]?.trim().replaceAll('"', ''),
-  '>=3.12,<3.14',
-  `unexpected evaluator python range: ${pythonRangeLine}`,
+assert.deepEqual(
+  packageJson.engines,
+  { node: '>=22 <25', pnpm: '>=10 <12' },
+  'root: engines',
 );
+
+const pythonRangeMatch = pyproject.match(/^requires-python\s*=\s*"([^"]+)"\s*$/m);
+assert.ok(pythonRangeMatch, 'evaluator pyproject must define requires-python');
+assert.equal(
+  pythonRangeMatch[1],
+  '>=3.12,<3.14',
+  `unexpected evaluator python range: ${pythonRangeMatch[0]}`,
+);
+
+const projectSection = pyproject.slice(
+  pyproject.indexOf('[project]'),
+  pyproject.indexOf('[project.scripts]'),
+);
+const scriptsSection = pyproject.slice(
+  pyproject.indexOf('[project.scripts]'),
+  pyproject.indexOf('[dependency-groups]'),
+);
+const dependencyGroupsSection = pyproject.slice(
+  pyproject.indexOf('[dependency-groups]'),
+  pyproject.indexOf('[tool.uv]'),
+);
+assert.match(projectSection, /^name\s*=\s*"abe-eval"\s*$/m, 'evaluator: name');
+assert.match(projectSection, /^version\s*=\s*"0\.0\.0"\s*$/m, 'evaluator: version');
+assert.match(projectSection, /^license\s*=\s*"Apache-2\.0"\s*$/m, 'evaluator: license');
+assert.match(projectSection, /^dependencies\s*=\s*\[\]\s*$/m, 'evaluator: runtime dependencies');
+assert.match(scriptsSection, /^abe-eval\s*=\s*"abe_eval\.cli:main"\s*$/m, 'evaluator: CLI entry point');
+assert.match(dependencyGroupsSection, /^dev\s*=\s*\[\]\s*$/m, 'evaluator: dev dependency group');
+assert.match(pyproject, /^package\s*=\s*true\s*$/m, 'evaluator: uv package mode');
+assert.ok(fs.existsSync(path.join(ROOT, 'evaluator', 'src', 'abe_eval', '__init__.py')), 'evaluator: package marker');
+assert.ok(fs.existsSync(path.join(ROOT, 'evaluator', 'src', 'abe_eval', 'cli.py')), 'evaluator: CLI module');
+
+const pnpmWorkspaceMembers = pnpmWorkspace
+  .split('\n')
+  .map((line) => line.trim())
+  .filter((line) => line.startsWith('- '))
+  .map((line) => line.slice(2).replace(/^['"]|['"]$/g, ''));
+assert.deepEqual(
+  pnpmWorkspaceMembers,
+  ['packages/contracts', 'packages/plugin-tooling'],
+  'pnpm workspace members',
+);
+assert.match(pnpmLock, /^lockfileVersion: '9\.0'$/m, 'pnpm lockfile version');
+assert.deepEqual(
+  [...pnpmLock.matchAll(/^  ([^:\n]+): \{\}$/gm)].map((match) => match[1]),
+  ['.', 'packages/contracts', 'packages/plugin-tooling'],
+  'pnpm lock importers',
+);
+assert.equal((uvLock.match(/^\[\[package\]\]$/gm) ?? []).length, 1, 'uv lock package count');
+assert.match(uvLock, /^name = "abe-eval"$/m, 'uv lock evaluator package');
 
 for (const expected of [
   {
@@ -40,14 +87,21 @@ for (const expected of [
       license: 'Apache-2.0',
       type: 'module',
       packageManager: 'pnpm@11.9.0',
-      scripts: ['test:node', 'test:python', 'verify:offline'],
+      scripts: {
+        'test:node': 'node --test tests/contract/workspace.test.mjs',
+        'test:python': "uv run --project evaluator --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)'",
+        'verify:offline': 'node --check tests/contract/workspace.test.mjs && uv run --project evaluator --offline python -m py_compile evaluator/src/abe_eval/__init__.py evaluator/src/abe_eval/cli.py',
+      },
       workspaces: ['packages/contracts', 'packages/plugin-tooling'],
       dependencies: {},
       devDependencies: {},
+      exports: undefined,
+      bin: undefined,
       ignoredPaths: [
-        '/evidence/raw',
-        '/evidence/publishable',
-        '/evidence/qualification',
+        '/evidence/raw/',
+        '/evidence/publishable/',
+        '/evidence/qualification/',
+        '/evidence/locked/',
       ],
     },
   },
@@ -96,16 +150,10 @@ for (const expected of [
   if (expected.spec.devDependencies) {
     assert.deepEqual(loaded.devDependencies, expected.spec.devDependencies, `${expected.id}: devDependencies`);
   }
-  if (expected.spec.exports) {
-    assert.deepEqual(loaded.exports, expected.spec.exports, `${expected.id}: exports`);
-  }
-  if (expected.spec.bin) {
-    assert.deepEqual(loaded.bin, expected.spec.bin, `${expected.id}: bin`);
-  }
+  assert.deepEqual(loaded.exports, expected.spec.exports, `${expected.id}: exports`);
+  assert.deepEqual(loaded.bin, expected.spec.bin, `${expected.id}: bin`);
   if (expected.spec.scripts) {
-    for (const script of expected.spec.scripts) {
-      assert.ok(loaded.scripts?.[script], `${expected.id}: missing script ${script}`);
-    }
+    assert.deepEqual(loaded.scripts, expected.spec.scripts, `${expected.id}: scripts`);
   }
   if (expected.spec.ignoredPaths) {
     for (const ignored of expected.spec.ignoredPaths) {
@@ -113,3 +161,5 @@ for (const expected of [
     }
   }
 }
+
+assert.ok(ignoreLines.includes('*.egg-info/'), 'missing .gitignore entry *.egg-info/');
