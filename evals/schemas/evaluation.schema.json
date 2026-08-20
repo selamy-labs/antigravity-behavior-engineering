@@ -1,0 +1,654 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.antigravity-behavior-engineering.local/evaluation.schema.json",
+  "$defs": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "DigestOrNone": {
+      "oneOf": [
+        { "$ref": "#/$defs/Digest" },
+        { "const": "none" }
+      ]
+    },
+    "DigestOrNotApplicable": {
+      "oneOf": [
+        { "$ref": "#/$defs/Digest" },
+        { "const": "not_applicable" }
+      ]
+    },
+    "Timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "TimestampOrNone": {
+      "oneOf": [
+        { "$ref": "#/$defs/Timestamp" },
+        { "const": "none" }
+      ]
+    },
+    "StringArray": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "DigestArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Digest" }
+    },
+    "PassFailEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "result", "evidenceDigest"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "result": { "enum": ["pass", "fail", "indeterminate"] },
+        "evidenceDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "ObservedIdentityEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "source", "value", "digest"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 },
+        "digest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "AttemptQualificationRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "authentication",
+        "fixtureProvisioning",
+        "modelPreflight",
+        "fallbackProbe",
+        "pluginComponentDiscovery",
+        "structuredCapturePreflight",
+        "authorityToolInventory",
+        "validStartAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "authentication": { "$ref": "#/$defs/PassFailEvidence" },
+        "fixtureProvisioning": { "$ref": "#/$defs/PassFailEvidence" },
+        "modelPreflight": { "$ref": "#/$defs/PassFailEvidence" },
+        "fallbackProbe": { "$ref": "#/$defs/PassFailEvidence" },
+        "pluginComponentDiscovery": { "$ref": "#/$defs/PassFailEvidence" },
+        "structuredCapturePreflight": { "$ref": "#/$defs/PassFailEvidence" },
+        "authorityToolInventory": { "$ref": "#/$defs/PassFailEvidence" },
+        "validStartAt": { "$ref": "#/$defs/TimestampOrNone" }
+      }
+    },
+    "ObservedModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "requestedModel",
+        "requestedReasoning",
+        "servedIdentityEvidence",
+        "fallbackProbeResult",
+        "conclusion",
+        "limitations"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "requestedModel": { "type": "string", "minLength": 1 },
+        "requestedReasoning": { "type": "string", "minLength": 1 },
+        "servedIdentityEvidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/ObservedIdentityEvidence" }
+        },
+        "fallbackProbeResult": { "$ref": "#/$defs/PassFailEvidence" },
+        "conclusion": { "type": "string", "minLength": 1 },
+        "limitations": { "$ref": "#/$defs/StringArray" }
+      }
+    },
+    "ProcessState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "workerProcessState",
+        "controllerExitCode",
+        "workerExitCode",
+        "signal",
+        "timeout",
+        "startedAt",
+        "endedAt",
+        "stderrDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "workerProcessState": { "enum": ["not_started", "started", "terminated"] },
+        "controllerExitCode": { "type": "integer" },
+        "workerExitCode": {
+          "oneOf": [
+            { "type": "integer" },
+            { "const": "none" }
+          ]
+        },
+        "signal": { "type": "string", "minLength": 1 },
+        "timeout": { "type": "boolean" },
+        "startedAt": { "$ref": "#/$defs/TimestampOrNone" },
+        "endedAt": { "$ref": "#/$defs/Timestamp" },
+        "stderrDigest": { "$ref": "#/$defs/DigestOrNone" }
+      }
+    },
+    "ConsumptionRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "inputTokens",
+        "outputTokens",
+        "cachedTokens",
+        "toolCalls",
+        "subagentCalls",
+        "wallTimeMs",
+        "quotaOrCost",
+        "sourceEvidenceDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "inputTokens": { "$ref": "#/$defs/UnavailableCounter" },
+        "outputTokens": { "$ref": "#/$defs/UnavailableCounter" },
+        "cachedTokens": { "$ref": "#/$defs/UnavailableCounter" },
+        "toolCalls": { "$ref": "#/$defs/UnavailableCounter" },
+        "subagentCalls": { "$ref": "#/$defs/UnavailableCounter" },
+        "wallTimeMs": { "type": "integer", "minimum": 0 },
+        "quotaOrCost": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "integer", "minimum": 0 }
+          ]
+        },
+        "sourceEvidenceDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "UnavailableCounter": {
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "const": "unavailable" }
+      ]
+    },
+    "Classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "class",
+        "reasonCode",
+        "policyDigest",
+        "retryEligible",
+        "countsInIntentionToTreat",
+        "countsInValidRun"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "class": {
+          "enum": ["product_failure", "infrastructure_failure", "safety_refusal", "indeterminate", "gradable"]
+        },
+        "reasonCode": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" },
+        "policyDigest": { "$ref": "#/$defs/Digest" },
+        "retryEligible": { "type": "boolean" },
+        "countsInIntentionToTreat": { "const": true },
+        "countsInValidRun": { "type": "boolean" }
+      }
+    },
+    "EvaluationClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "claimId",
+        "componentKind",
+        "componentName",
+        "capability",
+        "taskFamilyIds",
+        "estimandDigest",
+        "introductionEvidenceDigest",
+        "leaveOneOutEvidenceDigest",
+        "resourceEnvelopeDigest",
+        "selectionDecision",
+        "limitations"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "claimId": { "type": "string", "minLength": 1 },
+        "componentKind": { "enum": ["rule", "skill", "agent", "hook", "script"] },
+        "componentName": { "type": "string", "minLength": 1 },
+        "capability": { "type": "string", "minLength": 1 },
+        "taskFamilyIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "estimandDigest": { "$ref": "#/$defs/Digest" },
+        "introductionEvidenceDigest": { "$ref": "#/$defs/Digest" },
+        "leaveOneOutEvidenceDigest": { "$ref": "#/$defs/Digest" },
+        "resourceEnvelopeDigest": { "$ref": "#/$defs/Digest" },
+        "selectionDecision": { "enum": ["selected", "not_selected"] },
+        "limitations": { "$ref": "#/$defs/StringArray" }
+      }
+    },
+    "ConditionPairLock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "pairId",
+        "baselineConditionDigest",
+        "treatmentConditionDigest",
+        "requiredEqualFields",
+        "allowedDifferences",
+        "validatorDigest",
+        "validatedAt",
+        "result"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "pairId": { "type": "string", "minLength": 1 },
+        "baselineConditionDigest": { "$ref": "#/$defs/Digest" },
+        "treatmentConditionDigest": { "$ref": "#/$defs/Digest" },
+        "requiredEqualFields": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^/.+" }
+        },
+        "allowedDifferences": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^/.+" }
+        },
+        "validatorDigest": { "$ref": "#/$defs/Digest" },
+        "validatedAt": { "$ref": "#/$defs/Timestamp" },
+        "result": { "enum": ["pass", "fail"] }
+      }
+    },
+    "PrecisionPowerLock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "lockId",
+        "analysisLockDigests",
+        "blindedBaselineInputDigest",
+        "estimands",
+        "varianceAssumptions",
+        "clusterAssumptions",
+        "target",
+        "confidenceLevel",
+        "perModelSampleSizes",
+        "scenarioAllocation",
+        "attritionAllowance",
+        "honestyNegativeCohortDigest",
+        "honestyPositiveCohortDigest",
+        "variantReductionPolicyDigest",
+        "multiplicityPolicyDigest",
+        "missingDataPolicyDigest",
+        "computationMethod",
+        "computationDigest",
+        "stoppingRuleDigest",
+        "honestyNegativeVariantMinimumPerModelFullCondition"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "lockId": { "type": "string", "minLength": 1 },
+        "analysisLockDigests": { "$ref": "#/$defs/DigestArray" },
+        "blindedBaselineInputDigest": { "$ref": "#/$defs/Digest" },
+        "estimands": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "varianceAssumptions": { "$ref": "#/$defs/VarianceAssumptions" },
+        "clusterAssumptions": { "$ref": "#/$defs/ClusterAssumptions" },
+        "target": { "$ref": "#/$defs/PowerTarget" },
+        "confidenceLevel": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$" },
+        "perModelSampleSizes": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/PerModelSampleSize" }
+        },
+        "scenarioAllocation": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/ScenarioAllocation" }
+        },
+        "attritionAllowance": { "$ref": "#/$defs/AttritionAllowance" },
+        "honestyNegativeCohortDigest": { "$ref": "#/$defs/DigestOrNotApplicable" },
+        "honestyPositiveCohortDigest": { "$ref": "#/$defs/DigestOrNotApplicable" },
+        "variantReductionPolicyDigest": { "$ref": "#/$defs/DigestOrNotApplicable" },
+        "multiplicityPolicyDigest": { "$ref": "#/$defs/Digest" },
+        "missingDataPolicyDigest": { "$ref": "#/$defs/Digest" },
+        "computationMethod": { "$ref": "#/$defs/ComputationMethod" },
+        "computationDigest": { "$ref": "#/$defs/Digest" },
+        "stoppingRuleDigest": { "$ref": "#/$defs/Digest" },
+        "honestyNegativeVariantMinimumPerModelFullCondition": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            { "const": "not_applicable" }
+          ]
+        }
+      }
+    },
+    "VarianceAssumptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "source", "conservativeTransformDigest"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "conservativeTransformDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "ClusterAssumptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "independentUnit", "intraClusterHandling"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "independentUnit": { "type": "string", "minLength": 1 },
+        "intraClusterHandling": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PowerTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "kind"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "enum": ["power", "precision"] },
+        "halfWidth": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$" },
+        "minimumEffect": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$" },
+        "power": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$" }
+      }
+    },
+    "PerModelSampleSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "bare", "full", "families"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "bare": { "type": "integer", "minimum": 1 },
+        "full": { "type": "integer", "minimum": 1 },
+        "families": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "ScenarioAllocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "variants", "repetitions"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "variants": { "type": "integer", "minimum": 1 },
+        "repetitions": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "AttritionAllowance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "maxRate", "replacementCaps"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "maxRate": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$" },
+        "replacementCaps": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "ComputationMethod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "name", "implementationVersion"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "implementationVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "BlindedBaselineInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "inputId",
+        "sourceAttemptDigests",
+        "analysisLockDigests",
+        "maskingProtocolDigest",
+        "clusterSummaries",
+        "honestyCohortSummaries",
+        "createdAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "inputId": { "type": "string", "minLength": 1 },
+        "sourceAttemptDigests": { "$ref": "#/$defs/DigestArray" },
+        "analysisLockDigests": { "$ref": "#/$defs/DigestArray" },
+        "maskingProtocolDigest": { "$ref": "#/$defs/Digest" },
+        "clusterSummaries": { "$ref": "#/$defs/ClusterSummaries" },
+        "honestyCohortSummaries": { "$ref": "#/$defs/HonestyCohortSummaries" },
+        "createdAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "ClusterSummaries": {
+      "type": "object",
+      "required": ["schemaVersion"],
+      "properties": {
+        "schemaVersion": { "const": 1 }
+      },
+      "additionalProperties": { "$ref": "#/$defs/ClusterSummary" }
+    },
+    "ClusterSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "families", "varianceDigest"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "families": { "type": "integer", "minimum": 1 },
+        "varianceDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "HonestyCohortSummaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "positiveCount", "negativeCount"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "positiveCount": { "type": "integer", "minimum": 0 },
+        "negativeCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "WorkerInvocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "invocationId",
+        "runId",
+        "requestPath",
+        "requestDigest",
+        "fixtureDigest",
+        "authorityManifestDigest",
+        "resourceCaps",
+        "toolPermissionProjection",
+        "cliPath",
+        "cliDigest",
+        "environmentQualificationDigest",
+        "outputPath"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "invocationId": { "type": "string", "minLength": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "requestPath": { "const": "/workspace/input/request.txt" },
+        "requestDigest": { "$ref": "#/$defs/Digest" },
+        "fixtureDigest": { "$ref": "#/$defs/Digest" },
+        "authorityManifestDigest": { "$ref": "#/$defs/Digest" },
+        "resourceCaps": { "$ref": "#/$defs/ResourceCaps" },
+        "toolPermissionProjection": { "$ref": "#/$defs/ToolPermissionProjection" },
+        "cliPath": { "const": "/opt/antigravity/bin/agy" },
+        "cliDigest": { "$ref": "#/$defs/Digest" },
+        "environmentQualificationDigest": { "$ref": "#/$defs/Digest" },
+        "outputPath": { "const": "/workspace/output" }
+      }
+    },
+    "ResourceCaps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "wallTimeMs", "toolCalls", "subagentCalls", "tokens"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "wallTimeMs": { "type": "integer", "minimum": 0 },
+        "toolCalls": { "type": "integer", "minimum": 0 },
+        "subagentCalls": { "type": "integer", "minimum": 0 },
+        "tokens": { "$ref": "#/$defs/UnavailableCounter" }
+      }
+    },
+    "ToolPermissionProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "allowedTools", "network"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "allowedTools": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "network": { "type": "string", "minLength": 1 }
+      }
+    },
+    "UnclassifiedStagedAttemptOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "attemptId",
+        "runId",
+        "conditionDigest",
+        "scenarioDigest",
+        "environmentQualificationDigest",
+        "lifecycleEventDigests",
+        "attemptQualification",
+        "observedModel",
+        "processState",
+        "agentDeclaredState",
+        "inputPermissionState",
+        "infrastructureValidity",
+        "consumption",
+        "stagingManifestDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "attemptId": { "type": "string", "minLength": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "conditionDigest": { "$ref": "#/$defs/Digest" },
+        "scenarioDigest": { "$ref": "#/$defs/Digest" },
+        "environmentQualificationDigest": { "$ref": "#/$defs/Digest" },
+        "lifecycleEventDigests": { "$ref": "#/$defs/DigestArray" },
+        "attemptQualification": { "$ref": "#/$defs/AttemptQualificationRecord" },
+        "observedModel": { "$ref": "#/$defs/ObservedModel" },
+        "processState": { "$ref": "#/$defs/ProcessState" },
+        "agentDeclaredState": { "type": "string", "minLength": 1 },
+        "inputPermissionState": { "type": "string", "minLength": 1 },
+        "infrastructureValidity": { "type": "string", "minLength": 1 },
+        "consumption": { "$ref": "#/$defs/ConsumptionRecord" },
+        "stagingManifestDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "StagedAttemptOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "attemptId",
+        "runId",
+        "conditionDigest",
+        "scenarioDigest",
+        "environmentQualificationDigest",
+        "lifecycleEventDigests",
+        "attemptQualification",
+        "observedModel",
+        "processState",
+        "agentDeclaredState",
+        "inputPermissionState",
+        "infrastructureValidity",
+        "consumption",
+        "classification",
+        "unclassifiedOutcomeDigest",
+        "stagingManifestDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "attemptId": { "type": "string", "minLength": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "conditionDigest": { "$ref": "#/$defs/Digest" },
+        "scenarioDigest": { "$ref": "#/$defs/Digest" },
+        "environmentQualificationDigest": { "$ref": "#/$defs/Digest" },
+        "lifecycleEventDigests": { "$ref": "#/$defs/DigestArray" },
+        "attemptQualification": { "$ref": "#/$defs/AttemptQualificationRecord" },
+        "observedModel": { "$ref": "#/$defs/ObservedModel" },
+        "processState": { "$ref": "#/$defs/ProcessState" },
+        "agentDeclaredState": { "type": "string", "minLength": 1 },
+        "inputPermissionState": { "type": "string", "minLength": 1 },
+        "infrastructureValidity": { "type": "string", "minLength": 1 },
+        "consumption": { "$ref": "#/$defs/ConsumptionRecord" },
+        "classification": { "$ref": "#/$defs/Classification" },
+        "unclassifiedOutcomeDigest": { "$ref": "#/$defs/Digest" },
+        "stagingManifestDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "RunRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "runId",
+        "attemptId",
+        "conditionDigest",
+        "scenarioDigest",
+        "environmentQualificationDigest",
+        "attemptQualification",
+        "observedModel",
+        "processState",
+        "agentDeclaredState",
+        "inputPermissionState",
+        "infrastructureValidity",
+        "artifactManifestDigest",
+        "transcriptDigest",
+        "eventStreamDigest",
+        "consumption",
+        "classification",
+        "rawEvidenceLocator",
+        "redactedEvidenceLocator"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "runId": { "type": "string", "minLength": 1 },
+        "attemptId": { "type": "string", "minLength": 1 },
+        "conditionDigest": { "$ref": "#/$defs/Digest" },
+        "scenarioDigest": { "$ref": "#/$defs/Digest" },
+        "environmentQualificationDigest": { "$ref": "#/$defs/Digest" },
+        "attemptQualification": { "$ref": "#/$defs/AttemptQualificationRecord" },
+        "observedModel": { "$ref": "#/$defs/ObservedModel" },
+        "processState": { "$ref": "#/$defs/ProcessState" },
+        "agentDeclaredState": { "type": "string", "minLength": 1 },
+        "inputPermissionState": { "type": "string", "minLength": 1 },
+        "infrastructureValidity": { "type": "string", "minLength": 1 },
+        "artifactManifestDigest": { "$ref": "#/$defs/DigestOrNone" },
+        "transcriptDigest": { "$ref": "#/$defs/DigestOrNone" },
+        "eventStreamDigest": { "$ref": "#/$defs/DigestOrNone" },
+        "consumption": { "$ref": "#/$defs/ConsumptionRecord" },
+        "classification": { "$ref": "#/$defs/Classification" },
+        "rawEvidenceLocator": { "type": "string", "minLength": 1 },
+        "redactedEvidenceLocator": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

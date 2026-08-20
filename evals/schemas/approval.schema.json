@@ -1,0 +1,471 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.antigravity-behavior-engineering.local/approval.schema.json",
+  "$defs": {
+    "Digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "DigestArray": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/Digest" }
+    },
+    "DigestOrNotApplicable": {
+      "oneOf": [
+        { "$ref": "#/$defs/Digest" },
+        { "const": "not_applicable" }
+      ]
+    },
+    "Timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "StringArray": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "SignatureRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "mechanism", "signer", "signedPayloadDigest", "signatureDigest"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "mechanism": { "type": "string", "minLength": 1 },
+        "signer": { "type": "string", "minLength": 1 },
+        "signedPayloadDigest": { "$ref": "#/$defs/Digest" },
+        "signatureDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "LooseBoundDigests": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "oneOf": [
+          { "$ref": "#/$defs/Digest" },
+          { "$ref": "#/$defs/DigestArray" }
+        ]
+      }
+    },
+    "ReleaseCandidateLock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "candidateId",
+        "packageDigest",
+        "packageArchiveRecordDigest",
+        "packageLockDigest",
+        "qualificationDigest",
+        "conditionLockDigests",
+        "taskFamilyProtocolDigests",
+        "analysisLockDigests",
+        "precisionPowerLockDigest",
+        "sampleAllocationDigest",
+        "stoppingRuleDigests",
+        "exclusionPolicyDigests",
+        "resourceEnvelopeDigests",
+        "componentRegistryDigest",
+        "regressionResultDigest",
+        "lifecycleResultDigest",
+        "provenanceApprovalDigest",
+        "frozenAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "candidateId": { "type": "string", "minLength": 1 },
+        "packageDigest": { "$ref": "#/$defs/Digest" },
+        "packageArchiveRecordDigest": { "$ref": "#/$defs/Digest" },
+        "packageLockDigest": { "$ref": "#/$defs/Digest" },
+        "qualificationDigest": { "$ref": "#/$defs/Digest" },
+        "conditionLockDigests": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/Digest" }
+        },
+        "taskFamilyProtocolDigests": { "$ref": "#/$defs/DigestArray" },
+        "analysisLockDigests": { "$ref": "#/$defs/DigestArray" },
+        "precisionPowerLockDigest": { "$ref": "#/$defs/Digest" },
+        "sampleAllocationDigest": { "$ref": "#/$defs/Digest" },
+        "stoppingRuleDigests": { "$ref": "#/$defs/DigestArray" },
+        "exclusionPolicyDigests": { "$ref": "#/$defs/DigestArray" },
+        "resourceEnvelopeDigests": { "$ref": "#/$defs/DigestArray" },
+        "componentRegistryDigest": { "$ref": "#/$defs/Digest" },
+        "regressionResultDigest": { "$ref": "#/$defs/Digest" },
+        "lifecycleResultDigest": { "$ref": "#/$defs/Digest" },
+        "provenanceApprovalDigest": { "$ref": "#/$defs/Digest" },
+        "frozenAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "FindingResolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "disposition", "evidenceDigest"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "disposition": { "type": "string", "minLength": 1 },
+        "evidenceDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "ProvenanceApprovalRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "approvalId",
+        "reviewer",
+        "supportedLicensePolicyDigest",
+        "sourceInventoryDigest",
+        "adaptationInventoryDigest",
+        "attributionAndNoticeDigest",
+        "criticalFindingResolutions",
+        "decision",
+        "approvedAt",
+        "signature"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "approvalId": { "type": "string", "minLength": 1 },
+        "reviewer": { "type": "string", "minLength": 1 },
+        "supportedLicensePolicyDigest": { "$ref": "#/$defs/Digest" },
+        "sourceInventoryDigest": { "$ref": "#/$defs/Digest" },
+        "adaptationInventoryDigest": { "$ref": "#/$defs/Digest" },
+        "attributionAndNoticeDigest": { "$ref": "#/$defs/Digest" },
+        "criticalFindingResolutions": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/FindingResolution" }
+        },
+        "decision": { "enum": ["approved", "rejected"] },
+        "approvedAt": { "$ref": "#/$defs/Timestamp" },
+        "signature": { "$ref": "#/$defs/SignatureRecord" }
+      }
+    },
+    "ApprovalRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "approvalId",
+        "gate",
+        "owner",
+        "decision",
+        "boundDigests",
+        "publicationTargetDigest",
+        "publicationChannelAuthorityDigest",
+        "approvedAt",
+        "signature",
+        "supersedes"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "approvalId": { "type": "string", "minLength": 1 },
+        "gate": { "enum": ["candidate_freeze", "public_release"] },
+        "owner": { "type": "string", "minLength": 1 },
+        "decision": { "enum": ["approved", "rejected"] },
+        "boundDigests": { "$ref": "#/$defs/LooseBoundDigests" },
+        "publicationTargetDigest": { "$ref": "#/$defs/DigestOrNotApplicable" },
+        "publicationChannelAuthorityDigest": { "$ref": "#/$defs/DigestOrNotApplicable" },
+        "approvedAt": { "$ref": "#/$defs/Timestamp" },
+        "signature": { "$ref": "#/$defs/SignatureRecord" },
+        "supersedes": { "type": "string", "minLength": 1 }
+      }
+    },
+    "CriterionResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "result", "evidenceDigest", "reasonCode"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "result": { "enum": ["pass", "fail", "indeterminate"] },
+        "evidenceDigest": { "$ref": "#/$defs/Digest" },
+        "reasonCode": { "type": "string", "pattern": "^[a-z0-9]+(?:_[a-z0-9]+)*$" }
+      }
+    },
+    "ModelReleaseDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "modelRequest",
+        "scorecardDigest",
+        "criterionResults",
+        "decision",
+        "blockingCriteria",
+        "limitations"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "modelRequest": { "type": "string", "minLength": 1 },
+        "scorecardDigest": { "$ref": "#/$defs/Digest" },
+        "criterionResults": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "pattern": "^SC-(001|003|004|005|006|007|008|009|010|011|012|013)$" },
+          "additionalProperties": { "$ref": "#/$defs/CriterionResult" }
+        },
+        "decision": { "enum": ["pass", "fail"] },
+        "blockingCriteria": {
+          "type": "array",
+          "items": { "pattern": "^SC-(001|003|004|005|006|007|008|009|010|011|012|013)$" }
+        },
+        "limitations": { "$ref": "#/$defs/StringArray" }
+      }
+    },
+    "ReleaseGateDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "decisionId",
+        "candidateDigest",
+        "analysisDigest",
+        "publicCriteriaDigest",
+        "perModelDecisions",
+        "overallDecision",
+        "blockingCriteria",
+        "limitationsDigest",
+        "decidedAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "decisionId": { "type": "string", "minLength": 1 },
+        "candidateDigest": { "$ref": "#/$defs/Digest" },
+        "analysisDigest": { "$ref": "#/$defs/Digest" },
+        "publicCriteriaDigest": { "$ref": "#/$defs/Digest" },
+        "perModelDecisions": {
+          "type": "object",
+          "minProperties": 2,
+          "additionalProperties": { "$ref": "#/$defs/ModelReleaseDecision" }
+        },
+        "overallDecision": { "enum": ["pass", "fail"] },
+        "blockingCriteria": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "limitationsDigest": { "$ref": "#/$defs/Digest" },
+        "decidedAt": { "$ref": "#/$defs/Timestamp" }
+      }
+    },
+    "PackageArchiveRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "archiveDigest",
+        "archiveFormat",
+        "byteSize",
+        "packageLockDigest",
+        "behaviorLockDigest",
+        "sourceTreeDigest",
+        "fileManifestDigest",
+        "createdByDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "archiveDigest": { "$ref": "#/$defs/Digest" },
+        "archiveFormat": { "$ref": "#/$defs/ArchiveFormat" },
+        "byteSize": { "type": "integer", "minimum": 0 },
+        "packageLockDigest": { "$ref": "#/$defs/Digest" },
+        "behaviorLockDigest": { "$ref": "#/$defs/Digest" },
+        "sourceTreeDigest": { "$ref": "#/$defs/Digest" },
+        "fileManifestDigest": { "$ref": "#/$defs/Digest" },
+        "createdByDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "ArchiveFormat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "format", "version"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "format": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      }
+    },
+    "PreparedSchedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "scheduleId",
+        "candidateDigest",
+        "sealedBundleDigest",
+        "qualificationDigest",
+        "matrixLockDigest",
+        "attemptDigests",
+        "pairLockDigests",
+        "resourceEnvelopeDigests",
+        "dispatchCountAtPrepare"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "scheduleId": { "type": "string", "minLength": 1 },
+        "candidateDigest": { "$ref": "#/$defs/Digest" },
+        "sealedBundleDigest": { "$ref": "#/$defs/Digest" },
+        "qualificationDigest": { "$ref": "#/$defs/Digest" },
+        "matrixLockDigest": { "$ref": "#/$defs/Digest" },
+        "attemptDigests": { "$ref": "#/$defs/DigestArray" },
+        "pairLockDigests": { "$ref": "#/$defs/DigestArray" },
+        "resourceEnvelopeDigests": { "$ref": "#/$defs/DigestArray" },
+        "dispatchCountAtPrepare": { "const": 0 }
+      }
+    },
+    "SealedOpeningJournal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "journalId",
+        "state",
+        "candidateDigest",
+        "approvalDigest",
+        "sealedBundleDigest",
+        "preparedScheduleDigest",
+        "prepareEventDigest",
+        "resumeEventDigest",
+        "preparedAt",
+        "completedAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "journalId": { "type": "string", "minLength": 1 },
+        "state": { "enum": ["prepared", "resuming", "completed", "failed"] },
+        "candidateDigest": { "$ref": "#/$defs/Digest" },
+        "approvalDigest": { "$ref": "#/$defs/Digest" },
+        "sealedBundleDigest": { "$ref": "#/$defs/Digest" },
+        "preparedScheduleDigest": { "$ref": "#/$defs/Digest" },
+        "prepareEventDigest": { "$ref": "#/$defs/Digest" },
+        "resumeEventDigest": {
+          "oneOf": [
+            { "$ref": "#/$defs/Digest" },
+            { "const": "not_resumed" }
+          ]
+        },
+        "preparedAt": { "$ref": "#/$defs/Timestamp" },
+        "completedAt": {
+          "oneOf": [
+            { "$ref": "#/$defs/Timestamp" },
+            { "const": "not_completed" }
+          ]
+        }
+      }
+    },
+    "PublicationRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "publicationId",
+        "approvalDigest",
+        "publicationTargetDigest",
+        "publicationChannelAuthorityDigest",
+        "repositoryUrl",
+        "commitOrTag",
+        "archiveDigest",
+        "releaseDecisionDigest",
+        "actor",
+        "publishedAt",
+        "remoteEvidenceDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "publicationId": { "type": "string", "minLength": 1 },
+        "approvalDigest": { "$ref": "#/$defs/Digest" },
+        "publicationTargetDigest": { "$ref": "#/$defs/Digest" },
+        "publicationChannelAuthorityDigest": { "$ref": "#/$defs/Digest" },
+        "repositoryUrl": { "type": "string", "pattern": "^https://[^ ]+$" },
+        "commitOrTag": { "type": "string", "minLength": 1 },
+        "archiveDigest": { "$ref": "#/$defs/Digest" },
+        "releaseDecisionDigest": { "$ref": "#/$defs/Digest" },
+        "actor": { "type": "string", "minLength": 1 },
+        "publishedAt": { "$ref": "#/$defs/Timestamp" },
+        "remoteEvidenceDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "ReleaseCandidateProvenanceBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "releaseCandidateLock", "provenanceApprovalRecord"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "releaseCandidateLock": { "$ref": "#/$defs/ReleaseCandidateLock" },
+        "provenanceApprovalRecord": { "$ref": "#/$defs/ProvenanceApprovalRecord" }
+      }
+    },
+    "CandidateFreezeApprovalBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "releaseCandidateLock", "provenanceApprovalRecord", "approvalRecord"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "releaseCandidateLock": { "$ref": "#/$defs/ReleaseCandidateLock" },
+        "provenanceApprovalRecord": { "$ref": "#/$defs/ProvenanceApprovalRecord" },
+        "approvalRecord": { "$ref": "#/$defs/ApprovalRecord" }
+      }
+    },
+    "PreparedScheduleBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "releaseCandidateLock", "preparedSchedule"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "releaseCandidateLock": { "$ref": "#/$defs/ReleaseCandidateLock" },
+        "preparedSchedule": { "$ref": "#/$defs/PreparedSchedule" }
+      }
+    },
+    "SealedOpeningBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "releaseCandidateLock", "approvalRecord", "preparedSchedule", "sealedOpeningJournal"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "releaseCandidateLock": { "$ref": "#/$defs/ReleaseCandidateLock" },
+        "approvalRecord": { "$ref": "#/$defs/ApprovalRecord" },
+        "preparedSchedule": { "$ref": "#/$defs/PreparedSchedule" },
+        "sealedOpeningJournal": { "$ref": "#/$defs/SealedOpeningJournal" }
+      }
+    },
+    "ReleaseGateBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "releaseCandidateLock", "releaseGateDecision"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "releaseCandidateLock": { "$ref": "#/$defs/ReleaseCandidateLock" },
+        "releaseGateDecision": { "$ref": "#/$defs/ReleaseGateDecision" }
+      }
+    },
+    "PublicReleaseApprovalBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "packageArchiveRecord",
+        "releaseGateDecision",
+        "provenanceApprovalRecord",
+        "candidateFreezeApprovalRecord",
+        "approvalRecord"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "packageArchiveRecord": { "$ref": "#/$defs/PackageArchiveRecord" },
+        "releaseGateDecision": { "$ref": "#/$defs/ReleaseGateDecision" },
+        "provenanceApprovalRecord": { "$ref": "#/$defs/ProvenanceApprovalRecord" },
+        "candidateFreezeApprovalRecord": { "$ref": "#/$defs/ApprovalRecord" },
+        "approvalRecord": { "$ref": "#/$defs/ApprovalRecord" }
+      }
+    },
+    "PublicationBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "packageArchiveRecord", "releaseGateDecision", "approvalRecord", "publicationRecord"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "packageArchiveRecord": { "$ref": "#/$defs/PackageArchiveRecord" },
+        "releaseGateDecision": { "$ref": "#/$defs/ReleaseGateDecision" },
+        "approvalRecord": { "$ref": "#/$defs/ApprovalRecord" },
+        "publicationRecord": { "$ref": "#/$defs/PublicationRecord" }
+      }
+    }
+  }
+}

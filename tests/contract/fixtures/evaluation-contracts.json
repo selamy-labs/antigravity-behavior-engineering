@@ -1,0 +1,598 @@
+{
+  "validCases": [
+    {
+      "name": "EvaluationClaim",
+      "kind": "EvaluationClaim",
+      "value": {
+        "schemaVersion": 1,
+        "claimId": "claim-selected-review",
+        "componentKind": "skill",
+        "componentName": "verification-before-completion",
+        "capability": "For frozen substantial tasks, the selected component increases verified completion without increasing protected attrition.",
+        "taskFamilyIds": ["family-alpha", "family-beta"],
+        "estimandDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "introductionEvidenceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "leaveOneOutEvidenceDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "resourceEnvelopeDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "selectionDecision": "selected",
+        "limitations": ["Synthetic fixture evidence only."]
+      }
+    },
+    {
+      "name": "ConditionPairLock",
+      "kind": "ConditionPairLock",
+      "value": {
+        "schemaVersion": 1,
+        "pairId": "pair-incumbent-full",
+        "baselineConditionDigest": "sha256:1010101010101010101010101010101010101010101010101010101010101010",
+        "treatmentConditionDigest": "sha256:2020202020202020202020202020202020202020202020202020202020202020",
+        "requiredEqualFields": [
+          "/authorityManifestDigest",
+          "/environmentDigest",
+          "/modelRequest",
+          "/permissionDigest",
+          "/reasoningConfigurationDigest",
+          "/resourceEnvelopeDigest",
+          "/toolInventoryDigest"
+        ],
+        "allowedDifferences": ["/enabledComponents"],
+        "validatorDigest": "sha256:3030303030303030303030303030303030303030303030303030303030303030",
+        "validatedAt": "2026-08-18T12:00:00Z",
+        "result": "pass"
+      }
+    },
+    {
+      "name": "PrecisionPowerLock",
+      "kind": "PrecisionPowerLock",
+      "value": {
+        "schemaVersion": 1,
+        "lockId": "precision-release-001",
+        "analysisLockDigests": [
+          "sha256:1212121212121212121212121212121212121212121212121212121212121212",
+          "sha256:2323232323232323232323232323232323232323232323232323232323232323"
+        ],
+        "blindedBaselineInputDigest": "sha256:3434343434343434343434343434343434343434343434343434343434343434",
+        "estimands": ["completion_lift", "honesty_regression"],
+        "varianceAssumptions": {
+          "schemaVersion": 1,
+          "source": "blinded_pilot",
+          "conservativeTransformDigest": "sha256:4545454545454545454545454545454545454545454545454545454545454545"
+        },
+        "clusterAssumptions": {
+          "schemaVersion": 1,
+          "independentUnit": "scenario_variant",
+          "intraClusterHandling": "cluster_robust"
+        },
+        "target": {
+          "schemaVersion": 1,
+          "kind": "precision",
+          "halfWidth": "0.05"
+        },
+        "confidenceLevel": "0.95",
+        "perModelSampleSizes": {
+          "gemini-2.5-pro": {
+            "schemaVersion": 1,
+            "bare": 120,
+            "full": 120,
+            "families": 2
+          },
+          "gemini-3-pro": {
+            "schemaVersion": 1,
+            "bare": 120,
+            "full": 120,
+            "families": 2
+          }
+        },
+        "scenarioAllocation": {
+          "family-alpha": {
+            "schemaVersion": 1,
+            "variants": 60,
+            "repetitions": 2
+          },
+          "family-beta": {
+            "schemaVersion": 1,
+            "variants": 60,
+            "repetitions": 2
+          }
+        },
+        "attritionAllowance": {
+          "schemaVersion": 1,
+          "maxRate": "0.02",
+          "replacementCaps": {
+            "infrastructure_failure": 2
+          }
+        },
+        "honestyNegativeCohortDigest": "sha256:5656565656565656565656565656565656565656565656565656565656565656",
+        "honestyPositiveCohortDigest": "sha256:6767676767676767676767676767676767676767676767676767676767676767",
+        "variantReductionPolicyDigest": "sha256:7878787878787878787878787878787878787878787878787878787878787878",
+        "multiplicityPolicyDigest": "sha256:8989898989898989898989898989898989898989898989898989898989898989",
+        "missingDataPolicyDigest": "sha256:9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a9a",
+        "computationMethod": {
+          "schemaVersion": 1,
+          "name": "bootstrap_precision",
+          "implementationVersion": "abe-eval-fixture-1"
+        },
+        "computationDigest": "sha256:abababababababababababababababababababababababababababababababab",
+        "stoppingRuleDigest": "sha256:bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc",
+        "honestyNegativeVariantMinimumPerModelFullCondition": 59
+      }
+    },
+    {
+      "name": "BlindedBaselineInput",
+      "kind": "BlindedBaselineInput",
+      "value": {
+        "schemaVersion": 1,
+        "inputId": "blinded-baseline-001",
+        "sourceAttemptDigests": [
+          "sha256:1414141414141414141414141414141414141414141414141414141414141414",
+          "sha256:2525252525252525252525252525252525252525252525252525252525252525"
+        ],
+        "analysisLockDigests": ["sha256:3636363636363636363636363636363636363636363636363636363636363636"],
+        "maskingProtocolDigest": "sha256:4747474747474747474747474747474747474747474747474747474747474747",
+        "clusterSummaries": {
+          "schemaVersion": 1,
+          "masked-model-a": {
+            "schemaVersion": 1,
+            "families": 2,
+            "varianceDigest": "sha256:5858585858585858585858585858585858585858585858585858585858585858"
+          }
+        },
+        "honestyCohortSummaries": {
+          "schemaVersion": 1,
+          "positiveCount": 60,
+          "negativeCount": 60
+        },
+        "createdAt": "2026-08-18T12:05:00Z"
+      }
+    },
+    {
+      "name": "WorkerInvocation",
+      "kind": "WorkerInvocation",
+      "value": {
+        "schemaVersion": 1,
+        "invocationId": "worker-invocation-001",
+        "runId": "run-001",
+        "requestPath": "/workspace/input/request.txt",
+        "requestDigest": "sha256:6969696969696969696969696969696969696969696969696969696969696969",
+        "fixtureDigest": "sha256:7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a7a",
+        "authorityManifestDigest": "sha256:8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b8b",
+        "resourceCaps": {
+          "schemaVersion": 1,
+          "wallTimeMs": 600000,
+          "toolCalls": 50,
+          "subagentCalls": 2,
+          "tokens": "unavailable"
+        },
+        "toolPermissionProjection": {
+          "schemaVersion": 1,
+          "allowedTools": ["shell-readonly"],
+          "network": "antigravity_inference_only"
+        },
+        "cliPath": "/opt/antigravity/bin/agy",
+        "cliDigest": "sha256:9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c",
+        "environmentQualificationDigest": "sha256:adadadadadadadadadadadadadadadadadadadadadadadadadadadadadadadad",
+        "outputPath": "/workspace/output"
+      }
+    },
+    {
+      "name": "ProcessStateNotStarted",
+      "kind": "ProcessState",
+      "value": {
+        "schemaVersion": 1,
+        "workerProcessState": "not_started",
+        "controllerExitCode": 64,
+        "workerExitCode": "none",
+        "signal": "none",
+        "timeout": false,
+        "startedAt": "none",
+        "endedAt": "2026-08-18T12:10:00Z",
+        "stderrDigest": "sha256:bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe"
+      }
+    },
+    {
+      "name": "ProcessStateTerminated",
+      "kind": "ProcessState",
+      "value": {
+        "schemaVersion": 1,
+        "workerProcessState": "terminated",
+        "controllerExitCode": 0,
+        "workerExitCode": 0,
+        "signal": "none",
+        "timeout": false,
+        "startedAt": "2026-08-18T12:10:00Z",
+        "endedAt": "2026-08-18T12:12:00Z",
+        "stderrDigest": "none"
+      }
+    },
+    {
+      "name": "AttemptQualificationRecordPreWorker",
+      "kind": "AttemptQualificationRecord",
+      "value": {
+        "schemaVersion": 1,
+        "authentication": {"schemaVersion": 1, "result": "fail", "evidenceDigest": "sha256:cfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcf"},
+        "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0"},
+        "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"},
+        "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"},
+        "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303"},
+        "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:1313131313131313131313131313131313131313131313131313131313131313"},
+        "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:2424242424242424242424242424242424242424242424242424242424242424"},
+        "validStartAt": "none"
+      }
+    },
+    {
+      "name": "AttemptQualificationRecordValidStart",
+      "kind": "AttemptQualificationRecord",
+      "value": {
+        "schemaVersion": 1,
+        "authentication": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"},
+        "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"},
+        "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"},
+        "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"},
+        "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"},
+        "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"},
+        "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"},
+        "validStartAt": "2026-08-18T12:10:00Z"
+      }
+    },
+    {
+      "name": "ObservedModelUnobservable",
+      "kind": "ObservedModel",
+      "value": {
+        "schemaVersion": 1,
+        "requestedModel": "gemini-2.5-pro",
+        "requestedReasoning": "high",
+        "servedIdentityEvidence": [
+          {"schemaVersion": 1, "source": "cli-init", "value": "unreported", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}
+        ],
+        "fallbackProbeResult": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"},
+        "conclusion": "unobservable",
+        "limitations": ["Provider did not expose a stronger served identity in the fixture."]
+      }
+    },
+    {
+      "name": "ConsumptionRecordUnavailable",
+      "kind": "ConsumptionRecord",
+      "value": {
+        "schemaVersion": 1,
+        "inputTokens": "unavailable",
+        "outputTokens": "unavailable",
+        "cachedTokens": "unavailable",
+        "toolCalls": 3,
+        "subagentCalls": 0,
+        "wallTimeMs": 125000,
+        "quotaOrCost": "unavailable",
+        "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+      }
+    },
+    {
+      "name": "ClassificationProductTimeout",
+      "kind": "Classification",
+      "value": {
+        "schemaVersion": 1,
+        "class": "product_failure",
+        "reasonCode": "product_timeout",
+        "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf",
+        "retryEligible": false,
+        "countsInIntentionToTreat": true,
+        "countsInValidRun": false
+      }
+    },
+    {
+      "name": "UnclassifiedStagedAttemptOutcome",
+      "kind": "UnclassifiedStagedAttemptOutcome",
+      "value": {
+        "schemaVersion": 1,
+        "attemptId": "attempt-001",
+        "runId": "run-001",
+        "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
+        "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+        "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+        "lifecycleEventDigests": ["sha256:1313131313131313131313131313131313131313131313131313131313131313"],
+        "attemptQualification": {"schemaVersion": 1, "authentication": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"}, "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"}, "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"}, "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"}, "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"}, "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"}, "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"}, "validStartAt": "2026-08-18T12:10:00Z"},
+        "observedModel": {"schemaVersion": 1, "requestedModel": "gemini-2.5-pro", "requestedReasoning": "high", "servedIdentityEvidence": [{"schemaVersion": 1, "source": "cli-init", "value": "unreported", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}], "fallbackProbeResult": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"}, "conclusion": "unobservable", "limitations": ["Provider did not expose a stronger served identity in the fixture."]},
+        "processState": {"schemaVersion": 1, "workerProcessState": "terminated", "controllerExitCode": 0, "workerExitCode": 0, "signal": "none", "timeout": false, "startedAt": "2026-08-18T12:10:00Z", "endedAt": "2026-08-18T12:12:00Z", "stderrDigest": "none"},
+        "agentDeclaredState": "completed",
+        "inputPermissionState": "permitted",
+        "infrastructureValidity": "valid",
+        "consumption": {"schemaVersion": 1, "inputTokens": "unavailable", "outputTokens": "unavailable", "cachedTokens": "unavailable", "toolCalls": 3, "subagentCalls": 0, "wallTimeMs": 125000, "quotaOrCost": "unavailable", "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"},
+        "stagingManifestDigest": "sha256:edededededededededededededededededededededededededededededededed"
+      }
+    },
+    {
+      "name": "StagedAttemptOutcome",
+      "kind": "StagedAttemptOutcome",
+      "value": {
+        "schemaVersion": 1,
+        "attemptId": "attempt-001",
+        "runId": "run-001",
+        "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
+        "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+        "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+        "lifecycleEventDigests": ["sha256:1313131313131313131313131313131313131313131313131313131313131313"],
+        "attemptQualification": {"schemaVersion": 1, "authentication": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"}, "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"}, "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"}, "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"}, "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"}, "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"}, "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"}, "validStartAt": "2026-08-18T12:10:00Z"},
+        "observedModel": {"schemaVersion": 1, "requestedModel": "gemini-2.5-pro", "requestedReasoning": "high", "servedIdentityEvidence": [{"schemaVersion": 1, "source": "cli-init", "value": "unreported", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}], "fallbackProbeResult": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"}, "conclusion": "unobservable", "limitations": ["Provider did not expose a stronger served identity in the fixture."]},
+        "processState": {"schemaVersion": 1, "workerProcessState": "terminated", "controllerExitCode": 0, "workerExitCode": 0, "signal": "none", "timeout": false, "startedAt": "2026-08-18T12:10:00Z", "endedAt": "2026-08-18T12:12:00Z", "stderrDigest": "none"},
+        "agentDeclaredState": "completed",
+        "inputPermissionState": "permitted",
+        "infrastructureValidity": "valid",
+        "consumption": {"schemaVersion": 1, "inputTokens": "unavailable", "outputTokens": "unavailable", "cachedTokens": "unavailable", "toolCalls": 3, "subagentCalls": 0, "wallTimeMs": 125000, "quotaOrCost": "unavailable", "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"},
+        "classification": {"schemaVersion": 1, "class": "product_failure", "reasonCode": "product_timeout", "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf", "retryEligible": false, "countsInIntentionToTreat": true, "countsInValidRun": false},
+        "unclassifiedOutcomeDigest": "sha256:fefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefe",
+        "stagingManifestDigest": "sha256:edededededededededededededededededededededededededededededededed"
+      }
+    },
+    {
+      "name": "RunRecordPreWorker",
+      "kind": "RunRecord",
+      "value": {
+        "schemaVersion": 1,
+        "runId": "run-preworker-001",
+        "attemptId": "attempt-preworker-001",
+        "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
+        "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+        "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+        "attemptQualification": {"schemaVersion": 1, "authentication": {"schemaVersion": 1, "result": "fail", "evidenceDigest": "sha256:cfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcfcf"}, "fixtureProvisioning": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0"}, "modelPreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1"}, "fallbackProbe": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"}, "pluginComponentDiscovery": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303"}, "structuredCapturePreflight": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:1313131313131313131313131313131313131313131313131313131313131313"}, "authorityToolInventory": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:2424242424242424242424242424242424242424242424242424242424242424"}, "validStartAt": "none"},
+        "observedModel": {"schemaVersion": 1, "requestedModel": "gemini-2.5-pro", "requestedReasoning": "high", "servedIdentityEvidence": [{"schemaVersion": 1, "source": "preflight", "value": "not_started", "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"}], "fallbackProbeResult": {"schemaVersion": 1, "result": "indeterminate", "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"}, "conclusion": "unobservable", "limitations": ["Worker never started."]},
+        "processState": {"schemaVersion": 1, "workerProcessState": "not_started", "controllerExitCode": 64, "workerExitCode": "none", "signal": "none", "timeout": false, "startedAt": "none", "endedAt": "2026-08-18T12:10:00Z", "stderrDigest": "sha256:bebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebebe"},
+        "agentDeclaredState": "none",
+        "inputPermissionState": "not_visible",
+        "infrastructureValidity": "pre_start_failure",
+        "artifactManifestDigest": "none",
+        "transcriptDigest": "none",
+        "eventStreamDigest": "none",
+        "consumption": {"schemaVersion": 1, "inputTokens": "unavailable", "outputTokens": "unavailable", "cachedTokens": "unavailable", "toolCalls": "unavailable", "subagentCalls": "unavailable", "wallTimeMs": 0, "quotaOrCost": "unavailable", "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"},
+        "classification": {"schemaVersion": 1, "class": "infrastructure_failure", "reasonCode": "pre_start_auth_failure", "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf", "retryEligible": true, "countsInIntentionToTreat": true, "countsInValidRun": false},
+        "rawEvidenceLocator": "content-addressed/runs/run-preworker-001/run.json",
+        "redactedEvidenceLocator": "not_redacted"
+      }
+    },
+    {
+      "name": "ReleaseCandidateLock",
+      "kind": "ReleaseCandidateLock",
+      "value": {
+        "schemaVersion": 1,
+        "candidateId": "candidate-001",
+        "packageDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "packageArchiveRecordDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "packageLockDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "qualificationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "conditionLockDigests": {"gemini-2.5-pro/bare": "sha256:0101010101010101010101010101010101010101010101010101010101010101", "gemini-2.5-pro/full": "sha256:0202020202020202020202020202020202020202020202020202020202020202", "gemini-3-pro/bare": "sha256:0303030303030303030303030303030303030303030303030303030303030303", "gemini-3-pro/full": "sha256:0404040404040404040404040404040404040404040404040404040404040404"},
+        "taskFamilyProtocolDigests": ["sha256:1111111111111111111111111111111111111111111111111111111111111111", "sha256:2222222222222222222222222222222222222222222222222222222222222222"],
+        "analysisLockDigests": ["sha256:3333333333333333333333333333333333333333333333333333333333333333", "sha256:4444444444444444444444444444444444444444444444444444444444444444"],
+        "precisionPowerLockDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "sampleAllocationDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "stoppingRuleDigests": ["sha256:7777777777777777777777777777777777777777777777777777777777777777"],
+        "exclusionPolicyDigests": ["sha256:8888888888888888888888888888888888888888888888888888888888888888"],
+        "resourceEnvelopeDigests": ["sha256:9999999999999999999999999999999999999999999999999999999999999999"],
+        "componentRegistryDigest": "sha256:abababababababababababababababababababababababababababababababab",
+        "regressionResultDigest": "sha256:bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc",
+        "lifecycleResultDigest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "provenanceApprovalDigest": "sha256:dededededededededededededededededededededededededededededededede",
+        "frozenAt": "2026-08-18T13:00:00Z"
+      }
+    },
+    {
+      "name": "ProvenanceApprovalRecord",
+      "kind": "ProvenanceApprovalRecord",
+      "value": {
+        "schemaVersion": 1,
+        "approvalId": "provenance-approval-001",
+        "reviewer": "reviewer-key-001",
+        "supportedLicensePolicyDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sourceInventoryDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "adaptationInventoryDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "attributionAndNoticeDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "criticalFindingResolutions": {
+          "finding-001": {"schemaVersion": 1, "disposition": "resolved", "evidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"}
+        },
+        "decision": "approved",
+        "approvedAt": "2026-08-18T13:10:00Z",
+        "signature": {"schemaVersion": 1, "mechanism": "external_signature", "signer": "reviewer-key-001", "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "signatureDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+      }
+    },
+    {
+      "name": "ApprovalRecordCandidateFreeze",
+      "kind": "ApprovalRecord",
+      "value": {
+        "schemaVersion": 1,
+        "approvalId": "candidate-freeze-approval-001",
+        "gate": "candidate_freeze",
+        "owner": "project-owner-key-001",
+        "decision": "approved",
+        "boundDigests": {
+          "candidateDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "qualificationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "protocolDigests": ["sha256:1111111111111111111111111111111111111111111111111111111111111111", "sha256:2222222222222222222222222222222222222222222222222222222222222222"],
+          "analysisLockDigests": ["sha256:3333333333333333333333333333333333333333333333333333333333333333", "sha256:4444444444444444444444444444444444444444444444444444444444444444"],
+          "precisionPowerLockDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+          "sampleAllocationDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+          "stoppingRuleDigests": ["sha256:7777777777777777777777777777777777777777777777777777777777777777"],
+          "exclusionPolicyDigests": ["sha256:8888888888888888888888888888888888888888888888888888888888888888"],
+          "resourceEnvelopeDigests": ["sha256:9999999999999999999999999999999999999999999999999999999999999999"],
+          "provenanceApprovalDigest": "sha256:dededededededededededededededededededededededededededededededede"
+        },
+        "publicationTargetDigest": "not_applicable",
+        "publicationChannelAuthorityDigest": "not_applicable",
+        "approvedAt": "2026-08-18T13:20:00Z",
+        "signature": {"schemaVersion": 1, "mechanism": "external_signature", "signer": "project-owner-key-001", "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "signatureDigest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"},
+        "supersedes": "none"
+      }
+    },
+    {
+      "name": "ModelReleaseDecisionPass",
+      "kind": "ModelReleaseDecision",
+      "value": {
+        "schemaVersion": 1,
+        "modelRequest": "gemini-2.5-pro",
+        "scorecardDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "criterionResults": {
+          "SC-001": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "reasonCode": "meets_margin"},
+          "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "reasonCode": "within_envelope"}
+        },
+        "decision": "pass",
+        "blockingCriteria": [],
+        "limitations": []
+      }
+    },
+    {
+      "name": "ModelReleaseDecisionFail",
+      "kind": "ModelReleaseDecision",
+      "value": {
+        "schemaVersion": 1,
+        "modelRequest": "gemini-3-pro",
+        "scorecardDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "criterionResults": {
+          "SC-001": {"schemaVersion": 1, "result": "fail", "evidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "reasonCode": "below_margin"},
+          "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "reasonCode": "within_envelope"}
+        },
+        "decision": "fail",
+        "blockingCriteria": ["SC-001"],
+        "limitations": ["Fixture failure boundary."]
+      }
+    },
+    {
+      "name": "ReleaseGateDecision",
+      "kind": "ReleaseGateDecision",
+      "value": {
+        "schemaVersion": 1,
+        "decisionId": "release-gate-001",
+        "candidateDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "analysisDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "publicCriteriaDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "perModelDecisions": {
+          "gemini-2.5-pro": {"schemaVersion": 1, "modelRequest": "gemini-2.5-pro", "scorecardDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "criterionResults": {"SC-001": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "reasonCode": "meets_margin"}, "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "reasonCode": "within_envelope"}}, "decision": "pass", "blockingCriteria": [], "limitations": []},
+          "gemini-3-pro": {"schemaVersion": 1, "modelRequest": "gemini-3-pro", "scorecardDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "criterionResults": {"SC-001": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "reasonCode": "meets_margin"}, "SC-003": {"schemaVersion": 1, "result": "pass", "evidenceDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "reasonCode": "within_envelope"}}, "decision": "pass", "blockingCriteria": [], "limitations": []}
+        },
+        "overallDecision": "pass",
+        "blockingCriteria": [],
+        "limitationsDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "decidedAt": "2026-08-18T14:00:00Z"
+      }
+    },
+    {
+      "name": "PackageArchiveRecord",
+      "kind": "PackageArchiveRecord",
+      "value": {
+        "schemaVersion": 1,
+        "archiveDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "archiveFormat": {"schemaVersion": 1, "format": "tgz", "version": "1"},
+        "byteSize": 2048,
+        "packageLockDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "behaviorLockDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "sourceTreeDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "fileManifestDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "createdByDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      }
+    },
+    {
+      "name": "PreparedSchedule",
+      "kind": "PreparedSchedule",
+      "value": {
+        "schemaVersion": 1,
+        "scheduleId": "prepared-schedule-001",
+        "candidateDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sealedBundleDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualificationDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "matrixLockDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "attemptDigests": ["sha256:0101010101010101010101010101010101010101010101010101010101010101", "sha256:0202020202020202020202020202020202020202020202020202020202020202"],
+        "pairLockDigests": ["sha256:0303030303030303030303030303030303030303030303030303030303030303"],
+        "resourceEnvelopeDigests": ["sha256:0404040404040404040404040404040404040404040404040404040404040404"],
+        "dispatchCountAtPrepare": 0
+      }
+    },
+    {
+      "name": "SealedOpeningJournal",
+      "kind": "SealedOpeningJournal",
+      "value": {
+        "schemaVersion": 1,
+        "journalId": "sealed-opening-001",
+        "state": "completed",
+        "candidateDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "approvalDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "sealedBundleDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "preparedScheduleDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "prepareEventDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "resumeEventDigest": "not_resumed",
+        "preparedAt": "2026-08-18T14:10:00Z",
+        "completedAt": "2026-08-18T16:10:00Z"
+      }
+    },
+    {
+      "name": "ApprovalRecordPublicRelease",
+      "kind": "ApprovalRecord",
+      "value": {
+        "schemaVersion": 1,
+        "approvalId": "public-release-approval-001",
+        "gate": "public_release",
+        "owner": "project-owner-key-001",
+        "decision": "approved",
+        "boundDigests": {
+          "finalArchiveDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "packageArchiveRecordDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "releaseReportDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "publicEvidenceManifestDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "releaseDecisionDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "provenanceApprovalDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "candidateFreezeApprovalDigest": "sha256:0101010101010101010101010101010101010101010101010101010101010101"
+        },
+        "publicationTargetDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+        "publicationChannelAuthorityDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
+        "approvedAt": "2026-08-18T17:00:00Z",
+        "signature": {"schemaVersion": 1, "mechanism": "external_signature", "signer": "project-owner-key-001", "signedPayloadDigest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "signatureDigest": "sha256:0404040404040404040404040404040404040404040404040404040404040404"},
+        "supersedes": "none"
+      }
+    },
+    {
+      "name": "PublicationRecord",
+      "kind": "PublicationRecord",
+      "value": {
+        "schemaVersion": 1,
+        "publicationId": "publication-001",
+        "approvalDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "publicationTargetDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+        "publicationChannelAuthorityDigest": "sha256:0303030303030303030303030303030303030303030303030303030303030303",
+        "repositoryUrl": "https://example.com/owner/repo",
+        "commitOrTag": "v1.0.0",
+        "archiveDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "releaseDecisionDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "actor": "publisher-key-001",
+        "publishedAt": "2026-08-18T18:00:00Z",
+        "remoteEvidenceDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    }
+  ],
+  "boundaryCases": [
+    {
+      "name": "PrecisionPowerLockNotApplicableHonesty",
+      "kind": "PrecisionPowerLock",
+      "base": "PrecisionPowerLock",
+      "patch": {
+        "honestyNegativeCohortDigest": "not_applicable",
+        "honestyPositiveCohortDigest": "not_applicable",
+        "variantReductionPolicyDigest": "not_applicable",
+        "honestyNegativeVariantMinimumPerModelFullCondition": "not_applicable"
+      }
+    },
+    {
+      "name": "ClassificationNormalizedReasonCode",
+      "kind": "Classification",
+      "base": "ClassificationProductTimeout",
+      "patch": {
+        "reasonCode": "Product Timeout"
+      },
+      "expected": {
+        "reasonCode": "product_timeout"
+      }
+    },
+    {
+      "name": "SealedOpeningJournalPrepared",
+      "kind": "SealedOpeningJournal",
+      "base": "SealedOpeningJournal",
+      "patch": {
+        "state": "prepared",
+        "resumeEventDigest": "not_resumed",
+        "completedAt": "not_completed"
+      }
+    }
+  ]
+}
