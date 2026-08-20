@@ -9,6 +9,15 @@ const readJson = (relativePath) => {
   return JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
 };
 
+const readTomlSection = (source, sectionName) => {
+  const header = `[${sectionName}]`;
+  const headerOffset = source.indexOf(header);
+  assert.notEqual(headerOffset, -1, `missing TOML section ${header}`);
+  const bodyOffset = headerOffset + header.length;
+  const nextHeaderOffset = source.indexOf('\n[', bodyOffset);
+  return source.slice(bodyOffset, nextHeaderOffset === -1 ? undefined : nextHeaderOffset);
+};
+
 const packageJson = readJson('package.json');
 const pyproject = fs.readFileSync(path.join(ROOT, 'evaluator', 'pyproject.toml'), 'utf8');
 const pnpmWorkspace = fs.readFileSync(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8');
@@ -67,26 +76,33 @@ assert.equal(
   `unexpected evaluator python range: ${pythonRangeMatch[0]}`,
 );
 
-const projectSection = pyproject.slice(
-  pyproject.indexOf('[project]'),
-  pyproject.indexOf('[project.scripts]'),
+const buildSystemSection = readTomlSection(pyproject, 'build-system');
+const projectSection = readTomlSection(pyproject, 'project');
+const scriptsSection = readTomlSection(pyproject, 'project.scripts');
+const dependencyGroupsSection = readTomlSection(pyproject, 'dependency-groups');
+assert.match(
+  buildSystemSection,
+  /^requires\s*=\s*\["setuptools==84\.0\.0"\]\s*$/m,
+  'evaluator: exact build requirement',
 );
-const scriptsSection = pyproject.slice(
-  pyproject.indexOf('[project.scripts]'),
-  pyproject.indexOf('[dependency-groups]'),
-);
-const dependencyGroupsSection = pyproject.slice(
-  pyproject.indexOf('[dependency-groups]'),
-  pyproject.indexOf('[tool.uv]'),
+assert.match(
+  buildSystemSection,
+  /^build-backend\s*=\s*"setuptools\.build_meta"\s*$/m,
+  'evaluator: build backend',
 );
 assert.match(projectSection, /^name\s*=\s*"abe-eval"\s*$/m, 'evaluator: name');
 assert.match(projectSection, /^version\s*=\s*"0\.0\.0"\s*$/m, 'evaluator: version');
 assert.match(projectSection, /^license\s*=\s*"Apache-2\.0"\s*$/m, 'evaluator: license');
-assert.match(projectSection, /^dependencies\s*=\s*\[\]\s*$/m, 'evaluator: runtime dependencies');
+assert.doesNotMatch(projectSection, /^readme\s*=/m, 'evaluator: nonexistent readme');
+assert.match(
+  projectSection,
+  /^dependencies\s*=\s*\["jsonschema>=4\.23,<5"\]\s*$/m,
+  'evaluator: JSON Schema runtime dependency intent',
+);
 assert.match(scriptsSection, /^abe-eval\s*=\s*"abe_eval\.cli:main"\s*$/m, 'evaluator: CLI entry point');
 assert.match(
   dependencyGroupsSection,
-  /^dev\s*=\s*\["pytest>=8\.3,<10"\]\s*$/m,
+  /^dev\s*=\s*\["pytest>=8\.3,<10", "setuptools==84\.0\.0"\]\s*$/m,
   'evaluator: dev dependency group',
 );
 assert.match(pyproject, /^package\s*=\s*true\s*$/m, 'evaluator: uv package mode');
@@ -116,11 +132,7 @@ assert.ok(uvPackageNames.length > 1, 'uv lock must resolve evaluator dev tools')
 assert.ok(uvPackageNames.includes('pytest'), 'uv lock must resolve pytest');
 assert.match(uvLock, /^name = "abe-eval"$/m, 'uv lock evaluator package');
 
-const lockedLicenseHeader = '[tool.abe.locked-licenses]';
-const lockedLicenseOffset = pyproject.indexOf(lockedLicenseHeader);
-assert.notEqual(lockedLicenseOffset, -1, 'evaluator: missing locked-license inventory');
-const lockedLicenseLines = pyproject
-  .slice(lockedLicenseOffset + lockedLicenseHeader.length)
+const lockedLicenseLines = readTomlSection(pyproject, 'tool.abe.locked-licenses')
   .split('\n')
   .map((line) => line.trim())
   .filter((line) => line.length > 0 && !line.startsWith('#'));
@@ -146,12 +158,19 @@ assert.deepEqual(
 assert.deepEqual(
   Object.fromEntries(Object.entries(lockedLicenses).map(([name, record]) => [name, record.spdx])),
   {
+    attrs: 'MIT',
     colorama: 'BSD-3-Clause',
     iniconfig: 'MIT',
+    jsonschema: 'MIT',
+    'jsonschema-specifications': 'MIT',
     packaging: 'Apache-2.0 OR BSD-2-Clause',
     pluggy: 'MIT',
     pygments: 'BSD-2-Clause',
     pytest: 'MIT',
+    referencing: 'MIT',
+    'rpds-py': 'MIT',
+    setuptools: 'MIT',
+    'typing-extensions': 'PSF-2.0',
   },
   'evaluator: locked-license SPDX inventory',
 );
@@ -168,10 +187,10 @@ for (const expected of [
       packageManager: 'pnpm@11.9.0',
       scripts: {
         'format:check': 'node --test tests/contract/workspace.test.mjs',
-        'test:node': 'node --test tests/contract/workspace.test.mjs',
-        'test:python': "uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)'",
+        'test:node': 'node --test',
+        'test:python': 'uv run --no-project --offline python -c \'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), "requires Python >=3.12,<3.14"\' && if [ -d evaluator/tests ]; then uv run --project evaluator --locked --offline pytest evaluator/tests; fi',
         verify: 'pnpm verify:offline',
-        'verify:offline': "pnpm format:check && uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)' && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py",
+        'verify:offline': 'pnpm format:check && pnpm test:node && pnpm test:python && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py',
       },
       workspaces: ['packages/contracts', 'packages/plugin-tooling'],
       dependencies: {},

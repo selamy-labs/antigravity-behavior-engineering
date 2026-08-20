@@ -8,10 +8,10 @@
   "packageManager": "pnpm@11.9.0",
   "scripts": {
     "format:check": "node --test tests/contract/workspace.test.mjs",
-    "test:node": "node --test tests/contract/workspace.test.mjs",
-    "test:python": "uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)'",
+    "test:node": "node --test",
+    "test:python": "uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14), \"requires Python >=3.12,<3.14\"' && if [ -d evaluator/tests ]; then uv run --project evaluator --locked --offline pytest evaluator/tests; fi",
     "verify": "pnpm verify:offline",
-    "verify:offline": "pnpm format:check && uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)' && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py"
+    "verify:offline": "pnpm format:check && pnpm test:node && pnpm test:python && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py"
   },
   "workspaces": [
     "packages/contracts",
