@@ -15,6 +15,58 @@ APPROVAL_SCHEMA_PATH = Path("evals/schemas/approval.schema.json")
 
 TARGET_MODELS = ("gemini-3.7-flash-high", "gemini-3.1-pro-high")
 PUBLIC_CRITERIA = ("SC-001",) + tuple(f"SC-{index:03d}" for index in range(3, 14))
+PHASE0_CONTRACT_KINDS = (
+    "PackageLock",
+    "ComponentLock",
+    "DependencyLock",
+    "EvaluationClaim",
+    "ScenarioCard",
+    "ConditionLock",
+    "ConditionPairLock",
+    "BlockSpec",
+    "MatrixLock",
+    "AnalysisLock",
+    "PrecisionPowerLock",
+    "ResourceEnvelope",
+    "ReleaseCandidateLock",
+    "ScheduledAttempt",
+    "WorkerInvocation",
+    "AttemptLifecycleEvent",
+    "RunRecord",
+    "UnclassifiedStagedAttemptOutcome",
+    "StagedAttemptOutcome",
+    "StagedAttemptOutcomeBundle",
+    "EnvironmentQualificationRecord",
+    "QualificationProtocol",
+    "AttemptQualificationRecord",
+    "GradeRecord",
+    "Scorecard",
+    "SafetyReport",
+    "ProvenanceInventory",
+    "AuthorityManifest",
+    "CheckLock",
+    "ClassificationPolicy",
+    "ObservedModel",
+    "ConsumptionRecord",
+    "CheckResult",
+    "ReviewerGrade",
+    "TrajectoryDiagnostics",
+    "Classification",
+    "BlindedBaselineInput",
+    "ApprovalRecord",
+    "ProvenanceApprovalRecord",
+    "ReleaseGateDecision",
+    "ModelReleaseDecision",
+    "PackageArchiveRecord",
+    "PreparedSchedule",
+    "SealedOpeningJournal",
+    "PublicationRecord",
+    "RedactedRun",
+    "CodexReferenceConfig",
+    "PublicScenario",
+    "ReferenceRunRecord",
+    "DurableGoalDecision",
+)
 FIXTURE_EVIDENCE_DIGEST = "sha256:" + "5" * 64
 FIXTURE_SIGNATURE_DIGEST = "sha256:" + "6" * 64
 
@@ -148,6 +200,23 @@ def test_json_schemas_are_valid_draft_2020_12():
         Draft202012Validator.check_schema(json.loads(schema_path.read_text(encoding="utf-8")))
 
 
+def test_phase0_contract_roots_have_valid_fixtures_and_closed_root_schemas():
+    fixtures = _fixtures()
+    cases_by_kind = {case["kind"]: case for case in fixtures["validCases"]}
+    assert sorted(set(PHASE0_CONTRACT_KINDS) - set(cases_by_kind)) == []
+
+    for schema_path in [EVALUATION_SCHEMA_PATH, APPROVAL_SCHEMA_PATH]:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        errors = list(Draft202012Validator(schema).iter_errors({"schemaVersion": 1, "unexpected": True}))
+        assert errors, schema_path
+
+    for kind in PHASE0_CONTRACT_KINDS:
+        value = copy.deepcopy(cases_by_kind[kind]["value"])
+        if kind in {"ApprovalRecord", "ProvenanceApprovalRecord"}:
+            value = _sign(value)
+        parse_contract(kind, value)
+
+
 @pytest.mark.parametrize("case", _fixtures()["validCases"], ids=lambda case: case["name"])
 def test_valid_contract_fixtures_parse_and_digest(case):
     value = copy.deepcopy(case["value"])
@@ -180,6 +249,20 @@ def test_invalid_and_forward_version_fixture_sections_fail_closed():
     for case in fixtures["forwardVersionCases"]:
         value = _apply_patch(_case_value(case["base"]), case["patch"])
         expect_reason(case["kind"], value, "contract.unsupported_schema_version")
+
+
+def test_timestamp_fields_reject_impossible_rfc3339_values():
+    process = _case_value("ProcessStateTerminated")
+    process["endedAt"] = "2026-99-99T99:99:99Z"
+    expect_reason("ProcessState", process, "contract.invalid_field")
+
+    approval = _case_value("ApprovalRecordCandidateFreeze")
+    approval["approvedAt"] = "2026-99-99T99:99:99Z"
+    expect_reason("ApprovalRecord", _sign(approval), "contract.invalid_field")
+
+    journal = _case_value("SealedOpeningJournal")
+    journal["preparedAt"] = "2026-99-99T99:99:99Z"
+    expect_reason("SealedOpeningJournal", journal, "contract.invalid_field")
 
 
 def test_unknown_missing_version_and_reason_normalization_have_stable_codes():
@@ -278,6 +361,18 @@ def test_release_gate_requires_exact_target_models_and_complete_public_criteria(
     renamed["modelRequest"] = "gemini-4-pro"
     wrong_model_keys["perModelDecisions"]["gemini-4-pro"] = renamed
     expect_reason("ReleaseGateDecision", wrong_model_keys, "contract.binding_mismatch")
+
+
+def test_release_gate_blocking_criteria_match_failed_public_criteria():
+    decision = _case_value("ReleaseGateDecision")
+    model_decision = decision["perModelDecisions"][TARGET_MODELS[0]]
+    model_decision["criterionResults"]["SC-013"]["result"] = "fail"
+    model_decision["criterionResults"]["SC-013"]["reasonCode"] = "below_margin"
+    model_decision["decision"] = "fail"
+    model_decision["blockingCriteria"] = ["SC-003"]
+    decision["overallDecision"] = "fail"
+    decision["blockingCriteria"] = [TARGET_MODELS[0] + "/SC-003"]
+    expect_reason("ReleaseGateDecision", decision, "contract.binding_mismatch")
 
 
 def test_target_model_slugs_match_quickstart_release_targets():

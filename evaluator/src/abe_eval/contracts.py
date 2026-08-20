@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import datetime as dt
 import json
 import re
 from functools import lru_cache
@@ -41,20 +42,48 @@ _APPROVAL_SCHEMA_PATH = _ROOT / "evals" / "schemas" / "approval.schema.json"
 
 _EVALUATION_KINDS = frozenset(
     {
+        "PackageLock",
+        "ComponentLock",
+        "DependencyLock",
         "EvaluationClaim",
+        "ScenarioCard",
+        "ConditionLock",
         "ConditionPairLock",
+        "BlockSpec",
+        "MatrixLock",
+        "AnalysisLock",
         "PrecisionPowerLock",
+        "ResourceEnvelope",
+        "ScheduledAttempt",
         "BlindedBaselineInput",
         "WorkerInvocation",
+        "AttemptLifecycleEvent",
         "ProcessState",
+        "EnvironmentQualificationRecord",
+        "QualificationProtocol",
         "AttemptQualificationRecord",
+        "GradeRecord",
+        "Scorecard",
+        "SafetyReport",
+        "ProvenanceInventory",
+        "AuthorityManifest",
+        "CheckLock",
+        "ClassificationPolicy",
         "ObservedModel",
         "ConsumptionRecord",
+        "CheckResult",
+        "ReviewerGrade",
+        "TrajectoryDiagnostics",
         "Classification",
         "UnclassifiedStagedAttemptOutcome",
         "StagedAttemptOutcome",
         "StagedAttemptOutcomeBundle",
         "RunRecord",
+        "RedactedRun",
+        "CodexReferenceConfig",
+        "PublicScenario",
+        "ReferenceRunRecord",
+        "DurableGoalDecision",
     }
 )
 
@@ -102,6 +131,39 @@ _REQUIRED_CONDITION_LOCK_DIGEST_KEYS = frozenset(
 _PUBLIC_CRITERIA = frozenset({"SC-001", *("SC-" + f"{index:03d}" for index in range(3, 14))})
 
 _PRODUCTION_APPROVAL_MECHANISMS = frozenset({"documented_local_approval", "external_signature"})
+
+_QUALIFICATION_PREFLIGHTS = (
+    "authentication",
+    "fixture_provisioning",
+    "model_preflight",
+    "fallback_probe",
+    "plugin_component_discovery",
+    "structured_capture_preflight",
+    "authority_tool_inventory",
+)
+
+_TIMESTAMP_FIELDS = frozenset(
+    {
+        "approvedAt",
+        "completedAt",
+        "createdAt",
+        "decidedAt",
+        "endedAt",
+        "expiresAt",
+        "frozenAt",
+        "generatedAt",
+        "occurredAt",
+        "preparedAt",
+        "publishedAt",
+        "qualifiedAt",
+        "scheduledAt",
+        "startedAt",
+        "validStartAt",
+        "validatedAt",
+    }
+)
+
+_TIMESTAMP_SENTINELS = frozenset({"none", "not_applicable", "not_completed", "not_resumed"})
 
 _CANDIDATE_FREEZE_BOUND_FIELDS = (
     "candidateDigest",
@@ -225,8 +287,32 @@ def _schema_path_for(kind: str) -> Path:
 @lru_cache(maxsize=None)
 def _validator_for(kind: str) -> Draft202012Validator:
     schema = copy.deepcopy(_load_schema(_schema_path_for(kind)))
+    schema.pop("oneOf", None)
     schema["$ref"] = "#/$defs/" + kind
     return Draft202012Validator(schema, format_checker=FormatChecker())
+
+
+def _check_rfc3339_utc_seconds(value: str, path: str) -> None:
+    if value in _TIMESTAMP_SENTINELS:
+        return
+    try:
+        dt.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        _fail(ReasonCodes.INVALID_FIELD, path)
+
+
+def _check_timestamp_fields(value: Any, path: str = "$") -> None:
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _check_timestamp_fields(item, path + "[" + str(index) + "]")
+        return
+    if not isinstance(value, dict):
+        return
+    for key, item in value.items():
+        item_path = path + "." + key
+        if key in _TIMESTAMP_FIELDS and isinstance(item, str):
+            _check_rfc3339_utc_seconds(item, item_path)
+        _check_timestamp_fields(item, item_path)
 
 
 def _schema_reason(error: ValidationError) -> str:
@@ -258,6 +344,11 @@ def _validate_schema(kind: str, value: dict[str, Any]) -> None:
 def _require_sorted_unique(items: list[Any], path: str) -> None:
     if len(items) != len(set(items)) or items != sorted(items):
         _fail(ReasonCodes.INVALID_FIELD, path)
+
+
+def _require_target_model_map(value: dict[str, Any], path: str) -> None:
+    if set(value) != _TARGET_MODEL_KEYS:
+        _fail(ReasonCodes.BINDING_MISMATCH, path)
 
 
 def _require_exact_map(actual: dict[str, Any], expected: dict[str, Any], path: str = "$.boundDigests") -> None:
@@ -308,6 +399,84 @@ def _check_condition_pair(value: dict[str, Any]) -> None:
     _require_sorted_unique(value["allowedDifferences"], "$.allowedDifferences")
 
 
+def _check_package_lock(value: dict[str, Any]) -> None:
+    component_keys = [(component["kind"], component["name"]) for component in value["components"]]
+    if len(component_keys) != len(set(component_keys)):
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.components")
+    for path in value["files"]:
+        if path.startswith("/") or ".." in path.split("/") or "\\" in path or "\x00" in path or not path:
+            _fail(ReasonCodes.INVALID_FIELD, "$.files")
+
+
+def _check_condition_lock(value: dict[str, Any]) -> None:
+    if value["modelRequest"] not in _TARGET_MODEL_KEYS:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.modelRequest")
+    _require_sorted_unique(value["enabledComponents"], "$.enabledComponents")
+
+
+def _check_block_spec(value: dict[str, Any]) -> None:
+    if value["modelRequest"] not in _TARGET_MODEL_KEYS:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.modelRequest")
+    _require_sorted_unique(value["scenarioDigests"], "$.scenarioDigests")
+
+
+def _check_matrix_lock(value: dict[str, Any]) -> None:
+    _require_sorted_unique(value["conditionDigests"], "$.conditionDigests")
+    _require_sorted_unique(value["analysisLockDigests"], "$.analysisLockDigests")
+
+
+def _check_resource_envelope(value: dict[str, Any]) -> None:
+    if value["overagePolicy"] != "fail_profile":
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.overagePolicy")
+
+
+def _check_scheduled_attempt(value: dict[str, Any]) -> None:
+    if value["replacementForAttemptId"] == "none" and value["retryOrdinal"] != 0:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.retryOrdinal")
+    if value["replacementForAttemptId"] != "none" and value["retryOrdinal"] < 1:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.retryOrdinal")
+
+
+def _check_lifecycle_event(value: dict[str, Any]) -> None:
+    terminal_phases = {"execution_terminal"}
+    if value["phase"] in terminal_phases and value["terminalKind"] == "none":
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.terminalKind")
+    if value["phase"] not in terminal_phases and value["terminalKind"] != "none":
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.terminalKind")
+
+
+def _check_environment_qualification(value: dict[str, Any]) -> None:
+    if value["scope"] == "release_candidate":
+        if value["pluginLifecycleEvidence"] == "not_applicable" or value["customizationConformanceEvidence"] == "not_applicable":
+            _fail(ReasonCodes.BINDING_MISMATCH, "$.scope")
+    if value["scope"] == "cli_core":
+        return
+
+
+def _check_qualification_protocol(value: dict[str, Any]) -> None:
+    if value["customizationScope"] == "release_candidate":
+        models = {request["modelRequest"] for request in value["modelRequests"]}
+        _require_target_model_map({model: True for model in models}, "$.modelRequests")
+    if tuple(value["requiredPreflights"]) != _QUALIFICATION_PREFLIGHTS:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.requiredPreflights")
+
+
+def _check_scorecard(value: dict[str, Any]) -> None:
+    if value["modelRequest"] not in _TARGET_MODEL_KEYS:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.modelRequest")
+
+
+def _check_durable_goal_decision(value: dict[str, Any]) -> None:
+    _require_target_model_map(value["perModelMarginDecisions"], "$.perModelMarginDecisions")
+    _require_sorted_unique(value["blockingPredicates"], "$.blockingPredicates")
+    all_models_pass = all(decision["decision"] == "pass" for decision in value["perModelMarginDecisions"].values())
+    can_pass = all_models_pass and value["desktopCalibrationComplete"] and value["publicationRecordDigest"] != "not_published"
+    if value["overallDecision"] == "pass" and (not can_pass or value["blockingPredicates"]):
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.overallDecision")
+    if value["overallDecision"] != "pass" and can_pass and not value["blockingPredicates"]:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.blockingPredicates")
+
+
 def _check_process_state(value: dict[str, Any], path: str = "$.processState") -> None:
     if value["workerProcessState"] == "not_started" and (
         value["workerExitCode"] != "none" or value["startedAt"] != "none"
@@ -330,10 +499,10 @@ def _check_model_release_decision(value: dict[str, Any], path: str = "$") -> Non
         _fail(ReasonCodes.BINDING_MISMATCH, path + ".modelRequest")
     if set(value["criterionResults"]) != _PUBLIC_CRITERIA:
         _fail(ReasonCodes.BINDING_MISMATCH, path + ".criterionResults")
-    all_pass = all(result["result"] == "pass" for result in value["criterionResults"].values())
-    if value["decision"] == "pass" and (not all_pass or value["blockingCriteria"]):
+    failed = sorted(criterion for criterion, result in value["criterionResults"].items() if result["result"] != "pass")
+    if value["decision"] == "pass" and (failed or value["blockingCriteria"]):
         _fail(ReasonCodes.BINDING_MISMATCH, path + ".decision")
-    if value["decision"] == "fail" and (all_pass or not value["blockingCriteria"]):
+    if value["decision"] == "fail" and (not failed or value["blockingCriteria"] != failed):
         _fail(ReasonCodes.BINDING_MISMATCH, path + ".decision")
 
 
@@ -345,10 +514,14 @@ def _check_release_gate_decision(value: dict[str, Any]) -> None:
         if key != decision["modelRequest"]:
             _fail(ReasonCodes.BINDING_MISMATCH, "$.perModelDecisions." + key)
         _check_model_release_decision(decision, "$.perModelDecisions." + key)
-    all_pass = all(decision["decision"] == "pass" for decision in value["perModelDecisions"].values())
-    if value["overallDecision"] == "pass" and (not all_pass or value["blockingCriteria"]):
+    failed = sorted(
+        key + "/" + criterion
+        for key, decision in value["perModelDecisions"].items()
+        for criterion in decision["blockingCriteria"]
+    )
+    if value["overallDecision"] == "pass" and (failed or value["blockingCriteria"]):
         _fail(ReasonCodes.BINDING_MISMATCH, "$.overallDecision")
-    if value["overallDecision"] == "fail" and (all_pass or not value["blockingCriteria"]):
+    if value["overallDecision"] == "fail" and (not failed or value["blockingCriteria"] != failed):
         _fail(ReasonCodes.BINDING_MISMATCH, "$.overallDecision")
 
 
@@ -590,16 +763,38 @@ def _check_staged_outcome_bundle(value: dict[str, Any]) -> None:
 
 
 def _run_parser_checks(kind: str, value: dict[str, Any]) -> None:
-    if kind == "EvaluationClaim":
+    if kind == "PackageLock":
+        _check_package_lock(value)
+    elif kind == "EvaluationClaim":
         _check_evaluation_claim(value)
+    elif kind == "ConditionLock":
+        _check_condition_lock(value)
     elif kind == "ConditionPairLock":
         _check_condition_pair(value)
+    elif kind == "BlockSpec":
+        _check_block_spec(value)
+    elif kind == "MatrixLock":
+        _check_matrix_lock(value)
+    elif kind == "ResourceEnvelope":
+        _check_resource_envelope(value)
     elif kind == "PrecisionPowerLock":
         _check_precision_power(value)
     elif kind == "BlindedBaselineInput":
         _check_blinded_baseline(value)
     elif kind in {"ProcessState"}:
         _check_process_state(value, "$")
+    elif kind == "ScheduledAttempt":
+        _check_scheduled_attempt(value)
+    elif kind == "AttemptLifecycleEvent":
+        _check_lifecycle_event(value)
+    elif kind == "EnvironmentQualificationRecord":
+        _check_environment_qualification(value)
+    elif kind == "QualificationProtocol":
+        _check_qualification_protocol(value)
+    elif kind == "Scorecard":
+        _check_scorecard(value)
+    elif kind == "DurableGoalDecision":
+        _check_durable_goal_decision(value)
     elif kind == "StagedAttemptOutcomeBundle":
         _check_staged_outcome_bundle(value)
     elif kind == "RunRecord":
@@ -642,6 +837,7 @@ def parse_contract(kind: str, value: object) -> dict[str, object]:
         _fail(ReasonCodes.NOT_OBJECT)
     _schema_path_for(kind)
     _validate_schema(kind, cloned)
+    _check_timestamp_fields(cloned)
     _run_parser_checks(kind, cloned)
     return cloned
 

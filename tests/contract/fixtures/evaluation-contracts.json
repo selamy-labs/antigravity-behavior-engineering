@@ -1265,6 +1265,1026 @@
         "publishedAt": "2026-08-18T18:00:00Z",
         "remoteEvidenceDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
+    },
+    {
+      "name": "ComponentLock",
+      "kind": "ComponentLock",
+      "value": {
+        "schemaVersion": 1,
+        "kind": "skill",
+        "name": "verification-before-completion",
+        "path": "skills/verification/SKILL.md",
+        "claimId": "claim-selected-review",
+        "defaultEnabled": true,
+        "digest": "sha256:6985ca1f4daa5a584a28eae043a239cb96689af1337ea13afb63e00c2bf512fa"
+      }
+    },
+    {
+      "name": "DependencyLock",
+      "kind": "DependencyLock",
+      "value": {
+        "schemaVersion": 1,
+        "name": "superpowers",
+        "sourceUrl": "https://github.com/selamy-labs/superpowers",
+        "revision": "0000000000000000000000000000000000000000",
+        "license": "MIT",
+        "consumption": "research",
+        "required": false,
+        "qualificationEvidence": "evidence/superpowers.json"
+      }
+    },
+    {
+      "name": "PackageLock",
+      "kind": "PackageLock",
+      "value": {
+        "schemaVersion": 1,
+        "packageName": "antigravity-behavior-engineering",
+        "packageVersion": "0.1.0",
+        "sourceRevision": "1111111111111111111111111111111111111111",
+        "minimumCliVersion": "1.0.0",
+        "supportedPlatforms": [
+          {
+            "schemaVersion": 1,
+            "os": "linux",
+            "architecture": "x64"
+          }
+        ],
+        "components": [
+          {
+            "schemaVersion": 1,
+            "kind": "skill",
+            "name": "verification-before-completion",
+            "path": "skills/verification/SKILL.md",
+            "claimId": "claim-selected-review",
+            "defaultEnabled": true,
+            "digest": "sha256:6985ca1f4daa5a584a28eae043a239cb96689af1337ea13afb63e00c2bf512fa"
+          }
+        ],
+        "dependencies": [
+          {
+            "schemaVersion": 1,
+            "name": "superpowers",
+            "sourceUrl": "https://github.com/selamy-labs/superpowers",
+            "revision": "0000000000000000000000000000000000000000",
+            "license": "MIT",
+            "consumption": "research",
+            "required": false,
+            "qualificationEvidence": "evidence/superpowers.json"
+          }
+        ],
+        "files": {
+          "plugin.json": "sha256:833ad0c21030f9bd5e4e2f3f195480138dc615462a0cd292dfa2e7959b13758c"
+        },
+        "generatedAt": "2026-08-18T10:00:00Z"
+      }
+    },
+    {
+      "name": "ResourceEnvelope",
+      "kind": "ResourceEnvelope",
+      "value": {
+        "schemaVersion": 1,
+        "envelopeId": "resource-envelope-001",
+        "quotaOrCost": "not_observable",
+        "tokens": {
+          "schemaVersion": 1,
+          "cap": 100,
+          "median": "not_observable",
+          "p90": "not_observable"
+        },
+        "wallTime": {
+          "schemaVersion": 1,
+          "cap": 600000,
+          "median": "not_observable",
+          "p90": "not_observable"
+        },
+        "toolCalls": {
+          "schemaVersion": 1,
+          "cap": 20,
+          "median": "not_observable",
+          "p90": "not_observable"
+        },
+        "retries": {
+          "schemaVersion": 1,
+          "cap": 1,
+          "median": "not_observable",
+          "p90": "not_observable"
+        },
+        "subagentFanOut": {
+          "schemaVersion": 1,
+          "cap": 0,
+          "median": "not_observable",
+          "p90": "not_observable"
+        },
+        "differentialAttritionLimit": "0.05",
+        "overagePolicy": "fail_profile"
+      }
+    },
+    {
+      "name": "AuthorityManifest",
+      "kind": "AuthorityManifest",
+      "value": {
+        "schemaVersion": 1,
+        "manifestId": "authority-001",
+        "allowedActions": [
+          "read_fixture",
+          "write_output"
+        ],
+        "allowedResources": [
+          "/workspace/input",
+          "/workspace/output"
+        ],
+        "networkPolicyDigest": "sha256:51ca343f4cd77272a62f79d907b06b96a91745503f8c445823cb58f1c88d2628",
+        "credentialGrantDigests": [],
+        "expiresAt": "not_applicable"
+      }
+    },
+    {
+      "name": "CheckLock",
+      "kind": "CheckLock",
+      "value": {
+        "schemaVersion": 1,
+        "checkId": "check-001",
+        "kind": "file_exists",
+        "implementationDigest": "sha256:e36d0798938f4d1c92a668d29f6002e87737a0e0a1de316f9c3198327b4111af",
+        "inputDigest": "sha256:18119a956a4552ac75990d4c1570266b210ce06c4155071be0bd8f1f724bb9cb",
+        "expectedResultDigest": "sha256:039563441c466042eb1c8ce088e316a06287667937be57e4861e749f52daf080",
+        "timeoutMs": 1000
+      }
+    },
+    {
+      "name": "ScenarioCard",
+      "kind": "ScenarioCard",
+      "value": {
+        "schemaVersion": 1,
+        "scenarioId": "scenario-001",
+        "family": "family-alpha",
+        "partition": "formative",
+        "variantProtocolDigest": "not_applicable",
+        "fixtureDigest": "sha256:f16d05ec6b29248d2c61adb1e9263f78e4f7bace1b955014a2d17872cfe4064d",
+        "startingStateDigest": "sha256:59dbf36d9930a99bfc1e13a10518cd5cf42d29ef9b21993c424b4146a81aa30e",
+        "agentInput": "protected/input.txt",
+        "applicability": {
+          "verification-before-completion": true
+        },
+        "materialAmbiguities": [
+          "ambiguous acceptance wording"
+        ],
+        "authorityManifest": {
+          "schemaVersion": 1,
+          "manifestId": "authority-001",
+          "allowedActions": [
+            "read_fixture",
+            "write_output"
+          ],
+          "allowedResources": [
+            "/workspace/input",
+            "/workspace/output"
+          ],
+          "networkPolicyDigest": "sha256:51ca343f4cd77272a62f79d907b06b96a91745503f8c445823cb58f1c88d2628",
+          "credentialGrantDigests": [],
+          "expiresAt": "not_applicable"
+        },
+        "resourceEnvelope": {
+          "schemaVersion": 1,
+          "envelopeId": "resource-envelope-001",
+          "quotaOrCost": "not_observable",
+          "tokens": {
+            "schemaVersion": 1,
+            "cap": 100,
+            "median": "not_observable",
+            "p90": "not_observable"
+          },
+          "wallTime": {
+            "schemaVersion": 1,
+            "cap": 600000,
+            "median": "not_observable",
+            "p90": "not_observable"
+          },
+          "toolCalls": {
+            "schemaVersion": 1,
+            "cap": 20,
+            "median": "not_observable",
+            "p90": "not_observable"
+          },
+          "retries": {
+            "schemaVersion": 1,
+            "cap": 1,
+            "median": "not_observable",
+            "p90": "not_observable"
+          },
+          "subagentFanOut": {
+            "schemaVersion": 1,
+            "cap": 0,
+            "median": "not_observable",
+            "p90": "not_observable"
+          },
+          "differentialAttritionLimit": "0.05",
+          "overagePolicy": "fail_profile"
+        },
+        "checks": [
+          {
+            "schemaVersion": 1,
+            "checkId": "check-001",
+            "kind": "file_exists",
+            "implementationDigest": "sha256:e36d0798938f4d1c92a668d29f6002e87737a0e0a1de316f9c3198327b4111af",
+            "inputDigest": "sha256:18119a956a4552ac75990d4c1570266b210ce06c4155071be0bd8f1f724bb9cb",
+            "expectedResultDigest": "sha256:039563441c466042eb1c8ce088e316a06287667937be57e4861e749f52daf080",
+            "timeoutMs": 1000
+          }
+        ],
+        "classificationPolicyDigest": "sha256:ac3b2125c2b300c2a2abf2eeabc23a4a2f7eee39839221408a029500374d0eef",
+        "weight": 1
+      }
+    },
+    {
+      "name": "ConditionLock",
+      "kind": "ConditionLock",
+      "value": {
+        "schemaVersion": 1,
+        "conditionId": "full",
+        "modelRequest": "gemini-3.7-flash-high",
+        "reasoningRequest": "high",
+        "provider": "google",
+        "authenticationMode": "scoped",
+        "fallbackPolicy": "deny",
+        "agentSelection": "antigravity",
+        "subagentSelection": "not_applicable",
+        "rawInvocation": {
+          "schemaVersion": 1,
+          "argv": [
+            "agy",
+            "--model",
+            "gemini-3.7-flash-high"
+          ],
+          "environment": {
+            "AGY_PROFILE": "fixture"
+          }
+        },
+        "cliDigest": "sha256:99bb88401742848e032fd6f51709415fb6be169a72d2e5d7fc44289255160d3c",
+        "pluginDigest": "sha256:5e689e2b01672bf33996e75d5e372ff60c536ce1599a1458e867cd8f4bef5160",
+        "dependencyDigests": {
+          "superpowers": "sha256:e854f3660ace07f0252040580819e0e3b8e2422929bf6c08297ab932489e1859"
+        },
+        "enabledComponents": [
+          "verification-before-completion"
+        ],
+        "authorityManifestDigest": "sha256:8f76fd501bb68ef71f4e276bc28f29bce1003b0c2c9d9478de81b5bfc0cde1e9",
+        "resourceEnvelopeDigest": "sha256:5de95319f17467ed6dc58e4e0b16c1193a13b35d60dc48bcf06bf6b7beebbe6c",
+        "toolInventoryDigest": "sha256:f9d35d43770d39092a663e665e82ae1d84a9e0da3d0d10c407acada6a40cd281",
+        "permissionDigest": "sha256:4fe3cdd404ea0290bad96d3e1ccd92979d33ac63c4c18ad80e94d0452ce43391",
+        "environmentDigest": "sha256:ba5285161ba6eed0085fb13784ce5c92f70ebc268b94fd66aa1d68a32884204d",
+        "environmentQualificationDigest": "sha256:b25d462a786f8cb1e44c85c2439d6c1ca10b940712d4b79a3662f546ca2c2386"
+      }
+    },
+    {
+      "name": "BlockSpec",
+      "kind": "BlockSpec",
+      "value": {
+        "schemaVersion": 1,
+        "blockId": "block-001",
+        "modelRequest": "gemini-3.7-flash-high",
+        "scenarioDigests": [
+          "sha256:4a914640d8fccf507beb813f1f09b1d5bf887f0162909f1c6ac05bd8acc48e16",
+          "sha256:6f1413daffe6465e4c9789c2a1d33fa54c11f0cc4a7f36a5244413905146018f"
+        ],
+        "conditionIds": [
+          "bare",
+          "full"
+        ],
+        "conditionPairLockDigest": "sha256:47d8bd46877831ccd61c1cfac962cd4143bc818c7d5fd0989de4f061ce60351e",
+        "repetitions": 2,
+        "randomizationSeedCommitment": "sha256:19b25856e1c150ca834cffc8b59b23adbd0ec0389e58eb22b3b64768098d002b",
+        "resourceEnvelopeDigest": "sha256:5de95319f17467ed6dc58e4e0b16c1193a13b35d60dc48bcf06bf6b7beebbe6c"
+      }
+    },
+    {
+      "name": "MatrixLock",
+      "kind": "MatrixLock",
+      "value": {
+        "schemaVersion": 1,
+        "matrixId": "matrix-001",
+        "partition": "formative",
+        "blockDigests": [
+          "sha256:496aca80e4d8f29fb8e8cd816c3afb48d3f103970b3a2ee1600c08ca67326dee"
+        ],
+        "conditionDigests": [
+          "sha256:6b9d10ed65bdcb4d8c28ffa4cf99f73985a51eee461b0fa6024c93a165d457b9",
+          "sha256:a6a06a9691d9d3b5f5b63c08c0a28a513831c0671a70c446f768e306bc41fb4d"
+        ],
+        "analysisLockDigests": [
+          "sha256:f44e85c4b8ea2addc796f8beab6600e801d767ccd26c800dce6d88fdaa5eb4e6"
+        ],
+        "environmentQualificationDigest": "sha256:b25d462a786f8cb1e44c85c2439d6c1ca10b940712d4b79a3662f546ca2c2386",
+        "protocolDigest": "sha256:2ea88c7a30351b12a4dcfc06cdce2af6eab18416176466c2500cb6ef74f745bf",
+        "matrixDigest": "sha256:6e00cd562cc2d88e238dfb81d9439de7ec843ee9d0c9879d549cb1436786f975"
+      }
+    },
+    {
+      "name": "AnalysisLock",
+      "kind": "AnalysisLock",
+      "value": {
+        "schemaVersion": 1,
+        "analysisId": "analysis-001",
+        "familyId": "family-alpha",
+        "unitOfAnalysis": "scenario",
+        "clusterKey": "scenarioId",
+        "modelEffects": "separate",
+        "weights": {
+          "family-alpha": "1.0"
+        },
+        "missingDataPolicy": {
+          "schemaVersion": 1,
+          "name": "complete-case",
+          "digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812"
+        },
+        "multiplicityPolicy": {
+          "schemaVersion": 1,
+          "name": "complete-case",
+          "digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812"
+        },
+        "confidenceLevel": "0.95",
+        "margins": {
+          "primary": "0.05"
+        },
+        "exclusions": [],
+        "stoppingRule": {
+          "schemaVersion": 1,
+          "name": "complete-case",
+          "digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812"
+        },
+        "resourceEnvelopeDigest": "sha256:5de95319f17467ed6dc58e4e0b16c1193a13b35d60dc48bcf06bf6b7beebbe6c",
+        "analysisCodeDigest": "sha256:59bb658eaa2d8da047e40438dd4405bd2d3d6cae8bfa9d5a71e7b7dff9604c4f",
+        "cohortDefinitions": {
+          "all": "all scheduled attempts"
+        },
+        "variantReductionPolicyDigest": "not_applicable"
+      }
+    },
+    {
+      "name": "ScheduledAttempt",
+      "kind": "ScheduledAttempt",
+      "value": {
+        "schemaVersion": 1,
+        "attemptId": "attempt-001",
+        "blockId": "block-001",
+        "scenarioId": "scenario-001",
+        "conditionId": "full",
+        "repetition": 1,
+        "scheduledAt": "2026-08-18T12:00:00Z",
+        "randomizationProof": {
+          "schemaVersion": 1,
+          "seedCommitmentDigest": "sha256:19b25856e1c150ca834cffc8b59b23adbd0ec0389e58eb22b3b64768098d002b",
+          "ordinal": 0
+        },
+        "runId": "run-001",
+        "replacementForAttemptId": "none",
+        "retryOrdinal": 0
+      }
+    },
+    {
+      "name": "AttemptLifecycleEvent",
+      "kind": "AttemptLifecycleEvent",
+      "value": {
+        "schemaVersion": 1,
+        "attemptId": "attempt-001",
+        "sequence": 0,
+        "phase": "scheduled",
+        "terminalKind": "none",
+        "occurredAt": "2026-08-18T12:00:00Z",
+        "evidenceDigest": "sha256:f31168c67a1482e74cb97ec041650a193c18a4bb0847d656aa70707e72cd4e9d"
+      }
+    },
+    {
+      "name": "EnvironmentQualificationRecord",
+      "kind": "EnvironmentQualificationRecord",
+      "value": {
+        "schemaVersion": 1,
+        "qualificationId": "env-qual-001",
+        "scope": "release_candidate",
+        "cliVersion": "1.0.0",
+        "cliDigest": "sha256:99bb88401742848e032fd6f51709415fb6be169a72d2e5d7fc44289255160d3c",
+        "imageDigest": "sha256:6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d",
+        "platform": {
+          "schemaVersion": 1,
+          "os": "linux",
+          "architecture": "x64"
+        },
+        "modelConfigurationEvidence": {
+          "gemini-3.7-flash-high/high": "sha256:73f95cf180a19624e4be9a711fd53a90dadfffa410cc9cd2ba1999454a5b99b8",
+          "gemini-3.1-pro-high/high": "sha256:af30308345d789145d9087a8d6e5037a089e92239bc312bcaba0099bb8e20ba7"
+        },
+        "unknownModelFallbackEvidence": "sha256:5c7ee2074b65853f71fc5a01ce194ff26deedf6daacdb715c6beefdfd3f31b35",
+        "structuredCaptureEvidence": "sha256:460ee6aa3a80359181b794cc31a7185addba77626e9f719c10e3c8efb8668a1d",
+        "pluginLifecycleEvidence": "sha256:b1e3de3b4c3a15de9e60630eb7531ad0df2397cf7d477504545ad96cb9fdddba",
+        "customizationConformanceEvidence": "sha256:412dac876f03f5f5d04de645fbeaf55dc4a0f335f026ed4b209ad232e4a9582a",
+        "authorityToolCapabilityEvidence": "sha256:9c89b182fbab8a63ba3bb24d5101415c2d117c2a861f75c088e5f7e246cf6125",
+        "supportDecision": "qualified",
+        "limitations": [],
+        "qualifiedAt": "2026-08-18T11:00:00Z"
+      }
+    },
+    {
+      "name": "QualificationProtocol",
+      "kind": "QualificationProtocol",
+      "value": {
+        "schemaVersion": 1,
+        "protocolId": "qualification-protocol-001",
+        "cliVersionConstraint": ">=1.0.0 <2.0.0",
+        "cliArtifactDigest": "sha256:3aba623bdb662d86d7db4c50ac67bb700794f547b006b54d566c74dfdccf62c5",
+        "imageDigest": "sha256:6105d6cc76af400325e94d588ce511be5bfdbb73b437dc51eca43917d7a43e3d",
+        "platforms": [
+          {
+            "schemaVersion": 1,
+            "os": "linux",
+            "architecture": "x64"
+          }
+        ],
+        "modelRequests": [
+          {
+            "schemaVersion": 1,
+            "modelRequest": "gemini-3.7-flash-high",
+            "reasoningRequest": "high"
+          },
+          {
+            "schemaVersion": 1,
+            "modelRequest": "gemini-3.1-pro-high",
+            "reasoningRequest": "high"
+          }
+        ],
+        "fallbackProbes": [
+          {
+            "schemaVersion": 1,
+            "probeId": "unknown-model",
+            "request": "unknown model must fail",
+            "evidenceDigest": "sha256:ba9c736f19e7f60b7f6764adb0b7908c0a2b394e09b6c09863528c7f2bc86095"
+          }
+        ],
+        "structuredCaptureContractDigest": "sha256:1ed2de588628c66887ccd401f7e9ae5090830d2b41a5c06250d8d1cf2257d35f",
+        "requiredPreflights": [
+          "authentication",
+          "fixture_provisioning",
+          "model_preflight",
+          "fallback_probe",
+          "plugin_component_discovery",
+          "structured_capture_preflight",
+          "authority_tool_inventory"
+        ],
+        "customizationScope": "release_candidate",
+        "protocolDigest": "sha256:cf0cc9d3171f4739f2b1c0e80d7fd03bc6fa0565c63d137739609f1066271d59"
+      }
+    },
+    {
+      "name": "ClassificationPolicy",
+      "kind": "ClassificationPolicy",
+      "value": {
+        "schemaVersion": 1,
+        "policyId": "classification-policy-001",
+        "reasonCodes": [
+          {
+            "schemaVersion": 1,
+            "reasonCode": "product_timeout",
+            "priority": 10
+          }
+        ],
+        "replacementCaps": {
+          "infrastructure_failure": 1
+        },
+        "validRunProjection": "gradable_only",
+        "policyDigest": "sha256:ac3b2125c2b300c2a2abf2eeabc23a4a2f7eee39839221408a029500374d0eef"
+      }
+    },
+    {
+      "name": "CheckResult",
+      "kind": "CheckResult",
+      "value": {
+        "schemaVersion": 1,
+        "checkId": "check-001",
+        "implementationDigest": "sha256:e36d0798938f4d1c92a668d29f6002e87737a0e0a1de316f9c3198327b4111af",
+        "outcome": "pass",
+        "reasonCode": "passed",
+        "evidenceDigest": "sha256:5b1774e7933917e32a624600a7560052e5b284317c4af76f0a18d55a407f691a",
+        "durationMs": 10
+      }
+    },
+    {
+      "name": "ReviewerGrade",
+      "kind": "ReviewerGrade",
+      "value": {
+        "schemaVersion": 1,
+        "reviewerId": "reviewer-a",
+        "rubricDigest": "sha256:49672f0ef3b3a542b3b86b475936cc9adf1ddf60369e9b120ba33900294c99d8",
+        "calibrationDigest": "sha256:e152337e4e85aa3e81482f0ce329aec7bfad531413fe53fef84f1f0d4165caee",
+        "dimensionScores": {
+          "correctness": "0.8"
+        },
+        "findingIds": [],
+        "overall": "0.8",
+        "limitations": []
+      }
+    },
+    {
+      "name": "TrajectoryDiagnostics",
+      "kind": "TrajectoryDiagnostics",
+      "value": {
+        "schemaVersion": 1,
+        "firstDivergenceCode": "none",
+        "recoveryCount": 0,
+        "repeatedWorkCount": 0,
+        "permissionEvents": 0,
+        "sourceDigest": "sha256:be3f1b44776624b9c37b661e9711ac1d8f51628b80c33e3b60b6a56fea088c9b"
+      }
+    },
+    {
+      "name": "GradeRecord",
+      "kind": "GradeRecord",
+      "value": {
+        "schemaVersion": 1,
+        "gradeId": "grade-001",
+        "runId": "run-001",
+        "graderDigest": "sha256:cb8ef6444b43f18fedf1f8347c5cd667f442473878cc1c9547f74564ed6f865d",
+        "conditionBlind": true,
+        "modelBlind": true,
+        "deterministicChecks": [
+          {
+            "schemaVersion": 1,
+            "checkId": "check-001",
+            "implementationDigest": "sha256:e36d0798938f4d1c92a668d29f6002e87737a0e0a1de316f9c3198327b4111af",
+            "outcome": "pass",
+            "reasonCode": "passed",
+            "evidenceDigest": "sha256:5b1774e7933917e32a624600a7560052e5b284317c4af76f0a18d55a407f691a",
+            "durationMs": 10
+          }
+        ],
+        "reviewerGrades": [
+          {
+            "schemaVersion": 1,
+            "reviewerId": "reviewer-a",
+            "rubricDigest": "sha256:49672f0ef3b3a542b3b86b475936cc9adf1ddf60369e9b120ba33900294c99d8",
+            "calibrationDigest": "sha256:e152337e4e85aa3e81482f0ce329aec7bfad531413fe53fef84f1f0d4165caee",
+            "dimensionScores": {
+              "correctness": "0.8"
+            },
+            "findingIds": [],
+            "overall": "0.8",
+            "limitations": []
+          }
+        ],
+        "adjudication": "not_required",
+        "outcome": "pass",
+        "metrics": {
+          "task_success": "1.0"
+        },
+        "diagnostics": {
+          "schemaVersion": 1,
+          "firstDivergenceCode": "none",
+          "recoveryCount": 0,
+          "repeatedWorkCount": 0,
+          "permissionEvents": 0,
+          "sourceDigest": "sha256:be3f1b44776624b9c37b661e9711ac1d8f51628b80c33e3b60b6a56fea088c9b"
+        }
+      }
+    },
+    {
+      "name": "Scorecard",
+      "kind": "Scorecard",
+      "value": {
+        "schemaVersion": 1,
+        "scorecardId": "scorecard-001",
+        "candidateDigest": "sha256:dda18a0e21ae47c53b4309434cbc02ae8bf764fa83a6defbb719431242722aa7",
+        "analysisLockDigest": "sha256:f44e85c4b8ea2addc796f8beab6600e801d767ccd26c800dce6d88fdaa5eb4e6",
+        "modelRequest": "gemini-3.7-flash-high",
+        "attemptProjectionDigest": "sha256:7ae80c6100aaafa4389d17715827a58eef8188bd4461dd74daadc174b94fa463",
+        "metrics": {
+          "primary": {
+            "schemaVersion": 1,
+            "value": "0.8",
+            "uncertainty": "0.1"
+          }
+        },
+        "resourceSummary": {
+          "median": "100"
+        },
+        "attritionSummary": {
+          "timeout_rate": "0.0"
+        },
+        "graderAgreement": {
+          "kappa": "1.0"
+        },
+        "limitations": []
+      }
+    },
+    {
+      "name": "SafetyReport",
+      "kind": "SafetyReport",
+      "value": {
+        "schemaVersion": 1,
+        "reportId": "safety-001",
+        "rootDigest": "sha256:bc5bea26b01ca7b366f95f7cb960e8e83529f7d8961ad184e0375725d4df8f07",
+        "policyDigest": "sha256:fce8b57e76301846c42fad20317ea0c94b0ee37bf44d0c41ff15e319d37687b2",
+        "findings": [
+          {
+            "schemaVersion": 1,
+            "findingId": "finding-001",
+            "severity": "minor",
+            "location": "plugin.json",
+            "evidenceDigest": "sha256:8bf18252cb6dadd5f42fca108271e688696209cdb6fae22e32318b204e6eb37d",
+            "status": "resolved"
+          }
+        ],
+        "criticalOpenCount": 0,
+        "scannerDigests": [
+          "sha256:6105d8625ada3c9bf514062b5696e9d7aa11e4b5e2c3d8629713f0bf2e45f6fd"
+        ]
+      }
+    },
+    {
+      "name": "ProvenanceInventory",
+      "kind": "ProvenanceInventory",
+      "value": {
+        "schemaVersion": 1,
+        "inventoryId": "provenance-001",
+        "rootDigest": "sha256:bc5bea26b01ca7b366f95f7cb960e8e83529f7d8961ad184e0375725d4df8f07",
+        "sources": [
+          {
+            "schemaVersion": 1,
+            "sourceUrl": "https://example.com/upstream",
+            "revision": "2222222222222222222222222222222222222222",
+            "license": "MIT",
+            "consumption": "research"
+          }
+        ],
+        "adaptations": [
+          {
+            "schemaVersion": 1,
+            "sourceDigest": "sha256:41cf6794ba4200b839c53531555f0f3998df4cbb01a4d5cb0b94e3ca5e23947d",
+            "localPath": "docs/adaptation.md",
+            "classification": "methodology"
+          }
+        ],
+        "noticeDigest": "sha256:9368a7d21e018f64ae3327d2f25cd4d7693b2d85328e4bb680bcfcbd4c26b90e",
+        "policyDigest": "sha256:4d7179b914fc298b455760fbe5e537dd972f66200dcff3dab4fad3bdd508433f"
+      }
+    },
+    {
+      "name": "RedactedRun",
+      "kind": "RedactedRun",
+      "value": {
+        "schemaVersion": 1,
+        "publicRunId": "public-run-001",
+        "publicConfigurationDigest": "sha256:a751c77ec2d5ce71d6a87bfc4cb6af86f4baf7553065f4aeb3be08be35e2170c",
+        "scenarioFamilyId": "family-alpha",
+        "processState": {
+          "schemaVersion": 1,
+          "workerProcessState": "terminated",
+          "controllerExitCode": 0,
+          "workerExitCode": 0,
+          "signal": "none",
+          "timeout": false,
+          "startedAt": "2026-08-18T12:10:00Z",
+          "endedAt": "2026-08-18T12:12:00Z",
+          "stderrDigest": "none"
+        },
+        "classification": {
+          "schemaVersion": 1,
+          "class": "product_failure",
+          "reasonCode": "product_timeout",
+          "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf",
+          "retryEligible": false,
+          "countsInIntentionToTreat": true,
+          "countsInValidRun": false
+        },
+        "consumption": {
+          "schemaVersion": 1,
+          "inputTokens": "unavailable",
+          "outputTokens": "unavailable",
+          "cachedTokens": "unavailable",
+          "toolCalls": 3,
+          "subagentCalls": 0,
+          "wallTimeMs": 125000,
+          "quotaOrCost": "unavailable",
+          "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+        },
+        "artifactManifestDigest": "sha256:e8826473ec8397294e3b437ecde602603b2dfa07f44f7a24deb0db23b16180dd",
+        "gradeDigests": [
+          "sha256:ffe97bba510b9f5cf1bb187bebb59cefa42a3f1654d2c993654382cd10468c2e"
+        ],
+        "redactionReportDigest": "sha256:fd89a2f18bdb5c049e7aaeed3c8c90ed518542701a907facbcff950abab80c18",
+        "limitations": []
+      }
+    },
+    {
+      "name": "CodexReferenceConfig",
+      "kind": "CodexReferenceConfig",
+      "value": {
+        "schemaVersion": 1,
+        "protocolId": "codex-reference-001",
+        "harnessVersion": "1.0.0",
+        "modelId": "codex",
+        "scenarioProtocolDigest": "sha256:8eef8c0f22569659c2ad04ffad70373a84e9a3c2ab68214e410a17c09e0275ef",
+        "authorityManifestDigest": "sha256:8f76fd501bb68ef71f4e276bc28f29bce1003b0c2c9d9478de81b5bfc0cde1e9",
+        "resourceEnvelopeDigest": "sha256:5de95319f17467ed6dc58e4e0b16c1193a13b35d60dc48bcf06bf6b7beebbe6c",
+        "toolInventoryDigest": "sha256:f9d35d43770d39092a663e665e82ae1d84a9e0da3d0d10c407acada6a40cd281",
+        "analysisLockDigest": "sha256:f44e85c4b8ea2addc796f8beab6600e801d767ccd26c800dce6d88fdaa5eb4e6",
+        "redactionPolicyDigest": "sha256:f9836f26b820547241fc2a337e9ea79237dd7dbd9b8d9aa1b1a09df40bcc007d"
+      }
+    },
+    {
+      "name": "PublicScenario",
+      "kind": "PublicScenario",
+      "value": {
+        "schemaVersion": 1,
+        "publicScenarioId": "public-scenario-001",
+        "familyId": "family-alpha",
+        "request": "Write a small public fixture.",
+        "fixtureDigest": "sha256:26717ae4369d005dc210693d1d9256de56b5689078ed07922317ea56020a6486",
+        "authorityManifestDigest": "sha256:8f76fd501bb68ef71f4e276bc28f29bce1003b0c2c9d9478de81b5bfc0cde1e9",
+        "resourceEnvelopeDigest": "sha256:5de95319f17467ed6dc58e4e0b16c1193a13b35d60dc48bcf06bf6b7beebbe6c",
+        "hiddenMaterialDigest": "none"
+      }
+    },
+    {
+      "name": "ReferenceRunRecord",
+      "kind": "ReferenceRunRecord",
+      "value": {
+        "schemaVersion": 1,
+        "referenceRunId": "reference-run-001",
+        "configDigest": "sha256:5829e8b56eca724d0378c75a2c04f31b31e52c0bf431ef720b5ed1bf90f08e6c",
+        "scenarioDigest": "sha256:512098f630fd3cd2a9bd17276d3883495b689e53d11970725a44835612012cfd",
+        "rawArgvDigest": "sha256:5a6e537c2ba28ef19cad9f47cbb139af0bc071b53c3969479e06ff8868284e33",
+        "processState": {
+          "schemaVersion": 1,
+          "workerProcessState": "terminated",
+          "controllerExitCode": 0,
+          "workerExitCode": 0,
+          "signal": "none",
+          "timeout": false,
+          "startedAt": "2026-08-18T12:10:00Z",
+          "endedAt": "2026-08-18T12:12:00Z",
+          "stderrDigest": "none"
+        },
+        "artifactManifestDigest": "sha256:e8826473ec8397294e3b437ecde602603b2dfa07f44f7a24deb0db23b16180dd",
+        "gradeDigests": [
+          "sha256:ffe97bba510b9f5cf1bb187bebb59cefa42a3f1654d2c993654382cd10468c2e"
+        ],
+        "consumption": {
+          "schemaVersion": 1,
+          "inputTokens": "unavailable",
+          "outputTokens": "unavailable",
+          "cachedTokens": "unavailable",
+          "toolCalls": 3,
+          "subagentCalls": 0,
+          "wallTimeMs": 125000,
+          "quotaOrCost": "unavailable",
+          "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+        },
+        "redactionReportDigest": "sha256:fd89a2f18bdb5c049e7aaeed3c8c90ed518542701a907facbcff950abab80c18",
+        "limitations": []
+      }
+    },
+    {
+      "name": "DurableGoalDecision",
+      "kind": "DurableGoalDecision",
+      "value": {
+        "schemaVersion": 1,
+        "decisionId": "durable-goal-001",
+        "releaseDecisionDigest": "sha256:e13ce9c08176c182b0c7ae0c8de673b0460dab04ac3b622c672e7f08073068d1",
+        "cliReferenceAnalysisDigest": "sha256:83ec3a1dbec38889569a33c4b682ad7d3898800a86e14f405e80de0adaefced3",
+        "desktopCalibrationDigest": "sha256:e11edfcf35c08cfbb12f1e5f332b8109901f69c2e4c57c6dfe006d312c91620e",
+        "publicationRecordDigest": "not_published",
+        "perModelMarginDecisions": {
+          "gemini-3.7-flash-high": {
+            "schemaVersion": 1,
+            "modelRequest": "gemini-3.7-flash-high",
+            "decision": "pass",
+            "evidenceDigest": "sha256:10d7bfd43d84b51543856c5547b8eb448de380c5bf2ecf312dc1e2693b3ea853"
+          },
+          "gemini-3.1-pro-high": {
+            "schemaVersion": 1,
+            "modelRequest": "gemini-3.1-pro-high",
+            "decision": "pass",
+            "evidenceDigest": "sha256:f22326ee9343d21ec0652f7368755b293563f0ad6051f8bdd664bf17cbdcc2a1"
+          }
+        },
+        "desktopCalibrationComplete": false,
+        "overallDecision": "indeterminate",
+        "blockingPredicates": [
+          "publication_not_verified"
+        ],
+        "limitations": []
+      }
+    },
+    {
+      "name": "StagedAttemptOutcomeBundle",
+      "kind": "StagedAttemptOutcomeBundle",
+      "value": {
+        "schemaVersion": 1,
+        "unclassifiedOutcome": {
+          "schemaVersion": 1,
+          "attemptId": "attempt-001",
+          "runId": "run-001",
+          "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
+          "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+          "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "lifecycleEventDigests": [
+            "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+          ],
+          "attemptQualification": {
+            "schemaVersion": 1,
+            "authentication": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"
+            },
+            "fixtureProvisioning": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"
+            },
+            "modelPreflight": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"
+            },
+            "fallbackProbe": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"
+            },
+            "pluginComponentDiscovery": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"
+            },
+            "structuredCapturePreflight": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"
+            },
+            "authorityToolInventory": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"
+            },
+            "validStartAt": "2026-08-18T12:10:00Z"
+          },
+          "observedModel": {
+            "schemaVersion": 1,
+            "requestedModel": "gemini-3.7-flash-high",
+            "requestedReasoning": "high",
+            "servedIdentityEvidence": [
+              {
+                "schemaVersion": 1,
+                "source": "cli-init",
+                "value": "unreported",
+                "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"
+              }
+            ],
+            "fallbackProbeResult": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"
+            },
+            "conclusion": "unobservable",
+            "limitations": [
+              "Provider did not expose a stronger served identity in the fixture."
+            ]
+          },
+          "processState": {
+            "schemaVersion": 1,
+            "workerProcessState": "terminated",
+            "controllerExitCode": 0,
+            "workerExitCode": 0,
+            "signal": "none",
+            "timeout": false,
+            "startedAt": "2026-08-18T12:10:00Z",
+            "endedAt": "2026-08-18T12:12:00Z",
+            "stderrDigest": "none"
+          },
+          "agentDeclaredState": "completed",
+          "inputPermissionState": "permitted",
+          "infrastructureValidity": "valid",
+          "consumption": {
+            "schemaVersion": 1,
+            "inputTokens": "unavailable",
+            "outputTokens": "unavailable",
+            "cachedTokens": "unavailable",
+            "toolCalls": 3,
+            "subagentCalls": 0,
+            "wallTimeMs": 125000,
+            "quotaOrCost": "unavailable",
+            "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+          },
+          "stagingManifestDigest": "sha256:edededededededededededededededededededededededededededededededed"
+        },
+        "stagedOutcome": {
+          "schemaVersion": 1,
+          "attemptId": "attempt-001",
+          "runId": "run-001",
+          "conditionDigest": "sha256:e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0e0",
+          "scenarioDigest": "sha256:f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+          "environmentQualificationDigest": "sha256:0202020202020202020202020202020202020202020202020202020202020202",
+          "lifecycleEventDigests": [
+            "sha256:1313131313131313131313131313131313131313131313131313131313131313"
+          ],
+          "attemptQualification": {
+            "schemaVersion": 1,
+            "authentication": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:3535353535353535353535353535353535353535353535353535353535353535"
+            },
+            "fixtureProvisioning": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:4646464646464646464646464646464646464646464646464646464646464646"
+            },
+            "modelPreflight": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:5757575757575757575757575757575757575757575757575757575757575757"
+            },
+            "fallbackProbe": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:6868686868686868686868686868686868686868686868686868686868686868"
+            },
+            "pluginComponentDiscovery": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:7979797979797979797979797979797979797979797979797979797979797979"
+            },
+            "structuredCapturePreflight": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a"
+            },
+            "authorityToolInventory": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b9b"
+            },
+            "validStartAt": "2026-08-18T12:10:00Z"
+          },
+          "observedModel": {
+            "schemaVersion": 1,
+            "requestedModel": "gemini-3.7-flash-high",
+            "requestedReasoning": "high",
+            "servedIdentityEvidence": [
+              {
+                "schemaVersion": 1,
+                "source": "cli-init",
+                "value": "unreported",
+                "digest": "sha256:acacacacacacacacacacacacacacacacacacacacacacacacacacacacacacacac"
+              }
+            ],
+            "fallbackProbeResult": {
+              "schemaVersion": 1,
+              "result": "pass",
+              "evidenceDigest": "sha256:bdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbdbd"
+            },
+            "conclusion": "unobservable",
+            "limitations": [
+              "Provider did not expose a stronger served identity in the fixture."
+            ]
+          },
+          "processState": {
+            "schemaVersion": 1,
+            "workerProcessState": "terminated",
+            "controllerExitCode": 0,
+            "workerExitCode": 0,
+            "signal": "none",
+            "timeout": false,
+            "startedAt": "2026-08-18T12:10:00Z",
+            "endedAt": "2026-08-18T12:12:00Z",
+            "stderrDigest": "none"
+          },
+          "agentDeclaredState": "completed",
+          "inputPermissionState": "permitted",
+          "infrastructureValidity": "valid",
+          "consumption": {
+            "schemaVersion": 1,
+            "inputTokens": "unavailable",
+            "outputTokens": "unavailable",
+            "cachedTokens": "unavailable",
+            "toolCalls": 3,
+            "subagentCalls": 0,
+            "wallTimeMs": 125000,
+            "quotaOrCost": "unavailable",
+            "sourceEvidenceDigest": "sha256:cececececececececececececececececececececececececececececececece"
+          },
+          "classification": {
+            "schemaVersion": 1,
+            "class": "product_failure",
+            "reasonCode": "product_timeout",
+            "policyDigest": "sha256:dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdf",
+            "retryEligible": false,
+            "countsInIntentionToTreat": true,
+            "countsInValidRun": false
+          },
+          "unclassifiedOutcomeDigest": "sha256:02f56160a730dad370669817a7334fc8cfb087429b215cdc97476d95154fd31f",
+          "stagingManifestDigest": "sha256:edededededededededededededededededededededededededededededededed"
+        }
+      }
     }
   ],
   "boundaryCases": [
