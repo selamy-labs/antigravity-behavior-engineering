@@ -125,7 +125,10 @@ const assertSharedJson = (value, path = '$') => {
       isArray = Array.isArray(currentValue);
       prototype = Object.getPrototypeOf(currentValue);
       keys = Reflect.ownKeys(currentValue);
-      descriptors = Object.getOwnPropertyDescriptors(currentValue);
+      descriptors = new Map();
+      for (const key of keys) {
+        descriptors.set(key, Object.getOwnPropertyDescriptor(currentValue, key));
+      }
     } catch {
       fail(ReasonCodes.INVALID_FIELD, current.path);
     }
@@ -141,7 +144,7 @@ const assertSharedJson = (value, path = '$') => {
     active.add(currentValue);
     stack.push({ source: currentValue, leaving: true });
     const children = [];
-    const lengthDescriptor = isArray ? descriptors.length : undefined;
+    const lengthDescriptor = isArray ? descriptors.get('length') : undefined;
     if (
       isArray
       && (
@@ -161,7 +164,7 @@ const assertSharedJson = (value, path = '$') => {
         fail(ReasonCodes.INVALID_FIELD, current.path);
       }
       assertWellFormedUnicode(key, current.path);
-      const descriptor = descriptors[key];
+      const descriptor = descriptors.get(key);
       if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) {
         fail(ReasonCodes.INVALID_FIELD, current.path + '.' + key);
       }
@@ -853,7 +856,10 @@ export const parseReviewerVerdict = (value, context = {}) => {
   oneOf(value.verdict, ['pass', 'fail', 'indeterminate'], '$.verdict');
   array(value.inspectedEvidence, '$.inspectedEvidence');
   value.inspectedEvidence.forEach((item, index) => validateEvidenceReference(item, '$.inspectedEvidence[' + index + ']'));
-  if (value.verdict !== 'indeterminate' && value.inspectedEvidence.length === 0) {
+  if (
+    (value.verdict !== 'indeterminate' || value.findings.length > 0)
+    && value.inspectedEvidence.length === 0
+  ) {
     fail(ReasonCodes.INVALID_REVIEW_VERDICT, '$.inspectedEvidence');
   }
   strings(value.limitations, '$.limitations');

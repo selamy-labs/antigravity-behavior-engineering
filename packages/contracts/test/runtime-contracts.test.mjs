@@ -199,6 +199,14 @@ test('published schemas are recursively closed and validate a durable root fixtu
         if (current.value.type === 'object') {
           assert.equal(current.value.additionalProperties, false, current.path);
         }
+        if (current.value.type === 'string') {
+          assert.equal(typeof current.value.pattern, 'string', current.path);
+          assert.equal(
+            new RegExp(current.value.pattern, 'u').test('\u0000'),
+            false,
+            current.path,
+          );
+        }
         for (const [key, child] of Object.entries(current.value)) {
           pending.push({ value: child, path: current.path + '/' + key });
         }
@@ -235,8 +243,76 @@ test('published schemas are recursively closed and validate a durable root fixtu
     repairChangeDigest: digest('b'), verificationEvidenceIds: ['E-1'],
   };
   const stateWithFinding = (finding) => ({ ...taskState, reviewFindings: [finding] });
+  const assumptionFixture = {
+    schemaVersion: 1,
+    id: 'schema-assumption',
+    question: 'Which reversible default applies?',
+    disposition: 'safe_default',
+    decision: 'Use the evidence-backed default.',
+    evidence: [evidence],
+    reversible: true,
+    material: false,
+  };
+  const scalarNulSchemaCases = [
+    ['task-state', { ...taskState, intent: 'bad\u0000intent' }],
+    ['evidence-event', { ...evidenceEvent, eventId: 'bad\u0000event' }],
+    ['completion-gate-event', { ...gateEvent, eventId: 'bad\u0000gate' }],
+    ['review-package-input', {
+      ...reviewPackage,
+      verificationInterface: {
+        ...reviewPackage.verificationInterface,
+        interfaceId: 'bad\u0000interface',
+      },
+    }],
+    ['review-pair-envelope', { ...pairEnvelope, pairId: 'bad\u0000pair' }],
+    ['review-request', { ...reviewRequest, requestId: 'bad\u0000request' }],
+    ['reviewer-verdict', {
+      ...reviewerVerdict,
+      findings: [{ ...reviewerFinding, id: 'bad\u0000finding' }],
+    }],
+    ['reviewer-join', {
+      ...joinRecord,
+      findings: [{
+        ...joinRecord.findings[0],
+        findingId: 'bad\u0000reference',
+      }],
+    }],
+  ];
+  const exactDuplicateSchemaCases = [
+    ['task-state', { ...taskState, assumptions: [assumptionFixture, assumptionFixture] }],
+    ['task-state', { ...taskState, obligations: [obligation, obligation] }],
+    ['task-state', {
+      ...taskState,
+      iterations: [taskState.iterations[0], taskState.iterations[0]],
+    }],
+    ['task-state', { ...taskState, reviewFindings: [verifiedFinding, verifiedFinding] }],
+    ['review-package-input', {
+      ...reviewPackage,
+      obligations: [obligation, obligation],
+    }],
+    ['review-package-input', {
+      ...reviewPackage,
+      verificationInterface: {
+        ...reviewPackage.verificationInterface,
+        commands: [
+          reviewPackage.verificationInterface.commands[0],
+          reviewPackage.verificationInterface.commands[0],
+        ],
+      },
+    }],
+    ['reviewer-verdict', {
+      ...reviewerVerdict,
+      findings: [reviewerFinding, reviewerFinding],
+    }],
+    ['reviewer-join', {
+      ...joinRecord,
+      findings: [joinRecord.findings[0], joinRecord.findings[0]],
+    }],
+  ];
   const validSchemaCases = [
     ['evidence-event', { ...evidenceEvent, occurredAt: '2024-02-29T12:00:00Z' }],
+    ['evidence-event', { ...evidenceEvent, occurredAt: '2000-02-29T12:00:00Z' }],
+    ['evidence-event', { ...evidenceEvent, occurredAt: '2400-02-29T12:00:00Z' }],
     ['task-state', stateWithFinding(verifiedFinding)],
   ];
   const invalidSchemaCases = [
@@ -246,6 +322,8 @@ test('published schemas are recursively closed and validate a durable root fixtu
     ]),
     ['evidence-event', { ...evidenceEvent, occurredAt: '2026-02-30T12:00:00Z' }],
     ['evidence-event', { ...evidenceEvent, occurredAt: '2025-02-29T12:00:00Z' }],
+    ['evidence-event', { ...evidenceEvent, occurredAt: '1900-02-29T12:00:00Z' }],
+    ['evidence-event', { ...evidenceEvent, occurredAt: '2100-02-29T12:00:00Z' }],
     ['evidence-event', { ...evidenceEvent, toolName: 'not_applicable' }],
     ['review-package-input', { ...reviewPackage, artifactRoot: '../artifact' }],
     ['reviewer-verdict', { ...reviewerVerdict, limitations: [''] }],
@@ -279,9 +357,17 @@ test('published schemas are recursively closed and validate a durable root fixtu
       ...reviewPackage,
       obligations: [{ ...obligation, negativeCases: [''] }],
     }],
+    ['reviewer-verdict', {
+      ...reviewerVerdict,
+      verdict: 'indeterminate',
+      inspectedEvidence: [],
+    }],
+    ...scalarNulSchemaCases,
+    ...exactDuplicateSchemaCases,
   ];
   // Draft 2020-12 cannot compare sibling digests, recompute canonical hashes,
-  // or enforce lexical array ordering. Those remain explicit parser-only rules.
+  // enforce lexical array ordering, or enforce uniqueness by selected object
+  // keys when the remaining content differs. Those remain parser-only rules.
   const parserOnlySchemaCases = [
     ['task-state', { ...taskState, terminalState: { ...taskState.terminalState, activeWork: true } }],
     ['review-package-input', { ...reviewPackage, authorityDigest: digest('0') }],
@@ -342,7 +428,8 @@ test('invalid, unknown-field, wrong-version, float, and unsafe-integer fixtures 
   const nestedVersion = clone(taskState);
   nestedVersion.obligations[0].schemaVersion = 2;
   expectCode(() => parseTaskState(nestedVersion), ReasonCodes.UNSUPPORTED_SCHEMA_VERSION);
-  for (const [parser, fixture] of [
+  const rootParserFixtures = [
+    [parseTaskState, taskState],
     [parseEvidenceEvent, evidenceEvent],
     [parseCompletionGateEvent, gateEvent],
     [parseReviewPackageInput, reviewPackage],
@@ -350,7 +437,12 @@ test('invalid, unknown-field, wrong-version, float, and unsafe-integer fixtures 
     [parseReviewRequest, reviewRequest],
     [parseReviewerVerdict, reviewerVerdict],
     [parseReviewJoinRecord, joinRecord],
-  ]) {
+  ];
+  for (const [parser, fixture] of rootParserFixtures) {
+    expectCode(
+      () => parser({ ...fixture, unexpected: true }),
+      ReasonCodes.UNKNOWN_FIELD,
+    );
     expectCode(
       () => parser({ ...fixture, schemaVersion: 2 }),
       ReasonCodes.UNSUPPORTED_SCHEMA_VERSION,
@@ -365,6 +457,27 @@ test('normalized relative paths reject absolute, traversal, empty segments, back
   const invalidWorkingDirectory = clone(reviewPackage);
   invalidWorkingDirectory.verificationInterface.commands[0].workingDirectory = '..';
   expectCode(() => parseReviewPackageInput(invalidWorkingDirectory), ReasonCodes.INVALID_PATH);
+});
+
+test('scalar semantic strings reject NUL across all eight runtime roots', () => {
+  const packageWithNul = clone(reviewPackage);
+  packageWithNul.verificationInterface.interfaceId = 'bad\u0000interface';
+  const verdictWithNul = clone(reviewerVerdict);
+  verdictWithNul.findings[0].id = 'bad\u0000finding';
+  const joinWithNul = clone(joinRecord);
+  joinWithNul.findings[0].findingId = 'bad\u0000reference';
+  for (const [parser, fixture] of [
+    [parseTaskState, { ...taskState, intent: 'bad\u0000intent' }],
+    [parseEvidenceEvent, { ...evidenceEvent, eventId: 'bad\u0000event' }],
+    [parseCompletionGateEvent, { ...gateEvent, eventId: 'bad\u0000gate' }],
+    [parseReviewPackageInput, packageWithNul],
+    [parseReviewPairEnvelope, { ...pairEnvelope, pairId: 'bad\u0000pair' }],
+    [parseReviewRequest, { ...reviewRequest, requestId: 'bad\u0000request' }],
+    [parseReviewerVerdict, verdictWithNul],
+    [parseReviewJoinRecord, joinWithNul],
+  ]) {
+    expectCode(() => parser(fixture), ReasonCodes.INVALID_FIELD);
+  }
 });
 
 test('foreign task, workspace, and request identities fail only under explicit closed context', () => {
@@ -496,6 +609,14 @@ test('invalid reviewer role and inspected-evidence rules fail closed', () => {
   );
   const inaccessible = { ...reviewerVerdict, verdict: 'indeterminate', findings: [], inspectedEvidence: [] };
   assert.deepEqual(parseReviewerVerdict(inaccessible), inaccessible);
+  expectCode(
+    () => parseReviewerVerdict({
+      ...reviewerVerdict,
+      verdict: 'indeterminate',
+      inspectedEvidence: [],
+    }),
+    ReasonCodes.INVALID_REVIEW_VERDICT,
+  );
 });
 
 test('review join is role-separated, reference-complete, and never promotes a missing role to complete', () => {
@@ -819,6 +940,21 @@ test('EvidenceEvent kind controls toolName and RFC3339 validates Gregorian leap 
     () => parseEvidenceEvent({ ...evidenceEvent, occurredAt: '2025-02-29T12:00:00Z' }),
     ReasonCodes.INVALID_FIELD,
   );
+  for (const occurredAt of [
+    '2000-02-29T12:00:00Z',
+    '2400-02-29T12:00:00Z',
+  ]) {
+    assert.equal(parseEvidenceEvent({ ...evidenceEvent, occurredAt }).occurredAt, occurredAt);
+  }
+  for (const occurredAt of [
+    '1900-02-29T12:00:00Z',
+    '2100-02-29T12:00:00Z',
+  ]) {
+    expectCode(
+      () => parseEvidenceEvent({ ...evidenceEvent, occurredAt }),
+      ReasonCodes.INVALID_FIELD,
+    );
+  }
 });
 
 test('semantic text arrays reject empty strings and NUL across runtime domains', () => {
@@ -936,6 +1072,19 @@ test('public parsers return inert descriptor-built clones and never expose hosti
   assert.equal(statefulParsed.schemaVersion, 1);
   assert.notStrictEqual(statefulParsed, statefulProxy);
 
+  let ownKeysCalls = 0;
+  const oneShotOwnKeys = new Proxy(taskState, {
+    ownKeys(target) {
+      ownKeysCalls += 1;
+      if (ownKeysCalls > 1) {
+        throw new Error('original object was reflected twice');
+      }
+      return Reflect.ownKeys(target);
+    },
+  });
+  assert.deepEqual(parseTaskState(oneShotOwnKeys), taskState);
+  assert.equal(ownKeysCalls, 1);
+
   const contextProxy = new Proxy({ taskId: taskState.taskId }, {
     get() { throw new Error('context get trap must not run'); },
   });
@@ -978,6 +1127,14 @@ test('public parsers return inert descriptor-built clones and never expose hosti
     sharedParsed.assumptions[0].evidence[0],
     sharedParsed.obligations[0].evidence[0],
   );
+
+  const protoSource = clone(taskState);
+  Object.defineProperty(protoSource, '__proto__', {
+    value: { polluted: true },
+    enumerable: true,
+  });
+  expectCode(() => parseTaskState(protoSource), ReasonCodes.UNKNOWN_FIELD);
+  assert.equal({}.polluted, undefined);
 });
 
 test('verification arrays are unique while empty command arguments remain valid', () => {
@@ -1002,6 +1159,79 @@ test('verification arrays are unique while empty command arguments remain valid'
     repairChangeDigest: digest('b'), verificationEvidenceIds: ['E-1', 'E-1'],
   }];
   expectCode(() => parseTaskState(duplicateVerificationIds), ReasonCodes.DUPLICATE_ID);
+});
+
+test('runtime keyed uniqueness rejects same identifiers with different content', () => {
+  const assumption = {
+    schemaVersion: 1,
+    id: 'A-duplicate',
+    question: 'Which reversible default applies?',
+    disposition: 'safe_default',
+    decision: 'Use the evidence-backed default.',
+    evidence: [evidence],
+    reversible: true,
+    material: false,
+  };
+  expectCode(
+    () => parseTaskState({
+      ...taskState,
+      assumptions: [assumption, { ...assumption, question: 'A different question?' }],
+    }),
+    ReasonCodes.DUPLICATE_ID,
+  );
+  expectCode(
+    () => parseTaskState({
+      ...taskState,
+      obligations: [obligation, { ...obligation, requirement: 'Different content.' }],
+    }),
+    ReasonCodes.DUPLICATE_ID,
+  );
+
+  const finding = {
+    schemaVersion: 1, id: 'finding-duplicate', reviewerRole: 'quality', severity: 'important',
+    claim: 'The finding was verified.', evidence: [{ ...evidence, result: 'fail' }],
+    status: 'verified', dispositionReason: 'Focused evidence verified the repair.',
+    repairChangeDigest: digest('b'), verificationEvidenceIds: ['E-1'],
+  };
+  expectCode(
+    () => parseTaskState({
+      ...taskState,
+      reviewFindings: [finding, { ...finding, claim: 'Different finding content.' }],
+    }),
+    ReasonCodes.DUPLICATE_ID,
+  );
+
+  const packageObligationDuplicate = clone(reviewPackage);
+  packageObligationDuplicate.obligations.push({
+    ...packageObligationDuplicate.obligations[0],
+    requirement: 'Different package obligation content.',
+  });
+  expectCode(
+    () => parseReviewPackageInput(packageObligationDuplicate),
+    ReasonCodes.DUPLICATE_ID,
+  );
+
+  const commandDuplicate = clone(reviewPackage);
+  commandDuplicate.verificationInterface.commands.push({
+    ...commandDuplicate.verificationInterface.commands[0],
+    executable: 'different-node',
+  });
+  expectCode(() => parseReviewPackageInput(commandDuplicate), ReasonCodes.DUPLICATE_ID);
+
+  expectCode(
+    () => parseReviewerVerdict({
+      ...reviewerVerdict,
+      findings: [
+        reviewerFinding,
+        { ...reviewerFinding, claim: 'Different verdict finding content.' },
+      ],
+    }),
+    ReasonCodes.DUPLICATE_ID,
+  );
+
+  const duplicateJoinReference = clone(joinRecord);
+  duplicateJoinReference.findings.push(clone(duplicateJoinReference.findings[0]));
+  expectCode(() => parseReviewJoinRecord(duplicateJoinReference), ReasonCodes.DUPLICATE_ID);
 });
 
 test('valid pass verdict, verified material closure, and full two-role join are accepted', () => {

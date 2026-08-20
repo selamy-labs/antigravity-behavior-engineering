@@ -16,7 +16,7 @@
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "pairId": { "type": "string", "minLength": 1 },
+    "pairId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
     "artifactDigest": { "$ref": "#/$defs/digest" },
     "obligationDigest": { "$ref": "#/$defs/digest" },
     "verificationInterfaceDigest": { "$ref": "#/$defs/digest" },

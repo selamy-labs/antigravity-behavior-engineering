@@ -18,7 +18,7 @@
   ],
   "properties": {
     "schemaVersion": { "const": 1 },
-    "requestId": { "type": "string", "minLength": 1 },
+    "requestId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" },
     "reviewerRole": { "enum": ["requirements", "quality"] },
     "reviewPairEnvelopeDigest": { "$ref": "#/$defs/digest" },
     "artifactDigest": { "$ref": "#/$defs/digest" },

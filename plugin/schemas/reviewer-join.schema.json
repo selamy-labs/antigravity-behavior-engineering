@@ -26,6 +26,7 @@
     "roleSeparationEvidenceDigest": { "$ref": "#/$defs/digest" },
     "findings": {
       "type": "array",
+      "uniqueItems": true,
       "items": { "$ref": "#/$defs/findingReference" }
     },
     "joinState": { "enum": ["complete", "indeterminate"] },
@@ -84,7 +85,7 @@
       "properties": {
         "schemaVersion": { "const": 1 },
         "reviewerRole": { "enum": ["requirements", "quality"] },
-        "findingId": { "type": "string", "minLength": 1 }
+        "findingId": { "type": "string", "minLength": 1, "pattern": "^[^\\u0000]+$" }
       }
     }
   }
