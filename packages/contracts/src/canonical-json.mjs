@@ -141,10 +141,8 @@ export const writeCanonicalAtomic = async (root, relativePath, value) => {
       if (error && error.code !== 'ENOENT') {
         throw error;
       }
-      let created = false;
       try {
         await fs.mkdir(parent);
-        created = true;
       } catch (mkdirError) {
         if (!mkdirError || mkdirError.code !== 'EEXIST') {
           throw mkdirError;
@@ -154,9 +152,7 @@ export const writeCanonicalAtomic = async (root, relativePath, value) => {
       if (createdStatus.isSymbolicLink() || !createdStatus.isDirectory()) {
         throw new TypeError('relativePath parent escaped the root');
       }
-      if (created) {
-        await syncDirectory(path.dirname(parent));
-      }
+      await syncDirectory(path.dirname(parent));
     }
   }
 
@@ -178,6 +174,8 @@ export const writeCanonicalAtomic = async (root, relativePath, value) => {
   const bytes = canonicalBytes(value);
   const temporaryPath = path.join(parent, '.' + pathSegments.at(-1) + '.' + randomUUID() + '.tmp');
   let handle;
+  let result;
+  let operationError;
   try {
     handle = await fs.open(temporaryPath, 'wx', 0o600);
     await handle.writeFile(bytes);
@@ -186,11 +184,36 @@ export const writeCanonicalAtomic = async (root, relativePath, value) => {
     handle = undefined;
     await fs.rename(temporaryPath, destination);
     await syncDirectory(parent);
-    return sha256Digest(bytes);
-  } finally {
-    if (handle) {
-      await handle.close();
-    }
-    await fs.rm(temporaryPath, { force: true });
+    result = sha256Digest(bytes);
+  } catch (error) {
+    operationError = error;
   }
+
+  const cleanupErrors = [];
+  if (handle) {
+    try {
+      await handle.close();
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+  }
+  try {
+    await fs.rm(temporaryPath, { force: true });
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
+
+  if (operationError) {
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError([operationError, ...cleanupErrors], 'atomic write failed and cleanup also failed');
+    }
+    throw operationError;
+  }
+  if (cleanupErrors.length === 1) {
+    throw cleanupErrors[0];
+  }
+  if (cleanupErrors.length > 1) {
+    throw new AggregateError(cleanupErrors, 'atomic write cleanup failed');
+  }
+  return result;
 };
