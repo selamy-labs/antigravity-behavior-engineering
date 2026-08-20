@@ -243,6 +243,16 @@ test('published schemas are recursively closed and validate a durable root fixtu
     repairChangeDigest: digest('b'), verificationEvidenceIds: ['E-1'],
   };
   const stateWithFinding = (finding) => ({ ...taskState, reviewFindings: [finding] });
+  const openMaterialFinding = {
+    ...verifiedFinding,
+    status: 'open',
+    dispositionReason: '',
+    repairChangeDigest: 'none',
+    verificationEvidenceIds: [],
+  };
+  const completeWithUnresolved = clone(taskState);
+  completeWithUnresolved.obligations[0].status = 'failing';
+  completeWithUnresolved.terminalState.unresolvedObligationIds = ['O-1'];
   const assumptionFixture = {
     schemaVersion: 1,
     id: 'schema-assumption',
@@ -353,6 +363,13 @@ test('published schemas are recursively closed and validate a durable root fixtu
       ...taskState,
       obligations: [{ ...obligation, negativeCases: [''] }],
     }],
+    ['task-state', {
+      ...taskState,
+      terminalState: { ...taskState.terminalState, activeWork: true },
+    }],
+    ['task-state', completeWithUnresolved],
+    ['task-state', stateWithFinding({ ...openMaterialFinding, severity: 'critical' })],
+    ['task-state', stateWithFinding({ ...openMaterialFinding, severity: 'important' })],
     ['review-package-input', {
       ...reviewPackage,
       obligations: [{ ...obligation, negativeCases: [''] }],
@@ -362,6 +379,14 @@ test('published schemas are recursively closed and validate a durable root fixtu
       verdict: 'indeterminate',
       inspectedEvidence: [],
     }],
+    ['reviewer-join', {
+      ...joinRecord,
+      requirementsVerdictDigest: 'indeterminate',
+    }],
+    ['reviewer-join', {
+      ...joinRecord,
+      findings: [{ schemaVersion: 1, reviewerRole: 'quality', findingId: 'Q-1' }],
+    }],
     ...scalarNulSchemaCases,
     ...exactDuplicateSchemaCases,
   ];
@@ -369,7 +394,6 @@ test('published schemas are recursively closed and validate a durable root fixtu
   // enforce lexical array ordering, or enforce uniqueness by selected object
   // keys when the remaining content differs. Those remain parser-only rules.
   const parserOnlySchemaCases = [
-    ['task-state', { ...taskState, terminalState: { ...taskState.terminalState, activeWork: true } }],
     ['review-package-input', { ...reviewPackage, authorityDigest: digest('0') }],
   ];
   const payload = {
@@ -499,6 +523,13 @@ test('terminal inconsistency and stale passing evidence have distinct stable fai
   const active = clone(taskState);
   active.terminalState.activeWork = true;
   expectCode(() => parseTaskState(active), ReasonCodes.TERMINAL_INCONSISTENT);
+  const completeWithUnresolved = clone(taskState);
+  completeWithUnresolved.obligations[0].status = 'failing';
+  completeWithUnresolved.terminalState.unresolvedObligationIds = ['O-1'];
+  expectCode(
+    () => parseTaskState(completeWithUnresolved),
+    ReasonCodes.TERMINAL_INCONSISTENT,
+  );
   const stale = clone(taskState);
   stale.obligations[0].evidence[0].afterChangeDigest = digest('0');
   expectCode(() => parseTaskState(stale), ReasonCodes.STALE_EVIDENCE);
@@ -509,6 +540,13 @@ test('terminal inconsistency and stale passing evidence have distinct stable fai
     status: 'accepted', dispositionReason: '', repairChangeDigest: 'none', verificationEvidenceIds: [],
   }];
   expectCode(() => parseTaskState(accepted), ReasonCodes.TERMINAL_INCONSISTENT);
+  expectCode(
+    () => parseTaskState({
+      ...accepted,
+      reviewFindings: [{ ...accepted.reviewFindings[0], severity: 'critical', status: 'open' }],
+    }),
+    ReasonCodes.TERMINAL_INCONSISTENT,
+  );
 });
 
 test('completion-gate genesis and continuation fields remain mechanically consistent', () => {
@@ -638,6 +676,20 @@ test('review join is role-separated, reference-complete, and never promotes a mi
     ReasonCodes.BINDING_MISMATCH,
   );
   assert.deepEqual(parseReviewJoinRecord(joinRecord, { requirementsVerdict: reviewerVerdict }), joinRecord);
+  expectCode(
+    () => parseReviewJoinRecord({
+      ...joinRecord,
+      requirementsVerdictDigest: 'indeterminate',
+    }),
+    ReasonCodes.INVALID_REVIEW_JOIN,
+  );
+  expectCode(
+    () => parseReviewJoinRecord({
+      ...joinRecord,
+      findings: [{ schemaVersion: 1, reviewerRole: 'quality', findingId: 'Q-1' }],
+    }),
+    ReasonCodes.INVALID_REVIEW_JOIN,
+  );
 });
 
 test('contexts reject unknown fields and never turn structural parsing into semantic success', () => {
@@ -1121,12 +1173,15 @@ test('public parsers return inert descriptor-built clones and never expose hosti
   const sharedParsed = parseTaskState(sharedSource);
   assert.notStrictEqual(
     sharedParsed.assumptions[0].evidence[0],
-    sharedParsed.obligations[0].evidence[0],
+    sharedEvidence,
   );
-  assert.deepEqual(
+  assert.strictEqual(
     sharedParsed.assumptions[0].evidence[0],
     sharedParsed.obligations[0].evidence[0],
   );
+  const sharedParsedDigest = sha256Digest(canonicalBytes(sharedParsed));
+  sharedEvidence.locator = 'evidence/source-mutated.txt';
+  assert.equal(sha256Digest(canonicalBytes(sharedParsed)), sharedParsedDigest);
 
   const protoSource = clone(taskState);
   Object.defineProperty(protoSource, '__proto__', {
@@ -1135,6 +1190,37 @@ test('public parsers return inert descriptor-built clones and never expose hosti
   });
   expectCode(() => parseTaskState(protoSource), ReasonCodes.UNKNOWN_FIELD);
   assert.equal({}.polluted, undefined);
+});
+
+test('compact shared descriptor-only DAGs require linear source reflection', () => {
+  const reflectionCounts = [];
+  const descriptorOnly = (target) => {
+    let ownKeysCalls = 0;
+    reflectionCounts.push(() => ownKeysCalls);
+    return new Proxy(target, {
+      ownKeys(source) {
+        ownKeysCalls += 1;
+        if (ownKeysCalls > 1) {
+          throw new Error('shared source container was reflected more than once');
+        }
+        return Reflect.ownKeys(source);
+      },
+      get() {
+        throw new Error('descriptor-only DAG must not invoke property get traps');
+      },
+    });
+  };
+
+  let sharedDag = descriptorOnly({ value: 'leaf' });
+  for (let depth = 1; depth < 24; depth += 1) {
+    sharedDag = descriptorOnly({ left: sharedDag, right: sharedDag });
+  }
+  expectCode(
+    () => parseTaskState({ ...taskState, sharedDag }),
+    ReasonCodes.UNKNOWN_FIELD,
+  );
+  assert.equal(reflectionCounts.length, 24);
+  assert.ok(reflectionCounts.every((readCount) => readCount() === 1));
 });
 
 test('verification arrays are unique while empty command arguments remain valid', () => {

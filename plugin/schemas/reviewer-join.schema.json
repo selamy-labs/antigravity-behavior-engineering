@@ -65,6 +65,50 @@
           }
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "requirementsVerdictDigest": { "const": "indeterminate" }
+        },
+        "required": ["requirementsVerdictDigest"]
+      },
+      "then": {
+        "properties": {
+          "findings": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "reviewerRole": { "const": "requirements" }
+                },
+                "required": ["reviewerRole"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "qualityVerdictDigest": { "const": "indeterminate" }
+        },
+        "required": ["qualityVerdictDigest"]
+      },
+      "then": {
+        "properties": {
+          "findings": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "reviewerRole": { "const": "quality" }
+                },
+                "required": ["reviewerRole"]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {

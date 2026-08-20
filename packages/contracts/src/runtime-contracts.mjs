@@ -64,6 +64,7 @@ const assertWellFormedUnicode = (value, path) => {
 
 const assertSharedJson = (value, path = '$') => {
   const active = new WeakSet();
+  const clones = new WeakMap();
   const stack = [{
     source: value,
     path,
@@ -116,6 +117,10 @@ const assertSharedJson = (value, path = '$') => {
     if (active.has(currentValue)) {
       fail(ReasonCodes.INVALID_FIELD, current.path);
     }
+    if (clones.has(currentValue)) {
+      assign(current, clones.get(currentValue));
+      continue;
+    }
 
     let isArray;
     let prototype;
@@ -140,6 +145,7 @@ const assertSharedJson = (value, path = '$') => {
     }
 
     const container = isArray ? [] : {};
+    clones.set(currentValue, container);
     assign(current, container);
     active.add(currentValue);
     stack.push({ source: currentValue, leaving: true });

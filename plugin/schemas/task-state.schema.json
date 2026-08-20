@@ -57,6 +57,38 @@
       "then": {
         "properties": { "obligations": { "minItems": 1 } }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "terminalState": {
+            "properties": { "declared": { "const": "complete" } },
+            "required": ["declared"]
+          }
+        },
+        "required": ["terminalState"]
+      },
+      "then": {
+        "properties": {
+          "terminalState": {
+            "properties": {
+              "activeWork": { "const": false },
+              "unresolvedObligationIds": { "maxItems": 0 }
+            }
+          },
+          "reviewFindings": {
+            "not": {
+              "contains": {
+                "properties": {
+                  "severity": { "enum": ["critical", "important"] },
+                  "status": { "not": { "enum": ["rejected", "verified"] } }
+                },
+                "required": ["severity", "status"]
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
