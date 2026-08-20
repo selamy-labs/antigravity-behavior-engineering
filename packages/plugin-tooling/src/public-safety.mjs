@@ -221,16 +221,14 @@ const addCopiedBodyFindings = (candidates, file, policy) => {
   }
 
   const lines = text.split(/\r?\n/u);
-  let offset = 0;
   for (const [lineIndex, line] of lines.entries()) {
     if (line.trim().length > 0) {
       const digest = normalizedFingerprint(line);
       const fingerprint = byDigest.get(digest);
       if (fingerprint) {
-        addFingerprint(fingerprint, offset + line.search(/\S/u));
+        addFingerprint(fingerprint, starts[lineIndex] + line.search(/\S/u));
       }
     }
-    offset += line.length + (lineIndex + 1 < lines.length ? 1 : 0);
   }
 
   const tokens = tokensWithPositions(text);

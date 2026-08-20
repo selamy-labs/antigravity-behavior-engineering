@@ -149,6 +149,17 @@ test("copied-body policy records fail visibly before they can emit schema-invali
   });
 });
 
+test("copied-body source locations stay exact in CRLF files", async () => {
+  await withTree({ "docs/crlf.md": "header\r\n" + fixtures.copiedBodyText + "\r\n", NOTICE: "notice\r\n" }, async (root) => {
+    const report = await scanPublicTree(root, policyFor(["NOTICE", "docs/crlf.md"]));
+    const copiedBodyFindings = report.findings.filter((finding) => finding.findingId.startsWith("public-safety.copied_body_fingerprint."));
+
+    assert.equal(copiedBodyFindings.length, 1);
+    assert.equal(copiedBodyFindings[0].location, "docs/crlf.md#L2C1");
+    assert.equal(report.criticalOpenCount, 1);
+  });
+});
+
 test("fixture lookalikes are absent from benign publishable samples", () => {
   const benignText = JSON.stringify(fixtures.benignFiles);
   assert.equal(benignText.includes("ABE_SYNTHETIC_SECRET_"), false);
