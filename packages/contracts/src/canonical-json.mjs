@@ -4,6 +4,23 @@ import path from 'node:path';
 
 const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 const encoder = new TextEncoder();
+const UNSUPPORTED_DIRECTORY_SYNC_CODES = new Set(['EISDIR', 'EINVAL', 'ENOSYS', 'ENOTSUP', 'EPERM']);
+
+const syncDirectory = async (directory) => {
+  let handle;
+  try {
+    handle = await fs.open(directory, 'r');
+    await handle.sync();
+  } catch (error) {
+    if (!error || !UNSUPPORTED_DIRECTORY_SYNC_CODES.has(error.code)) {
+      throw error;
+    }
+  } finally {
+    if (handle) {
+      await handle.close();
+    }
+  }
+};
 
 const assertWellFormedUnicode = (value) => {
   for (let index = 0; index < value.length; index += 1) {
@@ -124,8 +141,10 @@ export const writeCanonicalAtomic = async (root, relativePath, value) => {
       if (error && error.code !== 'ENOENT') {
         throw error;
       }
+      let created = false;
       try {
         await fs.mkdir(parent);
+        created = true;
       } catch (mkdirError) {
         if (!mkdirError || mkdirError.code !== 'EEXIST') {
           throw mkdirError;
@@ -134,6 +153,9 @@ export const writeCanonicalAtomic = async (root, relativePath, value) => {
       const createdStatus = await fs.lstat(parent);
       if (createdStatus.isSymbolicLink() || !createdStatus.isDirectory()) {
         throw new TypeError('relativePath parent escaped the root');
+      }
+      if (created) {
+        await syncDirectory(path.dirname(parent));
       }
     }
   }
@@ -163,12 +185,7 @@ export const writeCanonicalAtomic = async (root, relativePath, value) => {
     await handle.close();
     handle = undefined;
     await fs.rename(temporaryPath, destination);
-    const directoryHandle = await fs.open(parent, 'r');
-    try {
-      await directoryHandle.sync();
-    } finally {
-      await directoryHandle.close();
-    }
+    await syncDirectory(parent);
     return sha256Digest(bytes);
   } finally {
     if (handle) {

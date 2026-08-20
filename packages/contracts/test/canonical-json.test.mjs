@@ -115,6 +115,32 @@ test('atomic write removes a partially written temporary file after a write fail
   await assert.rejects(fs.access(path.join(root, 'state.json')));
 });
 
+test('atomic write syncs each containing directory created for nested ancestry', async (t) => {
+  const root = await temporaryRoot(t);
+  const firstParent = path.join(root, 'first');
+  const finalParent = path.join(firstParent, 'second');
+  const syncedDirectories = [];
+  const originalOpen = fs.open;
+  t.mock.method(fs, 'open', async (...arguments_) => {
+    const handle = await originalOpen(...arguments_);
+    if (arguments_[1] !== 'r' || ![root, firstParent, finalParent].includes(arguments_[0])) {
+      return handle;
+    }
+    return {
+      close: () => handle.close(),
+      sync: async () => {
+        syncedDirectories.push(arguments_[0]);
+        await handle.sync();
+      },
+    };
+  });
+
+  await writeCanonicalAtomic(root, 'first/second/state.json', { complete: true });
+
+  assert.deepEqual(syncedDirectories, [root, firstParent, finalParent]);
+  assert.deepEqual(await fs.readdir(finalParent), ['state.json']);
+});
+
 test('concurrent atomic writes leave one complete canonical object', async (t) => {
   const root = await temporaryRoot(t);
   const first = { writer: 'first', values: [1, 2, 3] };
