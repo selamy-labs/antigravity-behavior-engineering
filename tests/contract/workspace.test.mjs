@@ -20,6 +20,37 @@ const ignoreLines = fs
   .map((line) => line.trim())
   .filter((line) => line.length > 0 && !line.startsWith('#'));
 
+const t001TextFiles = [
+  '.gitignore',
+  'evaluator/pyproject.toml',
+  'evaluator/src/abe_eval/__init__.py',
+  'evaluator/uv.lock',
+  'package.json',
+  'packages/contracts/package.json',
+  'packages/plugin-tooling/package.json',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+  'tests/contract/workspace.test.mjs',
+];
+for (const relativePath of t001TextFiles) {
+  const contents = fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+  assert.doesNotMatch(contents, /\r/, `${relativePath}: CR newline`);
+  assert.doesNotMatch(contents, /[ \t]+$/m, `${relativePath}: trailing whitespace`);
+  assert.match(contents, /[^\n]\n$/, `${relativePath}: exactly one final newline`);
+}
+for (const relativePath of [
+  'package.json',
+  'packages/contracts/package.json',
+  'packages/plugin-tooling/package.json',
+]) {
+  const contents = fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+  assert.equal(
+    contents,
+    `${JSON.stringify(JSON.parse(contents), null, 2)}\n`,
+    `${relativePath}: canonical two-space JSON`,
+  );
+}
+
 const nodeVersion = process.versions.node.split('.').map((value) => Number(value));
 assert(nodeVersion[0] >= 22 && nodeVersion[0] < 25, `node range unsupported: ${process.version}`);
 assert.deepEqual(
@@ -136,10 +167,11 @@ for (const expected of [
       type: 'module',
       packageManager: 'pnpm@11.9.0',
       scripts: {
+        'format:check': 'node --test tests/contract/workspace.test.mjs',
         'test:node': 'node --test tests/contract/workspace.test.mjs',
         'test:python': "uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)'",
         verify: 'pnpm verify:offline',
-        'verify:offline': 'node --test tests/contract/workspace.test.mjs && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py',
+        'verify:offline': "pnpm format:check && uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)' && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py",
       },
       workspaces: ['packages/contracts', 'packages/plugin-tooling'],
       dependencies: {},
