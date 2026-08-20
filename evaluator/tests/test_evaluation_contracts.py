@@ -83,6 +83,11 @@ def _case_value(name):
     return copy.deepcopy(_valid_cases_by_name()[name]["value"])
 
 
+def _expect_evaluation_schema_rejects(value):
+    schema = json.loads(EVALUATION_SCHEMA_PATH.read_text(encoding="utf-8"))
+    assert list(Draft202012Validator(schema).iter_errors(value))
+
+
 def _apply_patch(value, patch):
     patched = copy.deepcopy(value)
     for key, replacement in patch.items():
@@ -452,6 +457,55 @@ def test_release_candidate_requires_exact_condition_lock_keys():
     extra_condition = _case_value("ReleaseCandidateLock")
     extra_condition["conditionLockDigests"]["gemini-3.1-pro-high/pooled"] = "sha256:" + "0" * 64
     expect_reason("ReleaseCandidateLock", extra_condition, "contract.binding_mismatch")
+
+
+def test_block_spec_condition_ids_and_pair_digest_are_consistent():
+    single_condition = _case_value("BlockSpec")
+    single_condition["conditionIds"] = ["bare"]
+    single_condition["conditionPairLockDigest"] = "not_applicable"
+    parse_contract("BlockSpec", single_condition)
+
+    matched_pair = _case_value("BlockSpec")
+    matched_pair["conditionIds"] = ["bare", "full"]
+    parse_contract("BlockSpec", matched_pair)
+
+    too_many_conditions = _case_value("BlockSpec")
+    too_many_conditions["conditionIds"] = ["bare", "full", "hidden"]
+    too_many_conditions["conditionPairLockDigest"] = "not_applicable"
+    _expect_evaluation_schema_rejects(too_many_conditions)
+    expect_reason("BlockSpec", too_many_conditions, "contract.binding_mismatch")
+
+    missing_pair_lock = _case_value("BlockSpec")
+    missing_pair_lock["conditionPairLockDigest"] = "not_applicable"
+    _expect_evaluation_schema_rejects(missing_pair_lock)
+    expect_reason("BlockSpec", missing_pair_lock, "contract.binding_mismatch")
+
+    stray_pair_lock = _case_value("BlockSpec")
+    stray_pair_lock["conditionIds"] = ["bare"]
+    _expect_evaluation_schema_rejects(stray_pair_lock)
+    expect_reason("BlockSpec", stray_pair_lock, "contract.binding_mismatch")
+
+
+def test_precision_power_lock_requires_target_model_samples_and_release_honesty_floor():
+    release_lock = _case_value("PrecisionPowerLock")
+    parse_contract("PrecisionPowerLock", release_lock)
+
+    low_honesty_floor = _case_value("PrecisionPowerLock")
+    low_honesty_floor["honestyNegativeVariantMinimumPerModelFullCondition"] = 1
+    _expect_evaluation_schema_rejects(low_honesty_floor)
+    expect_reason("PrecisionPowerLock", low_honesty_floor, "contract.binding_mismatch")
+
+    unknown_model = _case_value("PrecisionPowerLock")
+    unknown_model["perModelSampleSizes"] = {
+        "not-a-target-model": unknown_model["perModelSampleSizes"][TARGET_MODELS[0]]
+    }
+    _expect_evaluation_schema_rejects(unknown_model)
+    expect_reason("PrecisionPowerLock", unknown_model, "contract.binding_mismatch")
+
+    missing_model = _case_value("PrecisionPowerLock")
+    missing_model["perModelSampleSizes"].pop(TARGET_MODELS[1])
+    _expect_evaluation_schema_rejects(missing_model)
+    expect_reason("PrecisionPowerLock", missing_model, "contract.binding_mismatch")
 
 
 def test_staged_attempt_outcome_bundle_binds_unclassified_input_digest():

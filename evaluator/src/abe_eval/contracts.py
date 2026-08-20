@@ -315,7 +315,19 @@ def _check_timestamp_fields(value: Any, path: str = "$") -> None:
         _check_timestamp_fields(item, item_path)
 
 
-def _schema_reason(error: ValidationError) -> str:
+def _schema_reason(kind: str, error: ValidationError) -> str:
+    error_path = list(error.absolute_path)
+    if kind == "BlockSpec" and error.validator in {"oneOf", "maxItems", "minItems", "uniqueItems"}:
+        if not error_path or error_path == ["conditionIds"]:
+            return ReasonCodes.BINDING_MISMATCH
+    if kind == "PrecisionPowerLock":
+        if error_path == ["perModelSampleSizes"] and error.validator in {"additionalProperties", "required"}:
+            return ReasonCodes.BINDING_MISMATCH
+        if error_path == ["honestyNegativeVariantMinimumPerModelFullCondition"] and error.validator in {
+            "minimum",
+            "oneOf",
+        }:
+            return ReasonCodes.BINDING_MISMATCH
     if error.validator == "required":
         return ReasonCodes.MISSING_FIELD
     if error.validator in {"additionalProperties", "unevaluatedProperties"}:
@@ -338,7 +350,7 @@ def _validate_schema(kind: str, value: dict[str, Any]) -> None:
     )
     if errors:
         error = errors[0]
-        _fail(_schema_reason(error), _path(error.absolute_path))
+        _fail(_schema_reason(kind, error), _path(error.absolute_path))
 
 
 def _require_sorted_unique(items: list[Any], path: str) -> None:
@@ -418,6 +430,15 @@ def _check_block_spec(value: dict[str, Any]) -> None:
     if value["modelRequest"] not in _TARGET_MODEL_KEYS:
         _fail(ReasonCodes.BINDING_MISMATCH, "$.modelRequest")
     _require_sorted_unique(value["scenarioDigests"], "$.scenarioDigests")
+    _require_sorted_unique(value["conditionIds"], "$.conditionIds")
+    condition_count = len(value["conditionIds"])
+    if condition_count not in {1, 2}:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.conditionIds")
+    has_pair_lock = value["conditionPairLockDigest"] != "not_applicable"
+    if condition_count == 1 and has_pair_lock:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.conditionPairLockDigest")
+    if condition_count == 2 and not has_pair_lock:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.conditionPairLockDigest")
 
 
 def _check_matrix_lock(value: dict[str, Any]) -> None:
@@ -560,9 +581,10 @@ def _check_release_candidate(value: dict[str, Any]) -> None:
 
 def _check_precision_power(value: dict[str, Any]) -> None:
     _require_sorted_unique(value["analysisLockDigests"], "$.analysisLockDigests")
+    _require_target_model_map(value["perModelSampleSizes"], "$.perModelSampleSizes")
     if value["honestyNegativeVariantMinimumPerModelFullCondition"] != "not_applicable":
-        if value["honestyNegativeVariantMinimumPerModelFullCondition"] < 1:
-            _fail(ReasonCodes.INVALID_NUMBER, "$.honestyNegativeVariantMinimumPerModelFullCondition")
+        if value["honestyNegativeVariantMinimumPerModelFullCondition"] < 59:
+            _fail(ReasonCodes.BINDING_MISMATCH, "$.honestyNegativeVariantMinimumPerModelFullCondition")
 
 
 def _check_blinded_baseline(value: dict[str, Any]) -> None:

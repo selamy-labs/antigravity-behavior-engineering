@@ -547,9 +547,18 @@
         },
         "perModelSampleSizes": {
           "type": "object",
-          "minProperties": 1,
-          "additionalProperties": {
-            "$ref": "#/$defs/PerModelSampleSize"
+          "additionalProperties": false,
+          "required": [
+            "gemini-3.1-pro-high",
+            "gemini-3.7-flash-high"
+          ],
+          "properties": {
+            "gemini-3.1-pro-high": {
+              "$ref": "#/$defs/PerModelSampleSize"
+            },
+            "gemini-3.7-flash-high": {
+              "$ref": "#/$defs/PerModelSampleSize"
+            }
           }
         },
         "scenarioAllocation": {
@@ -590,7 +599,7 @@
           "oneOf": [
             {
               "type": "integer",
-              "minimum": 1
+              "minimum": 59
             },
             {
               "const": "not_applicable"
@@ -1798,7 +1807,9 @@
             "type": "string",
             "minLength": 1
           },
-          "minItems": 1
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
         },
         "conditionPairLockDigest": {
           "$ref": "#/$defs/DigestOrNotApplicable"
@@ -1813,7 +1824,35 @@
         "resourceEnvelopeDigest": {
           "$ref": "#/$defs/Digest"
         }
-      }
+      },
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "conditionIds": {
+                  "minItems": 1,
+                  "maxItems": 1
+                },
+                "conditionPairLockDigest": {
+                  "const": "not_applicable"
+                }
+              }
+            },
+            {
+              "properties": {
+                "conditionIds": {
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "conditionPairLockDigest": {
+                  "$ref": "#/$defs/Digest"
+                }
+              }
+            }
+          ]
+        }
+      ]
     },
     "MatrixLock": {
       "type": "object",
