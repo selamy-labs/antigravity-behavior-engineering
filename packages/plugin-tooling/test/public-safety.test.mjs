@@ -35,6 +35,7 @@ const policyFor = (expectedFiles) => ({
     {
       fingerprintId: "synthetic-copied-body",
       digest: rawDigest(fixtures.copiedBodyText),
+      normalizedTokenCount: fixtures.copiedBodyText.trim().split(/\s+/u).length,
       severity: "critical",
     },
   ],
@@ -66,13 +67,16 @@ test("synthetic public-safety lookalikes produce exact open critical findings", 
     assert.deepEqual(Object.keys(byId), [
       "public-safety.copied_body_fingerprint.001",
       "public-safety.credential.001",
+      "public-safety.credential.002",
       "public-safety.google_confidential_identifier.001",
+      "public-safety.google_confidential_identifier.002",
       "public-safety.missing_notice.001",
       "public-safety.private_path.001",
+      "public-safety.private_path.002",
       "public-safety.unexpected_file.001",
       "public-safety.unpinned_source.001",
     ]);
-    assert.equal(report.criticalOpenCount, 7);
+    assert.equal(report.criticalOpenCount, 10);
     for (const finding of report.findings) {
       assert.equal(finding.schemaVersion, 1);
       assert.equal(finding.severity, "critical");
@@ -82,10 +86,42 @@ test("synthetic public-safety lookalikes produce exact open critical findings", 
     assert.equal(byId["public-safety.credential.001"].location, "bad/credentials.md#L1C33");
     assert.equal(byId["public-safety.google_confidential_identifier.001"].location, "bad/google-confidential.md#L1C46");
     assert.equal(byId["public-safety.private_path.001"].location, "bad/private-path.md#L1C35");
+    assert.equal(byId["public-safety.credential.002"].location, "bad/zz-credential-format.md#L1C38");
+    assert.equal(byId["public-safety.google_confidential_identifier.002"].location, "bad/zz-google-confidential-label.md#L1C18");
+    assert.equal(byId["public-safety.private_path.002"].location, "bad/zz-private-path.md#L1C22");
     assert.equal(byId["public-safety.copied_body_fingerprint.001"].location, "bad/copied-body.md#L1C1");
     assert.equal(byId["public-safety.unpinned_source.001"].location, "bad/unpinned-source.md#L1C28");
     assert.equal(byId["public-safety.missing_notice.001"].location, "NOTICE");
     assert.equal(byId["public-safety.unexpected_file.001"].location, "extra/unexpected.md");
+  });
+});
+
+test("safety scanner does not let binary framing or wrapping hide known public-release leaks", async () => {
+  const wrappedCopiedBody = fixtures.copiedBodyText.replace("this sentence is", "this\nsentence is");
+  await withTree({
+    "README.md": "Synthetic binary-framed leak: ABE_SYNTHETIC_SECRET_ABCDEFGHIJKLMNOP\u0000\n",
+    "NOTICE": "notice\n",
+    "docs/wrapped.md": wrappedCopiedBody + "\n",
+  }, async (root) => {
+    const report = await scanPublicTree(root, policyFor(["README.md", "NOTICE", "docs/wrapped.md"]));
+    const byKind = Object.groupBy(report.findings, (finding) => finding.findingId.split(".")[1]);
+    const credentials = byKind.credential ?? [];
+    const copiedBodyFindings = byKind.copied_body_fingerprint ?? [];
+
+    assert.equal(credentials.length, 1);
+    assert.equal(credentials[0].location, "README.md#L1C31");
+    assert.equal(copiedBodyFindings.length, 1);
+    assert.equal(copiedBodyFindings[0].location, "docs/wrapped.md#L1C1");
+    assert.equal(report.criticalOpenCount, 2);
+  });
+});
+
+test("safety reports fail visibly instead of emitting schema-invalid policy digests", async () => {
+  await withTree(fixtures.benignFiles, async (root) => {
+    await assert.rejects(
+      () => scanPublicTree(root, { ...policyFor(Object.keys(fixtures.benignFiles).sort()), policyDigest: "not-a-digest" }),
+      /policyDigest/u,
+    );
   });
 });
 

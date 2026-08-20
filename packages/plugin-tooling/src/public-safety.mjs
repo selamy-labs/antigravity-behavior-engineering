@@ -4,32 +4,56 @@ import path from "node:path";
 import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json.mjs";
 
 const encoder = new TextEncoder();
+const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 
 const DETECTORS = Object.freeze([
   {
     kind: "credential",
     severity: "critical",
-    pattern: /ABE_SYNTHETIC_SECRET_[A-Z0-9]{16}/gu,
+    patterns: Object.freeze([
+      /ABE_SYNTHETIC_SECRET_[A-Z0-9]{16}/gu,
+      /gh[psuor]_[A-Za-z0-9_]{36}/gu,
+      /AIza[0-9A-Za-z_-]{35}/gu,
+    ]),
   },
   {
     kind: "google_confidential_identifier",
     severity: "critical",
-    pattern: /GOOGLE_CONFIDENTIAL_SYNTHETIC_[A-Z0-9_-]+/gu,
+    patterns: Object.freeze([
+      /GOOGLE_CONFIDENTIAL_SYNTHETIC_[A-Z0-9_-]+/gu,
+      /\bGoogle Confidential\b/gu,
+      /\b(?:GOOGLE_CONFIDENTIAL_(?!SYNTHETIC_)[A-Z0-9_-]+|GOOGLE_INTERNAL_[A-Z0-9_-]+|GOOGLE_RESTRICTED_[A-Z0-9_-]+)\b/gu,
+      /\bgoogle3\/[A-Za-z0-9_./-]+/gu,
+    ]),
   },
   {
     kind: "private_path",
     severity: "critical",
-    pattern: /(?:\/Users\/synthetic-private-maintainer|\/home\/synthetic-private-maintainer)\b[^\s]*/gu,
+    patterns: Object.freeze([
+      /(?:\/Users\/synthetic-private-maintainer|\/home\/synthetic-private-maintainer)\b[^\s]*/gu,
+      /\/Users\/(?!(?:Shared|synthetic-private-maintainer)\b)[A-Za-z0-9._-]+\/(?:Documents|Desktop|Downloads|work|src|repos|projects|private|Library|\.ssh)\b[^\s]*/gu,
+      /\/home\/(?!(?:runner|sandbox|synthetic-private-maintainer)\b)[A-Za-z0-9._-]+\/(?:work|src|repos|projects|private|\.ssh)\b[^\s]*/gu,
+    ]),
   },
   {
     kind: "unpinned_source",
     severity: "critical",
-    pattern: /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?#(?:main|master|latest|HEAD)\b/gu,
+    patterns: Object.freeze([
+      /https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\.git)?#(?:main|master|latest|HEAD)\b/gu,
+    ]),
   },
 ]);
 
 const SCANNER_DIGESTS = Object.freeze([
-  sha256Digest(canonicalBytes({ schemaVersion: 1, scanner: "public-safety", detectorKinds: DETECTORS.map((detector) => detector.kind).sort() })),
+  sha256Digest(canonicalBytes({
+    schemaVersion: 1,
+    scanner: "public-safety",
+    detectors: DETECTORS.map((detector) => ({
+      kind: detector.kind,
+      severity: detector.severity,
+      patterns: detector.patterns.map((pattern) => pattern.source + "/" + pattern.flags).sort(),
+    })).sort((left, right) => left.kind.localeCompare(right.kind)),
+  })),
 ]);
 
 const asObject = (value, name) => {
@@ -89,10 +113,17 @@ const digestBytes = (bytes) => sha256Digest(bytes instanceof Uint8Array ? bytes 
 
 const digestObject = (value) => sha256Digest(canonicalBytes(value));
 
+const assertDigest = (value, name) => {
+  if (typeof value !== "string" || !DIGEST_PATTERN.test(value)) {
+    throw new TypeError(name + " must be a sha256 digest");
+  }
+};
+
 const rootDigest = (files) => digestObject(Object.fromEntries(files.map((file) => [file.relativePath, digestBytes(file.bytes)])));
 
 const policyDigest = (policy) => {
   if (typeof policy.policyDigest === "string") {
+    assertDigest(policy.policyDigest, "policyDigest");
     return policy.policyDigest;
   }
   return digestObject(policy);
@@ -118,21 +149,22 @@ const lineColumnFor = (starts, index) => {
 
 const normalizedFingerprint = (text) => sha256Digest(encoder.encode(text.trim().replace(/\s+/gu, " ")));
 
+const tokensWithPositions = (text) => [...text.matchAll(/\S+/gu)].map((match) => ({ text: match[0], index: match.index }));
+
 const addTextDetectorFindings = (candidates, file) => {
   const text = Buffer.from(file.bytes).toString("utf8");
-  if (text.includes("\u0000")) {
-    return;
-  }
   const starts = lineStarts(text);
   for (const detector of DETECTORS) {
-    for (const match of text.matchAll(detector.pattern)) {
-      const position = lineColumnFor(starts, match.index);
-      candidates.push({
-        kind: detector.kind,
-        severity: detector.severity,
-        location: file.relativePath + "#L" + position.line + "C" + position.column,
-        evidence: detector.kind + "\n" + match[0],
-      });
+    for (const pattern of detector.patterns) {
+      for (const match of text.matchAll(pattern)) {
+        const position = lineColumnFor(starts, match.index);
+        candidates.push({
+          kind: detector.kind,
+          severity: detector.severity,
+          location: file.relativePath + "#L" + position.line + "C" + position.column,
+          evidence: detector.kind + "\n" + match[0],
+        });
+      }
     }
   }
 };
@@ -144,19 +176,53 @@ const addCopiedBodyFindings = (candidates, file, policy) => {
   }
   const byDigest = new Map(fingerprints.map((fingerprint) => [fingerprint.digest, fingerprint]));
   const text = Buffer.from(file.bytes).toString("utf8");
+  const starts = lineStarts(text);
+  const seen = new Set();
+  const addFingerprint = (fingerprint, index) => {
+    const position = lineColumnFor(starts, index);
+    const location = file.relativePath + "#L" + position.line + "C" + position.column;
+    const key = fingerprint.digest + "\n" + location;
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    candidates.push({
+      kind: "copied_body_fingerprint",
+      severity: fingerprint.severity || "critical",
+      location,
+      evidence: "copied_body_fingerprint\n" + fingerprint.digest,
+    });
+  };
+
+  const bodyDigest = normalizedFingerprint(text);
+  const bodyFingerprint = byDigest.get(bodyDigest);
+  if (bodyFingerprint) {
+    const firstNonWhitespace = text.search(/\S/u);
+    addFingerprint(bodyFingerprint, firstNonWhitespace === -1 ? 0 : firstNonWhitespace);
+  }
+
   const lines = text.split(/\r?\n/u);
+  let offset = 0;
   for (const [lineIndex, line] of lines.entries()) {
     if (line.trim().length > 0) {
       const digest = normalizedFingerprint(line);
       const fingerprint = byDigest.get(digest);
       if (fingerprint) {
-        const column = line.search(/\S/u) + 1;
-        candidates.push({
-          kind: "copied_body_fingerprint",
-          severity: fingerprint.severity || "critical",
-          location: file.relativePath + "#L" + (lineIndex + 1) + "C" + column,
-          evidence: "copied_body_fingerprint\n" + digest,
-        });
+        addFingerprint(fingerprint, offset + line.search(/\S/u));
+      }
+    }
+    offset += line.length + (lineIndex + 1 < lines.length ? 1 : 0);
+  }
+
+  const tokens = tokensWithPositions(text);
+  for (const fingerprint of fingerprints) {
+    if (!Number.isInteger(fingerprint.normalizedTokenCount) || fingerprint.normalizedTokenCount < 1 || fingerprint.normalizedTokenCount > tokens.length) {
+      continue;
+    }
+    for (let index = 0; index + fingerprint.normalizedTokenCount <= tokens.length; index += 1) {
+      const windowText = tokens.slice(index, index + fingerprint.normalizedTokenCount).map((token) => token.text).join(" ");
+      if (normalizedFingerprint(windowText) === fingerprint.digest) {
+        addFingerprint(fingerprint, tokens[index].index);
       }
     }
   }

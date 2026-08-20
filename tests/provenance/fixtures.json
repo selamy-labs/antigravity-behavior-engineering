@@ -14,6 +14,9 @@
     "bad/private-path.md": "Synthetic private path lookalike: /Users/synthetic-private-maintainer/work/hidden-task.\n",
     "bad/copied-body.md": "SYNTHETIC COPIED BODY FINGERPRINT ONLY: this sentence is a made-up stand-in for proprietary prose.\n",
     "bad/unpinned-source.md": "Synthetic unpinned source: https://github.com/example/unsafe-package#main.\n",
+    "bad/zz-credential-format.md": "Synthetic credential format control: ghp_000000000000000000000000000000000000.\n",
+    "bad/zz-google-confidential-label.md": "Synthetic label: Google Confidential - synthetic-only control.\n",
+    "bad/zz-private-path.md": "Synthetic home path: /Users/example-internal/work/secret-project.\n",
     "extra/unexpected.md": "This package-owned file is intentionally not listed by the safety policy.\n",
     "plugin.json": "{\"name\":\"antigravity-behavior-engineering\",\"version\":\"0.1.0\"}\n"
   },

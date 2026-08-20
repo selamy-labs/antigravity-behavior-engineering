@@ -5,6 +5,7 @@ import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json
 
 const encoder = new TextEncoder();
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
+const HTTPS_URL_PATTERN = /^https:\/\/[^ ]+$/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
 const UNPINNED_REVISIONS = new Set(["HEAD", "latest", "main", "master"]);
 
@@ -95,7 +96,13 @@ const validatePinnedRevision = (revision, fieldPath) => {
 
 const sourceRecordFromDependency = (dependency, index) => {
   assertObject(dependency, "$.packageLock.dependencies[" + index + "]");
-  if (typeof dependency.sourceUrl !== "string" || !dependency.sourceUrl.startsWith("https://")) {
+  if (dependency.schemaVersion !== 1) {
+    fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].schemaVersion");
+  }
+  if (typeof dependency.name !== "string" || dependency.name.length === 0) {
+    fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].name");
+  }
+  if (typeof dependency.sourceUrl !== "string" || !HTTPS_URL_PATTERN.test(dependency.sourceUrl)) {
     fail("provenance.invalid_source", "$.packageLock.dependencies[" + index + "].sourceUrl");
   }
   validatePinnedRevision(dependency.revision, "$.packageLock.dependencies[" + index + "].revision");
@@ -106,6 +113,15 @@ const sourceRecordFromDependency = (dependency, index) => {
   }
   if (!["runtime", "development", "research"].includes(dependency.consumption)) {
     fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].consumption");
+  }
+  if (typeof dependency.required !== "boolean") {
+    fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].required");
+  }
+  if (dependency.qualificationEvidence !== "not_qualified") {
+    assertRelativePath(dependency.qualificationEvidence, "$.packageLock.dependencies[" + index + "].qualificationEvidence");
+  }
+  if (dependency.required && dependency.qualificationEvidence === "not_qualified") {
+    fail("provenance.unqualified_required_dependency", "$.packageLock.dependencies[" + index + "].qualificationEvidence");
   }
   return {
     schemaVersion: 1,
@@ -176,9 +192,15 @@ export const buildProvenanceInventory = async (root, locks) => {
     fail("provenance.missing_notice", noticePath);
   }
 
-  const dependencies = Array.isArray(packageLock.dependencies) ? packageLock.dependencies : [];
+  if (!Array.isArray(packageLock.dependencies)) {
+    fail("provenance.invalid_field", "$.packageLock.dependencies");
+  }
+  if (!Array.isArray(lockSet.adaptations)) {
+    fail("provenance.invalid_field", "$.adaptations");
+  }
+  const dependencies = packageLock.dependencies;
   const sources = dependencies.map(sourceRecordFromDependency).sort((left, right) => left.sourceUrl.localeCompare(right.sourceUrl) || left.revision.localeCompare(right.revision));
-  const adaptations = materializeAdaptations(Array.isArray(lockSet.adaptations) ? lockSet.adaptations : []);
+  const adaptations = materializeAdaptations(lockSet.adaptations);
   const digest = rootDigest(files);
   const policyDigest = typeof lockSet.policyDigest === "string" ? lockSet.policyDigest : digestObject({ schemaVersion: 1, policy: "human-provenance-review-required" });
   validateDigest(policyDigest, "$.policyDigest");

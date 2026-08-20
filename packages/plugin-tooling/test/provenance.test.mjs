@@ -108,3 +108,35 @@ test("provenance fails visibly for unpinned sources, missing notices, unexpected
     await expectProvenanceError("provenance.file_digest_mismatch", () => buildProvenanceInventory(root, driftedLock));
   });
 });
+
+test("provenance fails closed for malformed locks and schema-invalid source records", async () => {
+  await withTree(fixtures.benignFiles, async (root) => {
+    await expectProvenanceError("provenance.invalid_field", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: {
+        schemaVersion: 1,
+        dependencies: "not-an-array",
+        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
+      },
+    })));
+
+    await expectProvenanceError("provenance.invalid_field", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      adaptations: "not-an-array",
+    })));
+
+    await expectProvenanceError("provenance.invalid_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: {
+        schemaVersion: 1,
+        dependencies: [{ ...fixtures.pinnedDependencies[0], sourceUrl: "https://example.com/bad source" }],
+        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
+      },
+    })));
+
+    await expectProvenanceError("provenance.unqualified_required_dependency", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: {
+        schemaVersion: 1,
+        dependencies: [{ ...fixtures.pinnedDependencies[0], required: true, qualificationEvidence: "not_qualified" }],
+        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
+      },
+    })));
+  });
+});
