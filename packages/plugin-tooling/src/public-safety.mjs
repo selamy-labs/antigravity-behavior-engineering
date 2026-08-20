@@ -22,7 +22,7 @@ const DETECTORS = Object.freeze([
     severity: "critical",
     patterns: Object.freeze([
       /GOOGLE_CONFIDENTIAL_SYNTHETIC_[A-Z0-9_-]+/gu,
-      /\bGoogle Confidential\b/gu,
+      /\bGoogle Confidential\s*(?::|-|$)/gu,
       /\b(?:GOOGLE_CONFIDENTIAL_(?!SYNTHETIC_)[A-Z0-9_-]+|GOOGLE_INTERNAL_[A-Z0-9_-]+|GOOGLE_RESTRICTED_[A-Z0-9_-]+)\b/gu,
       /\bgoogle3\/[A-Za-z0-9_./-]+/gu,
     ]),

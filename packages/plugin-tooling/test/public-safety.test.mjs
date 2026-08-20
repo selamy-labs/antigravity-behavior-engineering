@@ -58,6 +58,18 @@ test("benign public Google terminology produces a deterministic empty safety rep
   });
 });
 
+test("public Google Confidential Computing terminology is not a confidential identifier", async () => {
+  await withTree({
+    README: "Google Confidential Computing is public Google Cloud terminology in this benign control.\n",
+    NOTICE: "notice\n",
+  }, async (root) => {
+    const report = await scanPublicTree(root, policyFor(["NOTICE", "README"]));
+
+    assert.deepEqual(report.findings, []);
+    assert.equal(report.criticalOpenCount, 0);
+  });
+});
+
 test("synthetic public-safety lookalikes produce exact open critical findings", async () => {
   await withTree(fixtures.unsafeFiles, async (root) => {
     const expectedFiles = Object.keys(fixtures.unsafeFiles).filter((file) => file !== "extra/unexpected.md").concat("NOTICE").sort();

@@ -176,8 +176,35 @@ const validatePackageLock = (packageLock) => {
   if (!Array.isArray(packageLock.components)) {
     fail("provenance.invalid_package_lock", "$.packageLock.components");
   }
-  packageLock.components.forEach(validateComponentLock);
+  const componentIdentities = new Set();
+  packageLock.components.forEach((component, index) => {
+    validateComponentLock(component, index);
+    const identity = component.kind + "\n" + component.name;
+    if (componentIdentities.has(identity)) {
+      fail("provenance.invalid_package_lock", "$.packageLock.components");
+    }
+    componentIdentities.add(identity);
+  });
   validateTimestamp(packageLock.generatedAt, "$.packageLock.generatedAt");
+};
+
+const validatePackageIdentity = (files, packageLock) => {
+  const pluginFile = files.find((file) => file.relativePath === "plugin.json");
+  if (!pluginFile) {
+    fail("provenance.missing_file", "plugin.json");
+  }
+  let pluginJson;
+  try {
+    pluginJson = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(pluginFile.bytes));
+  } catch {
+    fail("provenance.invalid_package_lock", "$.packageLock.packageName");
+  }
+  if (pluginJson === null || typeof pluginJson !== "object" || Array.isArray(pluginJson) || typeof pluginJson.name !== "string" || pluginJson.name.length === 0) {
+    fail("provenance.invalid_package_lock", "$.packageLock.packageName");
+  }
+  if (packageLock.packageName !== pluginJson.name) {
+    fail("provenance.invalid_package_lock", "$.packageLock.packageName");
+  }
 };
 
 const sourceRecordFromDependency = (dependency, index) => {
@@ -220,7 +247,7 @@ const sourceRecordFromDependency = (dependency, index) => {
 
 const validateFileLock = (files, packageFiles) => {
   assertObject(packageFiles, "$.packageLock.files");
-  const actual = new Map(files.map((file) => [file.relativePath, digestBytes(file.bytes)]));
+  const actual = new Map(files.filter((file) => file.relativePath !== "behavior-lock.json").map((file) => [file.relativePath, digestBytes(file.bytes)]));
   const lockedPaths = Object.keys(packageFiles).sort();
   for (const lockedPath of lockedPaths) {
     assertRelativePath(lockedPath, "$.packageLock.files." + lockedPath);
@@ -270,6 +297,7 @@ export const buildProvenanceInventory = async (root, locks) => {
   const packageLock = assertObject(lockSet.packageLock, "$.packageLock");
   validatePackageLock(packageLock);
   const files = await listFiles(root);
+  validatePackageIdentity(files, packageLock);
   validateFileLock(files, packageLock.files);
 
   const noticePath = typeof lockSet.noticePath === "string" ? lockSet.noticePath : "NOTICE";

@@ -166,3 +166,29 @@ test("provenance fails closed for incomplete or unpinned package locks", async (
     })));
   });
 });
+
+test("provenance enforces package identity, component uniqueness, and lock self-digest exception", async () => {
+  await withTree({ ...fixtures.benignFiles, "behavior-lock.json": "{\"self\":\"excluded\"}\n" }, async (root) => {
+    const inventory = await buildProvenanceInventory(root, lockSetFor({ ...fixtures.benignFiles, "behavior-lock.json": "{\"self\":\"excluded\"}\n" }, {
+      packageLock: packageLockFor(fixtures.benignFiles),
+    }));
+    assert.match(inventory.rootDigest, /^sha256:[0-9a-f]{64}$/u);
+
+    await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor({ ...fixtures.benignFiles, "behavior-lock.json": "{\"self\":\"excluded\"}\n" }, {
+      packageLock: packageLockFor(fixtures.benignFiles, { packageName: "different-lock-name" }),
+    })));
+
+    const component = {
+      schemaVersion: 1,
+      kind: "skill",
+      name: "example",
+      path: "skills/example/SKILL.md",
+      claimId: "claim-example",
+      defaultEnabled: true,
+      digest: "sha256:" + "9".repeat(64),
+    };
+    await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor({ ...fixtures.benignFiles, "behavior-lock.json": "{\"self\":\"excluded\"}\n" }, {
+      packageLock: packageLockFor(fixtures.benignFiles, { components: [component, { ...component, path: "skills/example-copy/SKILL.md" }] }),
+    })));
+  });
+});
