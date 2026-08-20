@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity-behavior-engineering.dev/schemas/reviewer-verdict.schema.json",
+  "title": "ReviewerVerdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviewerRole",
+    "reviewRequestDigest",
+    "reviewPairEnvelopeDigest",
+    "artifactDigest",
+    "obligationDigest",
+    "verificationInterfaceDigest",
+    "authorityDigest",
+    "findings",
+    "verdict",
+    "inspectedEvidence",
+    "limitations"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "reviewerRole": { "enum": ["requirements", "quality"] },
+    "reviewRequestDigest": { "$ref": "#/$defs/digest" },
+    "reviewPairEnvelopeDigest": { "$ref": "#/$defs/digest" },
+    "artifactDigest": { "$ref": "#/$defs/digest" },
+    "obligationDigest": { "$ref": "#/$defs/digest" },
+    "verificationInterfaceDigest": { "$ref": "#/$defs/digest" },
+    "authorityDigest": { "$ref": "#/$defs/digest" },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/reviewerFinding" }
+    },
+    "verdict": { "enum": ["pass", "fail", "indeterminate"] },
+    "inspectedEvidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidenceReference" }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "verdict": { "not": { "const": "indeterminate" } } },
+        "required": ["verdict"]
+      },
+      "then": {
+        "properties": { "inspectedEvidence": { "minItems": 1 } }
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "digestOrNone": {
+      "oneOf": [
+        { "const": "none" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\u0000)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*\\\\)[^/]+(?:/[^/]+)*$"
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "locator",
+        "digest",
+        "observedAt",
+        "afterChangeDigest",
+        "result"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "enum": ["test", "command", "artifact", "diff", "review", "observation"] },
+        "locator": { "$ref": "#/$defs/relativePath" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "observedAt": { "$ref": "#/$defs/timestamp" },
+        "afterChangeDigest": { "$ref": "#/$defs/digestOrNone" },
+        "result": { "enum": ["pass", "fail", "indeterminate"] }
+      }
+    },
+    "reviewerFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "severity",
+        "claim",
+        "evidence",
+        "affectedObligationIds",
+        "suggestedFalsification"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "severity": { "enum": ["critical", "important", "minor"] },
+        "claim": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidenceReference" }
+        },
+        "affectedObligationIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "suggestedFalsification": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity-behavior-engineering.dev/schemas/review-package-input.schema.json",
+  "title": "ReviewPackageInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "artifactRoot",
+    "artifactDigest",
+    "obligations",
+    "obligationDigest",
+    "verificationInterface",
+    "verificationInterfaceDigest",
+    "authorityManifest",
+    "authorityDigest"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "artifactRoot": { "$ref": "#/$defs/relativePath" },
+    "artifactDigest": { "$ref": "#/$defs/digest" },
+    "obligations": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/proofObligation" }
+    },
+    "obligationDigest": { "$ref": "#/$defs/digest" },
+    "verificationInterface": { "$ref": "#/$defs/verificationInterface" },
+    "verificationInterfaceDigest": { "$ref": "#/$defs/digest" },
+    "authorityManifest": { "$ref": "#/$defs/authorityManifest" },
+    "authorityDigest": { "$ref": "#/$defs/digest" }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "digestOrNone": {
+      "oneOf": [
+        { "const": "none" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\u0000)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*\\\\)[^/]+(?:/[^/]+)*$"
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "locator",
+        "digest",
+        "observedAt",
+        "afterChangeDigest",
+        "result"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "enum": ["test", "command", "artifact", "diff", "review", "observation"] },
+        "locator": { "$ref": "#/$defs/relativePath" },
+        "digest": { "$ref": "#/$defs/digest" },
+        "observedAt": { "$ref": "#/$defs/timestamp" },
+        "afterChangeDigest": { "$ref": "#/$defs/digestOrNone" },
+        "result": { "enum": ["pass", "fail", "indeterminate"] }
+      }
+    },
+    "proofObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "requirement",
+        "evidenceSeam",
+        "negativeCases",
+        "authority",
+        "required",
+        "status",
+        "evidence",
+        "lastRelevantChangeDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "requirement": { "type": "string", "minLength": 1 },
+        "evidenceSeam": { "type": "string", "minLength": 1 },
+        "negativeCases": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "authority": { "type": "string", "minLength": 1 },
+        "required": { "type": "boolean" },
+        "status": {
+          "enum": ["pending", "passing", "failing", "blocked", "indeterminate", "not_applicable"]
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidenceReference" }
+        },
+        "lastRelevantChangeDigest": { "$ref": "#/$defs/digestOrNone" }
+      }
+    },
+    "verificationInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "interfaceId", "commands", "artifacts"],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "interfaceId": { "type": "string", "minLength": 1 },
+        "commands": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/verificationCommand" }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relativePath" }
+        }
+      }
+    },
+    "verificationCommand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "id",
+        "executable",
+        "arguments",
+        "workingDirectory",
+        "timeoutMs"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "id": { "type": "string", "minLength": 1 },
+        "executable": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\u0000]+$"
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[^\\u0000]*$"
+          }
+        },
+        "workingDirectory": {
+          "oneOf": [
+            { "const": "." },
+            { "$ref": "#/$defs/relativePath" }
+          ]
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      }
+    },
+    "authorityManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "manifestId",
+        "allowedActions",
+        "allowedResources",
+        "networkPolicyDigest",
+        "credentialGrantDigests",
+        "expiresAt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "manifestId": { "type": "string", "minLength": 1 },
+        "allowedActions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": ["execute_verification", "read", "write_verdict"]
+          }
+        },
+        "allowedResources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "allOf": [
+              { "$ref": "#/$defs/relativePath" },
+              { "pattern": "^[^*?\\[\\]]+$" }
+            ]
+          }
+        },
+        "networkPolicyDigest": { "$ref": "#/$defs/digest" },
+        "credentialGrantDigests": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/digest" }
+        },
+        "expiresAt": {
+          "oneOf": [
+            { "const": "not_applicable" },
+            { "$ref": "#/$defs/timestamp" }
+          ]
+        }
+      }
+    }
+  }
+}

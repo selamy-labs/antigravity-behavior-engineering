@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://antigravity-behavior-engineering.dev/schemas/completion-gate-event.schema.json",
+  "title": "CompletionGateEvent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "taskId",
+    "workspaceDigest",
+    "requestDigest",
+    "eventKind",
+    "stopSequenceId",
+    "continuationOrdinal",
+    "frozenBound",
+    "decision",
+    "reasonCode",
+    "previousEventDigest",
+    "occurredAt"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "eventId": { "type": "string", "minLength": 1 },
+    "taskId": { "type": "string", "minLength": 1 },
+    "workspaceDigest": { "$ref": "#/$defs/digest" },
+    "requestDigest": { "$ref": "#/$defs/digest" },
+    "eventKind": { "enum": ["initialized", "continued"] },
+    "stopSequenceId": { "type": "string", "minLength": 1 },
+    "continuationOrdinal": { "$ref": "#/$defs/nonnegativeInteger" },
+    "frozenBound": { "$ref": "#/$defs/nonnegativeInteger" },
+    "decision": { "enum": ["none", "continue"] },
+    "reasonCode": {
+      "enum": [
+        "task_state_initialized",
+        "active_work",
+        "invalid_task_state",
+        "unresolved_required_obligation",
+        "stale_passing_evidence",
+        "accepted_finding_unverified",
+        "retry_bound_reached"
+      ]
+    },
+    "previousEventDigest": {
+      "oneOf": [
+        { "const": "genesis" },
+        { "$ref": "#/$defs/digest" }
+      ]
+    },
+    "occurredAt": { "$ref": "#/$defs/timestamp" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "eventKind": { "const": "initialized" } },
+        "required": ["eventKind"]
+      },
+      "then": {
+        "properties": {
+          "stopSequenceId": { "const": "not_applicable" },
+          "continuationOrdinal": { "const": 0 },
+          "decision": { "const": "none" },
+          "reasonCode": { "const": "task_state_initialized" },
+          "previousEventDigest": { "const": "genesis" }
+        }
+      },
+      "else": {
+        "properties": {
+          "stopSequenceId": { "not": { "const": "not_applicable" } },
+          "continuationOrdinal": { "minimum": 1 },
+          "previousEventDigest": { "$ref": "#/$defs/digest" }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "decision": { "const": "continue" },
+              "reasonCode": {
+                "not": { "enum": ["task_state_initialized", "retry_bound_reached"] }
+              }
+            }
+          },
+          {
+            "properties": {
+              "decision": { "const": "none" },
+              "reasonCode": { "const": "retry_bound_reached" }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "nonnegativeInteger": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    }
+  }
+}
