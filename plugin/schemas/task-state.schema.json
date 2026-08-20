@@ -69,11 +69,21 @@
     "timestamp": {
       "type": "string",
       "format": "date-time",
-      "pattern": "^(?:\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|02-(?:0[1-9]|1\\d|2[0-9])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
+      "pattern": "^(?:\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|02-(?:0[1-9]|1\\d|2[0-9])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$",
+      "allOf": [{
+        "if": { "pattern": "^\\d{4}-02-29T" },
+        "then": {
+          "pattern": "^(?:\\d{2}(?:0[48]|[2468][048]|[13579][26])|(?:00|0[48]|[2468][048]|[13579][26])00)-02-29T"
+        }
+      }]
     },
     "stringArray": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^\\u0000]+$"
+      }
     },
     "evidenceReference": {
       "type": "object",
@@ -239,8 +249,18 @@
             { "minItems": 1, "uniqueItems": true }
           ]
         },
-        "impactedEvidenceIds": { "$ref": "#/$defs/stringArray" },
-        "sentinelEvidenceIds": { "$ref": "#/$defs/stringArray" },
+        "impactedEvidenceIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "uniqueItems": true }
+          ]
+        },
+        "sentinelEvidenceIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "uniqueItems": true }
+          ]
+        },
         "result": { "enum": ["passing", "failing", "blocked", "indeterminate"] },
         "nextAction": { "type": "string" }
       },
@@ -292,7 +312,10 @@
           "items": { "$ref": "#/$defs/evidenceReference" }
         },
         "status": { "enum": ["open", "accepted", "rejected", "repaired", "verified"] },
-        "dispositionReason": { "type": "string" },
+        "dispositionReason": {
+          "type": "string",
+          "pattern": "^[^\\u0000]*$"
+        },
         "repairChangeDigest": { "$ref": "#/$defs/digestOrNone" },
         "verificationEvidenceIds": {
           "allOf": [
@@ -300,7 +323,38 @@
             { "uniqueItems": true }
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": { "enum": ["rejected", "repaired", "verified"] }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "dispositionReason": { "minLength": 1 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "status": { "enum": ["repaired", "verified"] } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "repairChangeDigest": { "$ref": "#/$defs/digest" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "status": { "const": "verified" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": { "verificationEvidenceIds": { "minItems": 1 } }
+          }
+        }
+      ]
     },
     "terminalState": {
       "type": "object",

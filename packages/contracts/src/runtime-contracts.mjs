@@ -64,27 +64,50 @@ const assertWellFormedUnicode = (value, path) => {
 
 const assertSharedJson = (value, path = '$') => {
   const active = new WeakSet();
-  const stack = [{ value, path, leaving: false }];
+  const stack = [{
+    source: value,
+    path,
+    target: undefined,
+    key: undefined,
+    leaving: false,
+  }];
+  let clone;
+
+  const assign = (frame, clonedValue) => {
+    if (frame.target === undefined) {
+      clone = clonedValue;
+      return;
+    }
+    Object.defineProperty(frame.target, frame.key, {
+      value: clonedValue,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+  };
 
   while (stack.length > 0) {
     const current = stack.pop();
     if (current.leaving) {
-      active.delete(current.value);
+      active.delete(current.source);
       continue;
     }
 
-    const currentValue = current.value;
+    const currentValue = current.source;
     if (currentValue === null || typeof currentValue === 'boolean') {
+      assign(current, currentValue);
       continue;
     }
     if (typeof currentValue === 'string') {
       assertWellFormedUnicode(currentValue, current.path);
+      assign(current, currentValue);
       continue;
     }
     if (typeof currentValue === 'number') {
       if (!Number.isSafeInteger(currentValue)) {
         fail(ReasonCodes.INVALID_NUMBER, current.path);
       }
+      assign(current, currentValue);
       continue;
     }
     if (typeof currentValue !== 'object') {
@@ -95,26 +118,28 @@ const assertSharedJson = (value, path = '$') => {
     }
 
     let isArray;
-    try {
-      isArray = Array.isArray(currentValue);
-    } catch {
-      fail(ReasonCodes.INVALID_FIELD, current.path);
-    }
-    if (!isArray && !isPlainObject(currentValue, current.path)) {
-      fail(ReasonCodes.INVALID_FIELD, current.path);
-    }
-
+    let prototype;
     let keys;
     let descriptors;
     try {
+      isArray = Array.isArray(currentValue);
+      prototype = Object.getPrototypeOf(currentValue);
       keys = Reflect.ownKeys(currentValue);
       descriptors = Object.getOwnPropertyDescriptors(currentValue);
     } catch {
       fail(ReasonCodes.INVALID_FIELD, current.path);
     }
+    if (
+      (isArray && prototype !== Array.prototype)
+      || (!isArray && prototype !== Object.prototype && prototype !== null)
+    ) {
+      fail(ReasonCodes.INVALID_FIELD, current.path);
+    }
 
+    const container = isArray ? [] : {};
+    assign(current, container);
     active.add(currentValue);
-    stack.push({ value: currentValue, leaving: true });
+    stack.push({ source: currentValue, leaving: true });
     const children = [];
     const lengthDescriptor = isArray ? descriptors.length : undefined;
     if (
@@ -154,8 +179,10 @@ const assertSharedJson = (value, path = '$') => {
         arrayIndexCount += 1;
       }
       children.push({
-        value: descriptor.value,
+        source: descriptor.value,
         path: isArray ? current.path + '[' + key + ']' : current.path + '.' + key,
+        target: container,
+        key,
         leaving: false,
       });
     }
@@ -167,6 +194,7 @@ const assertSharedJson = (value, path = '$') => {
       stack.push(children[index]);
     }
   }
+  return clone;
 };
 
 const object = (value, allowed, required, path) => {
@@ -313,7 +341,8 @@ const validateContext = (context, allowed, path) => {
   if (context === undefined) {
     return {};
   }
-  if (!isPlainObject(context)) {
+  context = assertSharedJson(context, path);
+  if (!isPlainObject(context, path)) {
     fail(ReasonCodes.INVALID_CONTEXT, path);
   }
   for (const key of Object.keys(context)) {
@@ -321,7 +350,6 @@ const validateContext = (context, allowed, path) => {
       fail(ReasonCodes.INVALID_CONTEXT, path + '.' + key);
     }
   }
-  assertSharedJson(context, path);
   return context;
 };
 
@@ -439,7 +467,9 @@ const validateIteration = (value, path) => {
   strings(value.impactedObligationIds, path + '.impactedObligationIds', { nonempty: true });
   unique(value.impactedObligationIds, (item) => item, path + '.impactedObligationIds');
   strings(value.impactedEvidenceIds, path + '.impactedEvidenceIds');
+  unique(value.impactedEvidenceIds, (item) => item, path + '.impactedEvidenceIds');
   strings(value.sentinelEvidenceIds, path + '.sentinelEvidenceIds');
+  unique(value.sentinelEvidenceIds, (item) => item, path + '.sentinelEvidenceIds');
   oneOf(value.result, ['passing', 'failing', 'blocked', 'indeterminate'], path + '.result');
   string(value.nextAction, path + '.nextAction', { nonempty: false });
   if (value.result === 'passing' && value.impactedEvidenceIds.length === 0) {
@@ -492,7 +522,7 @@ const validateTerminalState = (value, path) => {
 // Optional contexts are caller authority for environmental bindings. Omitting
 // one preserves the documented one-argument structural parser contract.
 export const parseTaskState = (value, context = {}) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['taskId', 'workspaceDigest', 'requestDigest', 'workflowTier', 'intent', 'assumptions', 'obligations', 'iterations', 'reviewFindings', 'terminalState', 'updatedAt'],
@@ -556,7 +586,7 @@ export const parseTaskState = (value, context = {}) => {
 };
 
 export const parseEvidenceEvent = (value, context = {}) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['eventId', 'taskId', 'sequence', 'eventKind', 'toolName', 'resultClass', 'redactedPayloadDigest', 'previousEventDigest', 'occurredAt'],
@@ -598,7 +628,7 @@ const GATE_REASONS = [
 ];
 
 export const parseCompletionGateEvent = (value, context = {}) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['eventId', 'taskId', 'workspaceDigest', 'requestDigest', 'eventKind', 'stopSequenceId', 'continuationOrdinal', 'frozenBound', 'decision', 'reasonCode', 'previousEventDigest', 'occurredAt'],
@@ -704,7 +734,7 @@ const validateAuthorityManifest = (value, path) => {
 };
 
 export const parseReviewPackageInput = (value) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['artifactRoot', 'artifactDigest', 'obligations', 'obligationDigest', 'verificationInterface', 'verificationInterfaceDigest', 'authorityManifest', 'authorityDigest'],
@@ -745,7 +775,7 @@ const selfDigest = (value, field) => {
 };
 
 export const parseReviewPairEnvelope = (value, context = {}) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['pairId', ...REVIEW_BINDINGS, 'sharedPackageManifestDigest', 'reviewPairEnvelopeDigest'],
@@ -768,7 +798,7 @@ export const parseReviewPairEnvelope = (value, context = {}) => {
 };
 
 export const parseReviewRequest = (value, context = {}) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['requestId', 'reviewerRole', 'reviewPairEnvelopeDigest', ...REVIEW_BINDINGS, 'packageManifestDigest', 'reviewRequestDigest'],
@@ -807,7 +837,7 @@ const validateReviewerFinding = (value, path) => {
 };
 
 export const parseReviewerVerdict = (value, context = {}) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['reviewerRole', 'reviewRequestDigest', 'reviewPairEnvelopeDigest', ...REVIEW_BINDINGS, 'findings', 'verdict', 'inspectedEvidence', 'limitations'],
@@ -847,7 +877,7 @@ const validateJoinFinding = (value, path) => {
 };
 
 export const parseReviewJoinRecord = (value, context = {}) => {
-  assertSharedJson(value);
+  value = assertSharedJson(value);
   versioned(
     value,
     ['reviewPairEnvelopeDigest', 'requirementsReviewRequestDigest', 'qualityReviewRequestDigest', 'requirementsVerdictDigest', 'qualityVerdictDigest', 'roleSeparationEvidenceDigest', 'findings', 'joinState', 'limitations'],
@@ -902,9 +932,11 @@ export const parseReviewJoinRecord = (value, context = {}) => {
     ],
     '$context',
   );
+  const suppliedArtifacts = [];
   let envelope;
   if (Object.hasOwn(context, 'reviewPairEnvelope')) {
     envelope = parseReviewPairEnvelope(context.reviewPairEnvelope);
+    suppliedArtifacts.push(envelope);
     if (value.reviewPairEnvelopeDigest !== envelope.reviewPairEnvelopeDigest) {
       fail(ReasonCodes.BINDING_MISMATCH, '$context.reviewPairEnvelope');
     }
@@ -928,6 +960,7 @@ export const parseReviewJoinRecord = (value, context = {}) => {
       if (recordRequestDigest !== request.reviewRequestDigest) {
         fail(ReasonCodes.BINDING_MISMATCH, '$context.' + requestField);
       }
+      suppliedArtifacts.push(request);
     }
     if (!Object.hasOwn(context, verdictField)) {
       continue;
@@ -950,6 +983,7 @@ export const parseReviewJoinRecord = (value, context = {}) => {
     ) {
       fail(ReasonCodes.BINDING_MISMATCH, '$context.' + verdictField);
     }
+    suppliedArtifacts.push(verdict);
     const expected = verdict.findings.map((item) => ({
       schemaVersion: 1,
       reviewerRole: role,
@@ -989,6 +1023,16 @@ export const parseReviewJoinRecord = (value, context = {}) => {
       ))
     ) {
       fail(ReasonCodes.INVALID_REVIEW_JOIN, '$.findings');
+    }
+  }
+  if (suppliedArtifacts.length > 1) {
+    const expectedBindings = suppliedArtifacts[0];
+    for (let index = 1; index < suppliedArtifacts.length; index += 1) {
+      for (const field of REVIEW_BINDINGS) {
+        if (suppliedArtifacts[index][field] !== expectedBindings[field]) {
+          fail(ReasonCodes.BINDING_MISMATCH, '$context.' + field);
+        }
+      }
     }
   }
   return value;
