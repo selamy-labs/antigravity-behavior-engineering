@@ -68,7 +68,8 @@
     },
     "timestamp": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "pattern": "^(?:\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|02-(?:0[1-9]|1\\d|2[0-9])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
     },
     "stringArray": {
       "type": "array",
@@ -81,7 +82,6 @@
         "schemaVersion",
         "kind",
         "locator",
-        "digest",
         "observedAt",
         "afterChangeDigest",
         "result"
@@ -145,6 +145,15 @@
           "then": {
             "properties": { "reversible": { "const": true } }
           }
+        },
+        {
+          "if": {
+            "properties": { "disposition": { "const": "user_direction" } },
+            "required": ["disposition"]
+          },
+          "else": {
+            "properties": { "evidence": { "minItems": 1 } }
+          }
         }
       ]
     },
@@ -179,7 +188,27 @@
           "items": { "$ref": "#/$defs/evidenceReference" }
         },
         "lastRelevantChangeDigest": { "$ref": "#/$defs/digestOrNone" }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "passing" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "lastRelevantChangeDigest": { "$ref": "#/$defs/digest" },
+              "evidence": {
+                "minItems": 1,
+                "contains": {
+                  "properties": { "result": { "const": "pass" } },
+                  "required": ["result"]
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "iterationCheckpoint": {
       "type": "object",
@@ -214,7 +243,27 @@
         "sentinelEvidenceIds": { "$ref": "#/$defs/stringArray" },
         "result": { "enum": ["passing", "failing", "blocked", "indeterminate"] },
         "nextAction": { "type": "string" }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "result": { "const": "passing" } },
+            "required": ["result"]
+          },
+          "then": {
+            "properties": { "impactedEvidenceIds": { "minItems": 1 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "sentinelEvidenceIds": { "maxItems": 0 } },
+            "required": ["sentinelEvidenceIds"]
+          },
+          "then": {
+            "properties": { "nextAction": { "minLength": 1 } }
+          }
+        }
+      ]
     },
     "reviewFinding": {
       "type": "object",
@@ -245,7 +294,12 @@
         "status": { "enum": ["open", "accepted", "rejected", "repaired", "verified"] },
         "dispositionReason": { "type": "string" },
         "repairChangeDigest": { "$ref": "#/$defs/digestOrNone" },
-        "verificationEvidenceIds": { "$ref": "#/$defs/stringArray" }
+        "verificationEvidenceIds": {
+          "allOf": [
+            { "$ref": "#/$defs/stringArray" },
+            { "uniqueItems": true }
+          ]
+        }
       }
     },
     "terminalState": {

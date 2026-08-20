@@ -34,11 +34,16 @@ const fail = (reasonCode, path) => {
   throw new ContractValidationError(reasonCode, path);
 };
 
-const isPlainObject = (value) => {
+const isPlainObject = (value, path = '$') => {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
     return false;
   }
-  const prototype = Object.getPrototypeOf(value);
+  let prototype;
+  try {
+    prototype = Object.getPrototypeOf(value);
+  } catch {
+    fail(ReasonCodes.INVALID_FIELD, path);
+  }
   return prototype === Object.prototype || prototype === null;
 };
 
@@ -57,51 +62,115 @@ const assertWellFormedUnicode = (value, path) => {
   }
 };
 
-const assertSharedJson = (value, path = '$', ancestors = new WeakSet()) => {
-  if (value === null || typeof value === 'boolean') {
-    return;
-  }
-  if (typeof value === 'string') {
-    assertWellFormedUnicode(value, path);
-    return;
-  }
-  if (typeof value === 'number') {
-    if (!Number.isSafeInteger(value)) {
-      fail(ReasonCodes.INVALID_NUMBER, path);
+const assertSharedJson = (value, path = '$') => {
+  const active = new WeakSet();
+  const stack = [{ value, path, leaving: false }];
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current.leaving) {
+      active.delete(current.value);
+      continue;
     }
-    return;
-  }
-  if (Array.isArray(value)) {
-    if (ancestors.has(value)) {
-      fail(ReasonCodes.INVALID_FIELD, path);
+
+    const currentValue = current.value;
+    if (currentValue === null || typeof currentValue === 'boolean') {
+      continue;
     }
-    ancestors.add(value);
-    for (let index = 0; index < value.length; index += 1) {
-      if (!Object.hasOwn(value, index)) {
-        fail(ReasonCodes.INVALID_FIELD, path + '[' + index + ']');
+    if (typeof currentValue === 'string') {
+      assertWellFormedUnicode(currentValue, current.path);
+      continue;
+    }
+    if (typeof currentValue === 'number') {
+      if (!Number.isSafeInteger(currentValue)) {
+        fail(ReasonCodes.INVALID_NUMBER, current.path);
       }
-      assertSharedJson(value[index], path + '[' + index + ']', ancestors);
+      continue;
     }
-    ancestors.delete(value);
-    return;
+    if (typeof currentValue !== 'object') {
+      fail(ReasonCodes.INVALID_FIELD, current.path);
+    }
+    if (active.has(currentValue)) {
+      fail(ReasonCodes.INVALID_FIELD, current.path);
+    }
+
+    let isArray;
+    try {
+      isArray = Array.isArray(currentValue);
+    } catch {
+      fail(ReasonCodes.INVALID_FIELD, current.path);
+    }
+    if (!isArray && !isPlainObject(currentValue, current.path)) {
+      fail(ReasonCodes.INVALID_FIELD, current.path);
+    }
+
+    let keys;
+    let descriptors;
+    try {
+      keys = Reflect.ownKeys(currentValue);
+      descriptors = Object.getOwnPropertyDescriptors(currentValue);
+    } catch {
+      fail(ReasonCodes.INVALID_FIELD, current.path);
+    }
+
+    active.add(currentValue);
+    stack.push({ value: currentValue, leaving: true });
+    const children = [];
+    const lengthDescriptor = isArray ? descriptors.length : undefined;
+    if (
+      isArray
+      && (
+        lengthDescriptor === undefined
+        || !Object.hasOwn(lengthDescriptor, 'value')
+        || !Number.isSafeInteger(lengthDescriptor.value)
+        || lengthDescriptor.value < 0
+      )
+    ) {
+      fail(ReasonCodes.INVALID_FIELD, current.path + '.length');
+    }
+    const arrayLength = isArray ? lengthDescriptor.value : 0;
+    let arrayIndexCount = 0;
+
+    for (const key of keys) {
+      if (typeof key === 'symbol') {
+        fail(ReasonCodes.INVALID_FIELD, current.path);
+      }
+      assertWellFormedUnicode(key, current.path);
+      const descriptor = descriptors[key];
+      if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) {
+        fail(ReasonCodes.INVALID_FIELD, current.path + '.' + key);
+      }
+      if (isArray && key === 'length') {
+        continue;
+      }
+      if (!descriptor.enumerable) {
+        fail(ReasonCodes.INVALID_FIELD, current.path + '.' + key);
+      }
+      if (isArray) {
+        const index = Number(key);
+        if (!Number.isInteger(index) || index < 0 || index >= arrayLength || String(index) !== key) {
+          fail(ReasonCodes.INVALID_FIELD, current.path + '.' + key);
+        }
+        arrayIndexCount += 1;
+      }
+      children.push({
+        value: descriptor.value,
+        path: isArray ? current.path + '[' + key + ']' : current.path + '.' + key,
+        leaving: false,
+      });
+    }
+
+    if (isArray && (keys.length !== arrayLength + 1 || arrayIndexCount !== arrayLength)) {
+      fail(ReasonCodes.INVALID_FIELD, current.path);
+    }
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push(children[index]);
+    }
   }
-  if (isPlainObject(value)) {
-    if (ancestors.has(value)) {
-      fail(ReasonCodes.INVALID_FIELD, path);
-    }
-    ancestors.add(value);
-    for (const [key, child] of Object.entries(value)) {
-      assertWellFormedUnicode(key, path);
-      assertSharedJson(child, path + '.' + key, ancestors);
-    }
-    ancestors.delete(value);
-    return;
-  }
-  fail(ReasonCodes.INVALID_FIELD, path);
 };
 
 const object = (value, allowed, required, path) => {
-  if (!isPlainObject(value)) {
+  if (!isPlainObject(value, path)) {
     fail(ReasonCodes.NOT_OBJECT, path);
   }
   for (const key of Object.keys(value)) {
@@ -190,10 +259,10 @@ const timestamp = (value, path) => {
     || day > daysInMonth[month - 1]
     || hour > 23
     || minute > 59
-    || second > 60
+    || second > 59
     || offsetHour > 23
     || offsetMinute > 59
-    || (second < 60 && Number.isNaN(Date.parse(value)))
+    || Number.isNaN(Date.parse(value))
   ) {
     fail(ReasonCodes.INVALID_FIELD, path);
   }
@@ -291,10 +360,12 @@ const applyBindings = (value, context, fields, reasonCode = ReasonCodes.BINDING_
 };
 
 const validateEvidenceReference = (value, path) => {
-  versioned(value, ['kind', 'locator', 'digest', 'observedAt', 'afterChangeDigest', 'result'], path);
+  versioned(value, ['kind', 'locator', 'digest', 'observedAt', 'afterChangeDigest', 'result'], path, ['digest']);
   oneOf(value.kind, ['test', 'command', 'artifact', 'diff', 'review', 'observation'], path + '.kind');
   relativePath(value.locator, path + '.locator');
-  digest(value.digest, path + '.digest');
+  if (Object.hasOwn(value, 'digest')) {
+    digest(value.digest, path + '.digest');
+  }
   timestamp(value.observedAt, path + '.observedAt');
   if (value.afterChangeDigest !== 'none') {
     digest(value.afterChangeDigest, path + '.afterChangeDigest');
@@ -316,6 +387,9 @@ const validateAssumption = (value, path) => {
   }
   array(value.evidence, path + '.evidence');
   value.evidence.forEach((item, index) => validateEvidenceReference(item, path + '.evidence[' + index + ']'));
+  if (value.disposition !== 'user_direction' && value.evidence.length === 0) {
+    fail(ReasonCodes.INVALID_FIELD, path + '.evidence');
+  }
   boolean(value.reversible, path + '.reversible');
   boolean(value.material, path + '.material');
   if (value.disposition === 'safe_default' && !value.reversible) {
@@ -342,8 +416,11 @@ const validateProofObligation = (value, path) => {
   }
   if (
     value.status === 'passing'
-    && !value.evidence.some(
-      (item) => item.result === 'pass' && item.afterChangeDigest === value.lastRelevantChangeDigest,
+    && (
+      value.lastRelevantChangeDigest === 'none'
+      || !value.evidence.some(
+        (item) => item.result === 'pass' && item.afterChangeDigest === value.lastRelevantChangeDigest,
+      )
     )
   ) {
     fail(ReasonCodes.STALE_EVIDENCE, path + '.evidence');
@@ -365,6 +442,12 @@ const validateIteration = (value, path) => {
   strings(value.sentinelEvidenceIds, path + '.sentinelEvidenceIds');
   oneOf(value.result, ['passing', 'failing', 'blocked', 'indeterminate'], path + '.result');
   string(value.nextAction, path + '.nextAction', { nonempty: false });
+  if (value.result === 'passing' && value.impactedEvidenceIds.length === 0) {
+    fail(ReasonCodes.INVALID_FIELD, path + '.impactedEvidenceIds');
+  }
+  if (value.sentinelEvidenceIds.length === 0 && value.nextAction.length === 0) {
+    fail(ReasonCodes.INVALID_FIELD, path + '.nextAction');
+  }
 };
 
 const validateTaskReviewFinding = (value, path) => {
@@ -391,6 +474,7 @@ const validateTaskReviewFinding = (value, path) => {
     fail(ReasonCodes.INVALID_FIELD, path + '.repairChangeDigest');
   }
   strings(value.verificationEvidenceIds, path + '.verificationEvidenceIds');
+  unique(value.verificationEvidenceIds, (item) => item, path + '.verificationEvidenceIds');
   if (value.status === 'verified' && value.verificationEvidenceIds.length === 0) {
     fail(ReasonCodes.INVALID_FIELD, path + '.verificationEvidenceIds');
   }
@@ -455,7 +539,7 @@ export const parseTaskState = (value, context = {}) => {
     }
     const unverifiedMaterial = value.reviewFindings.some(
       (item) => ['critical', 'important'].includes(item.severity)
-        && ['accepted', 'repaired'].includes(item.status),
+        && !['rejected', 'verified'].includes(item.status),
     );
     if (unverifiedMaterial) {
       fail(ReasonCodes.TERMINAL_INCONSISTENT, '$.reviewFindings');
@@ -482,6 +566,12 @@ export const parseEvidenceEvent = (value, context = {}) => {
   string(value.taskId, '$.taskId');
   integer(value.sequence, '$.sequence');
   oneOf(value.eventKind, ['post_tool_use', 'post_invocation'], '$.eventKind');
+  if (value.eventKind === 'post_tool_use' && value.toolName === 'not_applicable') {
+    fail(ReasonCodes.INVALID_FIELD, '$.toolName');
+  }
+  if (value.eventKind === 'post_invocation' && value.toolName !== 'not_applicable') {
+    fail(ReasonCodes.INVALID_FIELD, '$.toolName');
+  }
   if (value.toolName !== 'not_applicable') {
     string(value.toolName, '$.toolName');
   }
@@ -566,7 +656,10 @@ const validateVerificationCommand = (value, path) => {
   versioned(value, ['id', 'executable', 'arguments', 'workingDirectory', 'timeoutMs'], path);
   string(value.id, path + '.id');
   string(value.executable, path + '.executable');
-  strings(value.arguments, path + '.arguments');
+  array(value.arguments, path + '.arguments');
+  value.arguments.forEach((item, index) => {
+    string(item, path + '.arguments[' + index + ']', { nonempty: false });
+  });
   relativePath(value.workingDirectory, path + '.workingDirectory', true);
   integer(value.timeoutMs, path + '.timeoutMs', 1);
 };
@@ -579,6 +672,7 @@ const validateVerificationInterface = (value, path) => {
   unique(value.commands, (item) => item.id, path + '.commands');
   array(value.artifacts, path + '.artifacts');
   value.artifacts.forEach((item, index) => relativePath(item, path + '.artifacts[' + index + ']'));
+  unique(value.artifacts, (item) => item, path + '.artifacts');
 };
 
 const REVIEW_AUTHORITY_ACTIONS = ['execute_verification', 'read', 'write_verdict'];
@@ -626,6 +720,15 @@ export const parseReviewPackageInput = (value) => {
   digest(value.verificationInterfaceDigest, '$.verificationInterfaceDigest');
   validateAuthorityManifest(value.authorityManifest, '$.authorityManifest');
   digest(value.authorityDigest, '$.authorityDigest');
+  for (const [field, content] of [
+    ['obligationDigest', value.obligations],
+    ['verificationInterfaceDigest', value.verificationInterface],
+    ['authorityDigest', value.authorityManifest],
+  ]) {
+    if (value[field] !== sha256Digest(canonicalBytes(content))) {
+      fail(ReasonCodes.BINDING_MISMATCH, '$.' + field);
+    }
+  }
   return value;
 };
 
@@ -692,7 +795,7 @@ export const parseReviewRequest = (value, context = {}) => {
   return value;
 };
 
-const validateReviewerFinding = (value, path, reviewerRole) => {
+const validateReviewerFinding = (value, path) => {
   versioned(value, ['id', 'severity', 'claim', 'evidence', 'affectedObligationIds', 'suggestedFalsification'], path);
   string(value.id, path + '.id');
   oneOf(value.severity, ['critical', 'important', 'minor'], path + '.severity');
@@ -700,9 +803,6 @@ const validateReviewerFinding = (value, path, reviewerRole) => {
   array(value.evidence, path + '.evidence', { nonempty: true });
   value.evidence.forEach((item, index) => validateEvidenceReference(item, path + '.evidence[' + index + ']'));
   sortedUniqueStrings(value.affectedObligationIds, path + '.affectedObligationIds');
-  if (reviewerRole === 'requirements' && value.affectedObligationIds.length === 0) {
-    fail(ReasonCodes.INVALID_REVIEW_VERDICT, path + '.affectedObligationIds');
-  }
   string(value.suggestedFalsification, path + '.suggestedFalsification');
 };
 
@@ -718,7 +818,7 @@ export const parseReviewerVerdict = (value, context = {}) => {
     digest(value[field], '$.' + field);
   }
   array(value.findings, '$.findings');
-  value.findings.forEach((item, index) => validateReviewerFinding(item, '$.findings[' + index + ']', value.reviewerRole));
+  value.findings.forEach((item, index) => validateReviewerFinding(item, '$.findings[' + index + ']'));
   unique(value.findings, (item) => item.id, '$.findings');
   oneOf(value.verdict, ['pass', 'fail', 'indeterminate'], '$.verdict');
   array(value.inspectedEvidence, '$.inspectedEvidence');
@@ -771,10 +871,24 @@ export const parseReviewJoinRecord = (value, context = {}) => {
   unique(value.findings, (item) => item.reviewerRole + '\u0000' + item.findingId, '$.findings');
   oneOf(value.joinState, ['complete', 'indeterminate'], '$.joinState');
   strings(value.limitations, '$.limitations');
+  if (value.requirementsReviewRequestDigest === value.qualityReviewRequestDigest) {
+    fail(ReasonCodes.INVALID_REVIEW_JOIN, '$.qualityReviewRequestDigest');
+  }
   const bothPresent = value.requirementsVerdictDigest !== 'indeterminate'
     && value.qualityVerdictDigest !== 'indeterminate';
+  if (bothPresent && value.requirementsVerdictDigest === value.qualityVerdictDigest) {
+    fail(ReasonCodes.INVALID_REVIEW_JOIN, '$.qualityVerdictDigest');
+  }
   if ((value.joinState === 'complete') !== bothPresent) {
     fail(ReasonCodes.INVALID_REVIEW_JOIN, '$.joinState');
+  }
+  for (const role of ['requirements', 'quality']) {
+    if (
+      value[role + 'VerdictDigest'] === 'indeterminate'
+      && value.findings.some((item) => item.reviewerRole === role)
+    ) {
+      fail(ReasonCodes.INVALID_REVIEW_JOIN, '$.findings');
+    }
   }
 
   context = validateContext(
@@ -802,8 +916,8 @@ export const parseReviewJoinRecord = (value, context = {}) => {
     if (Object.hasOwn(context, requestField)) {
       request = parseReviewRequest(context[requestField], {
         reviewerRole: role,
+        reviewPairEnvelopeDigest: value.reviewPairEnvelopeDigest,
         ...(envelope === undefined ? {} : {
-          reviewPairEnvelopeDigest: envelope.reviewPairEnvelopeDigest,
           artifactDigest: envelope.artifactDigest,
           obligationDigest: envelope.obligationDigest,
           verificationInterfaceDigest: envelope.verificationInterfaceDigest,
@@ -820,9 +934,9 @@ export const parseReviewJoinRecord = (value, context = {}) => {
     }
     const verdict = parseReviewerVerdict(context[verdictField], {
       reviewerRole: role,
+      reviewRequestDigest: value[role + 'ReviewRequestDigest'],
+      reviewPairEnvelopeDigest: value.reviewPairEnvelopeDigest,
       ...(request === undefined ? {} : {
-        reviewRequestDigest: request.reviewRequestDigest,
-        reviewPairEnvelopeDigest: request.reviewPairEnvelopeDigest,
         artifactDigest: request.artifactDigest,
         obligationDigest: request.obligationDigest,
         verificationInterfaceDigest: request.verificationInterfaceDigest,
@@ -836,11 +950,43 @@ export const parseReviewJoinRecord = (value, context = {}) => {
     ) {
       fail(ReasonCodes.BINDING_MISMATCH, '$context.' + verdictField);
     }
-    const availableIds = new Set(verdict.findings.map((item) => item.id));
+    const expected = verdict.findings.map((item) => ({
+      schemaVersion: 1,
+      reviewerRole: role,
+      findingId: item.id,
+    }));
+    const actual = value.findings.filter((item) => item.reviewerRole === role);
     if (
-      value.findings.some(
-        (item) => item.reviewerRole === role && !availableIds.has(item.findingId),
-      )
+      actual.length !== expected.length
+      || actual.some((item, index) => (
+        item.schemaVersion !== expected[index].schemaVersion
+        || item.reviewerRole !== expected[index].reviewerRole
+        || item.findingId !== expected[index].findingId
+      ))
+    ) {
+      fail(ReasonCodes.INVALID_REVIEW_JOIN, '$.findings');
+    }
+  }
+  if (Object.hasOwn(context, 'requirementsVerdict') && Object.hasOwn(context, 'qualityVerdict')) {
+    const expected = [
+      ...context.requirementsVerdict.findings.map((item) => ({
+        schemaVersion: 1,
+        reviewerRole: 'requirements',
+        findingId: item.id,
+      })),
+      ...context.qualityVerdict.findings.map((item) => ({
+        schemaVersion: 1,
+        reviewerRole: 'quality',
+        findingId: item.id,
+      })),
+    ];
+    if (
+      value.findings.length !== expected.length
+      || value.findings.some((item, index) => (
+        item.schemaVersion !== expected[index].schemaVersion
+        || item.reviewerRole !== expected[index].reviewerRole
+        || item.findingId !== expected[index].findingId
+      ))
     ) {
       fail(ReasonCodes.INVALID_REVIEW_JOIN, '$.findings');
     }

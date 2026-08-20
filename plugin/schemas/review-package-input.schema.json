@@ -43,7 +43,8 @@
     },
     "timestamp": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "pattern": "^(?:\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|02-(?:0[1-9]|1\\d|2[0-9])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|[+-](?:[01]\\d|2[0-3]):[0-5]\\d)$"
     },
     "relativePath": {
       "type": "string",
@@ -57,7 +58,6 @@
         "schemaVersion",
         "kind",
         "locator",
-        "digest",
         "observedAt",
         "afterChangeDigest",
         "result"
@@ -106,7 +106,27 @@
           "items": { "$ref": "#/$defs/evidenceReference" }
         },
         "lastRelevantChangeDigest": { "$ref": "#/$defs/digestOrNone" }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "status": { "const": "passing" } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "lastRelevantChangeDigest": { "$ref": "#/$defs/digest" },
+              "evidence": {
+                "minItems": 1,
+                "contains": {
+                  "properties": { "result": { "const": "pass" } },
+                  "required": ["result"]
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "verificationInterface": {
       "type": "object",
@@ -122,6 +142,7 @@
         },
         "artifacts": {
           "type": "array",
+          "uniqueItems": true,
           "items": { "$ref": "#/$defs/relativePath" }
         }
       }
@@ -204,7 +225,7 @@
           "items": { "$ref": "#/$defs/digest" }
         },
         "expiresAt": {
-          "oneOf": [
+          "anyOf": [
             { "const": "not_applicable" },
             { "$ref": "#/$defs/timestamp" }
           ]
