@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T002",
+  "taskTitle": "Implement canonical bytes, digests, and path-safe writes",
+  "taskEntryDigest": "sha256:577768c6084c04fb6950fc93a5f21eac63f96e57940b323c67739c1779f1728f",
+  "baseCommit": "921344d5d7283120e2948fd0751c1d6b6090fdd5",
+  "implementationCommit": "233f2f7998c03236ad53d6eb022e2327796c4a26",
+  "treeDigest": "sha256:16ceaddda839a203199c05332404c5d3ab904016be821f8b4bcc66c7b4e9533e",
+  "outcome": "implemented",
+  "files": {
+    "evaluator/src/abe_eval/canonical.py": "sha256:3d82896126292e5131151beb6325b734049b82895dd0829d8505550b2cf6d9d7",
+    "evaluator/tests/test_canonical_parity.py": "sha256:3d8e8d894d416da1253c5b4580d31f3944f430cf7c8e81e1b146efd1c78a3efb",
+    "packages/contracts/src/canonical-json.mjs": "sha256:370e5fa7301b62ff9ed462830c1f2891ef58fae2cab172b8c4111a5872d1c024",
+    "packages/contracts/src/fs-boundary.mjs": "sha256:60c7ef60b126da4d222b0946917d3fe3a6caebc426a4b17ab77f7b4fb463c06f",
+    "packages/contracts/test/canonical-json.test.mjs": "sha256:721f8b65296de12d59eec75ec6c2ca0ffb8f686ba80ba9a6d72190aee4936b20"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "packages/contracts/test/canonical-json.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:e69f84211d6e0fa6b68e8ee4c4303a4b647dd8972c7863491b6ebebafd5c9beb"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "packages/contracts/test/canonical-json.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:074a6f77f9599fae004212b4ee8a52fa46e1b2f07ae320db206065710dc2c322"
+    },
+    {
+      "phase": "green",
+      "argv": ["uv", "run", "--project", "evaluator", "pytest", "evaluator/tests/test_canonical_parity.py", "-q"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:045a8ff4171b4f333f43474604b72a559ee35ed3644b1adda352e6ed48b176ac"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["node", "--test", "tests/contract/workspace.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:158222d6473251a9a8304ddde4c0143d1ccbad4dd8980ab57a327068c0774a7b"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["corepack", "pnpm", "verify"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:fa275031c554a990695574441290bf521069380ece6f77aff97bf34332f672e8"
+    },
+    {
+      "phase": "gate",
+      "argv": ["node", "--test", "--test-name-pattern=retains the write and close|cooperating creators", "packages/contracts/test/canonical-json.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:4260e776b0fda473bf00127369852a5c5e45e69121551f9e8c56a14acafff73b"
+    },
+    {
+      "phase": "gate",
+      "argv": ["public-boundary-scan", "233f2f7998c03236ad53d6eb022e2327796c4a26"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:f912bccba043023a9d976f6c26322d4b912d7a3197ed8d90e44257c97f5e528b"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:83d573ccf31c84a205083a6547a14a7f1e44792cf2a33b28e48411668a977806",
+      "verdictDigest": "sha256:20d80b3bf1465f102a276c99c5dfa9e171ebd5217de7f7b1a931243c5c233f86",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:9c7edea96389df6f80b96a22ee74f54161990a0b00a6b65aac91c8f144af5529",
+      "verdictDigest": "sha256:8daa9375160e85e06e4fc6507fbdd3560f54bd6426c6cbd5979efacf490836dc",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:f912bccba043023a9d976f6c26322d4b912d7a3197ed8d90e44257c97f5e528b",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon this branch; after merge, open a new T002-linked revert PR without rewriting history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-20T16:36:08Z"
+}
