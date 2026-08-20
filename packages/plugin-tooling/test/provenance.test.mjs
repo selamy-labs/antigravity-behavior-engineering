@@ -12,6 +12,8 @@ const fixtures = JSON.parse(await fs.readFile(fixturePath, "utf8"));
 
 const rawDigest = (text) => "sha256:" + createHash("sha256").update(Buffer.from(text, "utf8")).digest("hex");
 
+const fileLockFor = (files) => Object.fromEntries(Object.entries(files).map(([relativePath, contents]) => [relativePath, rawDigest(contents)]));
+
 const withTree = async (files, fn) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "abe-provenance-"));
   for (const [relativePath, contents] of Object.entries(files)) {
@@ -25,15 +27,25 @@ const withTree = async (files, fn) => {
   }
 };
 
+const packageLockFor = (files, overrides = {}) => ({
+  schemaVersion: 1,
+  packageName: "antigravity-behavior-engineering",
+  packageVersion: "0.1.0",
+  sourceRevision: "1234567890abcdef1234567890abcdef12345678",
+  minimumCliVersion: "0.1.0",
+  supportedPlatforms: [{ schemaVersion: 1, os: "linux", architecture: "x64" }],
+  components: [],
+  dependencies: fixtures.pinnedDependencies,
+  files: fileLockFor(files),
+  generatedAt: "2026-08-18T00:00:00Z",
+  ...overrides,
+});
+
 const lockSetFor = (files, overrides = {}) => ({
   schemaVersion: 1,
   policyDigest: "sha256:" + "8".repeat(64),
   noticePath: "NOTICE",
-  packageLock: {
-    schemaVersion: 1,
-    dependencies: fixtures.pinnedDependencies,
-    files: Object.fromEntries(Object.entries(files).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
-  },
+  packageLock: packageLockFor(files),
   adaptations: fixtures.adaptations,
   ...overrides,
 });
@@ -70,11 +82,9 @@ test("provenance inventory is deterministic, attributed, pinned, and not a legal
 test("human-review-only license policy remains inventoried without an automated compatibility verdict", async () => {
   await withTree(fixtures.benignFiles, async (root) => {
     const lockSet = lockSetFor(fixtures.benignFiles, {
-      packageLock: {
-        schemaVersion: 1,
+      packageLock: packageLockFor(fixtures.benignFiles, {
         dependencies: [...fixtures.pinnedDependencies, fixtures.humanReviewOnlyDependency],
-        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
-      },
+      }),
     });
     const inventory = await buildProvenanceInventory(root, lockSet);
     assert.equal(inventory.sources.some((source) => source.license === "GPL-3.0-only"), true);
@@ -85,11 +95,9 @@ test("human-review-only license policy remains inventoried without an automated 
 test("provenance fails visibly for unpinned sources, missing notices, unexpected files, and hash drift", async () => {
   await withTree(fixtures.benignFiles, async (root) => {
     await expectProvenanceError("provenance.unpinned_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
-      packageLock: {
-        schemaVersion: 1,
+      packageLock: packageLockFor(fixtures.benignFiles, {
         dependencies: [{ ...fixtures.pinnedDependencies[0], revision: "main" }],
-        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
-      },
+      }),
     })));
 
     const missingNotice = { ...fixtures.benignFiles };
@@ -112,11 +120,9 @@ test("provenance fails visibly for unpinned sources, missing notices, unexpected
 test("provenance fails closed for malformed locks and schema-invalid source records", async () => {
   await withTree(fixtures.benignFiles, async (root) => {
     await expectProvenanceError("provenance.invalid_field", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
-      packageLock: {
-        schemaVersion: 1,
+      packageLock: packageLockFor(fixtures.benignFiles, {
         dependencies: "not-an-array",
-        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
-      },
+      }),
     })));
 
     await expectProvenanceError("provenance.invalid_field", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
@@ -124,19 +130,39 @@ test("provenance fails closed for malformed locks and schema-invalid source reco
     })));
 
     await expectProvenanceError("provenance.invalid_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
-      packageLock: {
-        schemaVersion: 1,
+      packageLock: packageLockFor(fixtures.benignFiles, {
         dependencies: [{ ...fixtures.pinnedDependencies[0], sourceUrl: "https://example.com/bad source" }],
-        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
-      },
+      }),
     })));
 
+    for (const sourceUrl of ["https://github.com/example/repo\nhttps://evil.example/repo", "https://github.com/example/repo\twith-tab"]) {
+      await expectProvenanceError("provenance.invalid_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+        packageLock: packageLockFor(fixtures.benignFiles, {
+          dependencies: [{ ...fixtures.pinnedDependencies[0], sourceUrl }],
+        }),
+      })));
+    }
+
     await expectProvenanceError("provenance.unqualified_required_dependency", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
-      packageLock: {
-        schemaVersion: 1,
+      packageLock: packageLockFor(fixtures.benignFiles, {
         dependencies: [{ ...fixtures.pinnedDependencies[0], required: true, qualificationEvidence: "not_qualified" }],
-        files: Object.fromEntries(Object.entries(fixtures.benignFiles).map(([relativePath, contents]) => [relativePath, rawDigest(contents)])),
-      },
+      }),
+    })));
+  });
+});
+
+test("provenance fails closed for incomplete or unpinned package locks", async () => {
+  await withTree(fixtures.benignFiles, async (root) => {
+    const missingName = packageLockFor(fixtures.benignFiles);
+    delete missingName.packageName;
+    await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, { packageLock: missingName })));
+
+    await expectProvenanceError("provenance.unpinned_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, { sourceRevision: "main" }),
+    })));
+
+    await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, { supportedPlatforms: [] }),
     })));
   });
 });

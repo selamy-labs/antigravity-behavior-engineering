@@ -5,9 +5,15 @@ import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json
 
 const encoder = new TextEncoder();
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
-const HTTPS_URL_PATTERN = /^https:\/\/[^ ]+$/u;
+const HTTPS_URL_PATTERN = /^https:\/\/[^\s]+$/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
+const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
+const TIMESTAMP_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/u;
 const UNPINNED_REVISIONS = new Set(["HEAD", "latest", "main", "master"]);
+const PACKAGE_LOCK_KEYS = new Set(["schemaVersion", "packageName", "packageVersion", "sourceRevision", "minimumCliVersion", "supportedPlatforms", "components", "dependencies", "files", "generatedAt"]);
+const PLATFORM_KEYS = new Set(["schemaVersion", "os", "architecture"]);
+const COMPONENT_KEYS = new Set(["schemaVersion", "kind", "name", "path", "claimId", "defaultEnabled", "digest"]);
+const COMPONENT_KINDS = new Set(["skill", "rule", "agent", "hook", "script"]);
 
 export class ProvenanceValidationError extends TypeError {
   constructor(code, path = "$") {
@@ -27,6 +33,25 @@ const assertObject = (value, path) => {
     fail("provenance.invalid_field", path);
   }
   return value;
+};
+
+const assertKnownKeys = (record, allowedKeys, fieldPath, code = "provenance.invalid_field") => {
+  for (const key of Object.keys(record)) {
+    if (!allowedKeys.has(key)) {
+      fail(code, fieldPath + "." + key);
+    }
+  }
+  for (const key of allowedKeys) {
+    if (!Object.hasOwn(record, key)) {
+      fail(code, fieldPath + "." + key);
+    }
+  }
+};
+
+const assertNonEmptyString = (value, fieldPath, code = "provenance.invalid_field") => {
+  if (typeof value !== "string" || value.length === 0) {
+    fail(code, fieldPath);
+  }
 };
 
 const assertRelativePath = (relativePath, fieldPath) => {
@@ -92,6 +117,67 @@ const validatePinnedRevision = (revision, fieldPath) => {
   if (typeof revision !== "string" || UNPINNED_REVISIONS.has(revision) || !PINNED_REVISION_PATTERN.test(revision)) {
     fail("provenance.unpinned_source", fieldPath);
   }
+};
+
+const validateSemVer = (value, fieldPath) => {
+  if (typeof value !== "string" || !SEMVER_PATTERN.test(value)) {
+    fail("provenance.invalid_package_lock", fieldPath);
+  }
+};
+
+const validateTimestamp = (value, fieldPath) => {
+  if (typeof value !== "string" || !TIMESTAMP_PATTERN.test(value)) {
+    fail("provenance.invalid_package_lock", fieldPath);
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().replace(".000Z", "Z") !== value) {
+    fail("provenance.invalid_package_lock", fieldPath);
+  }
+};
+
+const validatePlatformRecord = (platform, index) => {
+  assertObject(platform, "$.packageLock.supportedPlatforms[" + index + "]");
+  assertKnownKeys(platform, PLATFORM_KEYS, "$.packageLock.supportedPlatforms[" + index + "]", "provenance.invalid_package_lock");
+  if (platform.schemaVersion !== 1) {
+    fail("provenance.invalid_package_lock", "$.packageLock.supportedPlatforms[" + index + "].schemaVersion");
+  }
+  assertNonEmptyString(platform.os, "$.packageLock.supportedPlatforms[" + index + "].os", "provenance.invalid_package_lock");
+  assertNonEmptyString(platform.architecture, "$.packageLock.supportedPlatforms[" + index + "].architecture", "provenance.invalid_package_lock");
+};
+
+const validateComponentLock = (component, index) => {
+  assertObject(component, "$.packageLock.components[" + index + "]");
+  assertKnownKeys(component, COMPONENT_KEYS, "$.packageLock.components[" + index + "]", "provenance.invalid_package_lock");
+  if (component.schemaVersion !== 1 || !COMPONENT_KINDS.has(component.kind)) {
+    fail("provenance.invalid_package_lock", "$.packageLock.components[" + index + "].kind");
+  }
+  assertNonEmptyString(component.name, "$.packageLock.components[" + index + "].name", "provenance.invalid_package_lock");
+  assertRelativePath(component.path, "$.packageLock.components[" + index + "].path");
+  assertNonEmptyString(component.claimId, "$.packageLock.components[" + index + "].claimId", "provenance.invalid_package_lock");
+  if (typeof component.defaultEnabled !== "boolean") {
+    fail("provenance.invalid_package_lock", "$.packageLock.components[" + index + "].defaultEnabled");
+  }
+  validateDigest(component.digest, "$.packageLock.components[" + index + "].digest");
+};
+
+const validatePackageLock = (packageLock) => {
+  assertKnownKeys(packageLock, PACKAGE_LOCK_KEYS, "$.packageLock", "provenance.invalid_package_lock");
+  if (packageLock.schemaVersion !== 1) {
+    fail("provenance.invalid_package_lock", "$.packageLock.schemaVersion");
+  }
+  assertNonEmptyString(packageLock.packageName, "$.packageLock.packageName", "provenance.invalid_package_lock");
+  validateSemVer(packageLock.packageVersion, "$.packageLock.packageVersion");
+  validatePinnedRevision(packageLock.sourceRevision, "$.packageLock.sourceRevision");
+  validateSemVer(packageLock.minimumCliVersion, "$.packageLock.minimumCliVersion");
+  if (!Array.isArray(packageLock.supportedPlatforms) || packageLock.supportedPlatforms.length === 0) {
+    fail("provenance.invalid_package_lock", "$.packageLock.supportedPlatforms");
+  }
+  packageLock.supportedPlatforms.forEach(validatePlatformRecord);
+  if (!Array.isArray(packageLock.components)) {
+    fail("provenance.invalid_package_lock", "$.packageLock.components");
+  }
+  packageLock.components.forEach(validateComponentLock);
+  validateTimestamp(packageLock.generatedAt, "$.packageLock.generatedAt");
 };
 
 const sourceRecordFromDependency = (dependency, index) => {
@@ -182,6 +268,7 @@ const materializeAdaptations = (adaptations) => {
 export const buildProvenanceInventory = async (root, locks) => {
   const lockSet = assertObject(locks, "$locks");
   const packageLock = assertObject(lockSet.packageLock, "$.packageLock");
+  validatePackageLock(packageLock);
   const files = await listFiles(root);
   validateFileLock(files, packageLock.files);
 
