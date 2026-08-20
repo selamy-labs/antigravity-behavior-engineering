@@ -14,6 +14,7 @@ from abe_eval.canonical import canonical_bytes, sha256_digest
             '{"a":[true,false,-7,9007199254740991],"message":"caf\u00e9 \u2615","z":null}'.encode(),
         ),
         ({"": 1, "😀": 2}, '{"😀":2,"":1}'.encode()),
+        ([-9007199254740991, 9007199254740991], b"[-9007199254740991,9007199254740991]"),
     ],
 )
 def test_canonical_bytes_match_shared_vectors(value, expected):
@@ -29,4 +30,10 @@ def test_digest_matches_node_vector():
 @pytest.mark.parametrize("value", [math.nan, math.inf, -math.inf, 1.5, 9007199254740992, -9007199254740992])
 def test_rejects_non_shared_numbers(value):
     with pytest.raises(TypeError):
+        canonical_bytes(value)
+
+
+@pytest.mark.parametrize("value", ["\ud800", {"\udc00": "invalid key"}])
+def test_rejects_unpaired_surrogates(value):
+    with pytest.raises(TypeError, match="surrogates"):
         canonical_bytes(value)

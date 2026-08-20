@@ -10,7 +10,7 @@ const assertWellFormedUnicode = (value) => {
     const codeUnit = value.charCodeAt(index);
     if (codeUnit >= 0xd800 && codeUnit <= 0xdbff) {
       const next = value.charCodeAt(index + 1);
-      if (next < 0xdc00 || next > 0xdfff) {
+      if (!Number.isInteger(next) || next < 0xdc00 || next > 0xdfff) {
         throw new TypeError('JSON strings must not contain unpaired surrogates');
       }
       index += 1;
@@ -49,6 +49,11 @@ const serialize = (value, ancestors) => {
     return String(value);
   }
   if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      if (!Object.hasOwn(value, index)) {
+        throw new TypeError('JSON arrays must not be sparse');
+      }
+    }
     if (ancestors.has(value)) {
       throw new TypeError('JSON values must not be cyclic');
     }
@@ -82,6 +87,10 @@ export const sha256Digest = (bytes) => {
   return 'sha256:' + createHash('sha256').update(bytes).digest('hex');
 };
 
+/**
+ * Atomically writes validated JSON beneath a task-owned root. Callers must not
+ * allow unrelated processes to replace that root hierarchy during this call.
+ */
 export const writeCanonicalAtomic = async (root, relativePath, value) => {
   if (typeof root !== 'string' || root.length === 0) {
     throw new TypeError('root must be a non-empty path string');
