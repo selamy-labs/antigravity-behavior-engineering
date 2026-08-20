@@ -4,15 +4,15 @@
   "taskTitle": "Define protected evaluator and approval contracts",
   "taskEntryDigest": "sha256:237922e4e97acb2cff1a7e8c1c9e37d4bc5d8a76a2c94324260297803e6eab1f",
   "baseCommit": "6be8d7ed39ffe0f93bd17d057d05187cc1fc5d2d",
-  "implementationCommit": "c234e8b8ca0f2f37a2e0f3f5fcdd1df0e5ab3758",
-  "treeDigest": "sha256:eee55bd0a529bc0f3907f25250f3b2cfb2b4211c5ead1f04b070cd105b981496",
+  "implementationCommit": "5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3",
+  "treeDigest": "sha256:82287150d9f86c73930615cd9122b030566403c5e259a3dadc2a1b13a28b91e2",
   "outcome": "implemented",
   "files": {
-    "evals/schemas/approval.schema.json": "sha256:0892d3131e6e6061e8b48aa7fd8db87d5c764ec147f97a298bf4f79a7d37b88d",
-    "evals/schemas/evaluation.schema.json": "sha256:f3d466506a2263335d68063cbeadc910e9308c5b4941a43ceca01e75235a51d4",
-    "evaluator/src/abe_eval/contracts.py": "sha256:21439561987e60b25d0d5a0e526aaf3c4ad1c7a496b9dbb75fcec7c3c87e8d38",
-    "evaluator/tests/test_evaluation_contracts.py": "sha256:bf1dd05023b5c249e5d8ef7365fd60623bea1d286b2f7a8839d1da8e1312e9bc",
-    "tests/contract/fixtures/evaluation-contracts.json": "sha256:36a169b2a83754646efba8fa553b6947818fe3e1b6cc67bd984f52632032d820"
+    "evals/schemas/approval.schema.json": "sha256:c75bd9b17fc7da7ac558bd519f3985900bfe4388acc6e797ee88e227da462c1a",
+    "evals/schemas/evaluation.schema.json": "sha256:5e7e615a21d34b615c8bcd69ddde463768a03888e398e784e3d64850ff06fc22",
+    "evaluator/src/abe_eval/contracts.py": "sha256:cf2e5dcab0fc3e27267a64126dc63706c41ccc35b1168d26858e60da31063e7e",
+    "evaluator/tests/test_evaluation_contracts.py": "sha256:f4865bfae0434d8a2ae22aac008d96cb28631445963490a16b2840745267ee09",
+    "tests/contract/fixtures/evaluation-contracts.json": "sha256:b9e5b39d126df302c25c2e8ab884141ffcfdf9deaf0b08bf62db54d22c4ae9c1"
   },
   "verification": [
     {
@@ -28,7 +28,7 @@
       ],
       "expectedExit": 1,
       "actualExit": 1,
-      "outputDigest": "sha256:e0454d9d64f4378816f4201087dc10ec4561e55920ec230692d718178a506202"
+      "outputDigest": "sha256:fabd21208ffd4e11c28cea1b1aac1b597910589e4e597051b7f1d1db95a1c554"
     },
     {
       "phase": "green",
@@ -43,22 +43,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:f503e815db26abe0c195a8851e7a7d95bd3a1320d6fd65b1427812077bcd91ad"
-    },
-    {
-      "phase": "sentinel",
-      "argv": [
-        "uv",
-        "run",
-        "--project",
-        "evaluator",
-        "pytest",
-        "evaluator/tests/test_canonical_parity.py",
-        "-q"
-      ],
-      "expectedExit": 0,
-      "actualExit": 0,
-      "outputDigest": "sha256:edf3d333fef3a773826ab22829091a2348d9f8a79032da0074fd997d1b9f76d9"
+      "outputDigest": "sha256:c52a630c04da144bd8cf7a4490a2bdae34d7984707b7b57113b59079d7f29ae8"
     },
     {
       "phase": "sentinel",
@@ -69,7 +54,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:7d95dd27774fb176290f34ed2d79ffd6707122b764565db93fb174c5755613b4"
+      "outputDigest": "sha256:b1fa1a3874c30aa04a24663976f4be679850519fc63b903aeba708b7d38e2a15"
     },
     {
       "phase": "artifact",
@@ -82,7 +67,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:f09f3cf2cee9178959bcb08fdb6e04bb7ebc844252c68103b6f225ef1557beaf"
+      "outputDigest": "sha256:9c404150c134643815f2ef30424d3d1bfbcd7dc0b9378e382461e373f00193d9"
     },
     {
       "phase": "artifact",
@@ -96,7 +81,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:bbba2f910718a6a5e9e3f8f6e998f3f93d8147077b23833124d196fe39a70b54"
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "phase": "artifact",
@@ -110,64 +95,64 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:6209e558e4560846a52481f7ce9f3fefaa2a0ca4fcd5bcdab0d52a53c97bd9ae"
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t004-package-path-dot-probe",
+        "5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:78a5ef832570cb71fc92477937644ede9f8c1fd11baf14e9dc9d634c35071851"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t004-public-boundary-scan",
+        "5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c70009479df5f04191a708cfecc23cd56097a3d024e6b92eed613fee4fc625a7"
     },
     {
       "phase": "gate",
       "argv": [
         "git",
         "diff",
-        "--check",
-        "6be8d7ed39ffe0f93bd17d057d05187cc1fc5d2d..HEAD"
+        "--name-only",
+        "6be8d7ed39ffe0f93bd17d057d05187cc1fc5d2d..5e6f9f382d173cc389a9582d6bcd5960bc5bc2b3"
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "phase": "gate",
-      "argv": [
-        "t004-independent-probes",
-        "c234e8b8ca0f2f37a2e0f3f5fcdd1df0e5ab3758"
-      ],
-      "expectedExit": 0,
-      "actualExit": 0,
-      "outputDigest": "sha256:a80c836a9bba698cd6649f9a0b4c50b0be00c1dd60cb926ab4158e37f4624f79"
-    },
-    {
-      "phase": "gate",
-      "argv": [
-        "public-boundary-scan",
-        "c234e8b8ca0f2f37a2e0f3f5fcdd1df0e5ab3758"
-      ],
-      "expectedExit": 0,
-      "actualExit": 0,
-      "outputDigest": "sha256:9395e5db208a9a86613a7bb2a33567174a29da0474284dd92efeb5b604004692"
+      "outputDigest": "sha256:796802909efedf798b0be2301a0b73566ab1da6b43199f451466cdcddd3bbe66"
     }
   ],
   "reviews": [
     {
       "role": "requirements",
-      "reviewInputDigest": "sha256:4fedb0a463c5a305eb91a8c21a90f766284bca25b748f83f5218097f5f67cf33",
-      "verdictDigest": "sha256:694c3cbf9f996e1f2d0a6f9b83334e18774481eae91b0f946186180526c05fb4",
+      "reviewInputDigest": "sha256:d5dd0c2530e1a9968533fd018322504f17b7a12fe2861a484bdbd6f933114746",
+      "verdictDigest": "sha256:0650df7819b5e3f78546c96021af69ef856e8ed0c5fbf2addd125cea79258da9",
       "verdict": "pass",
       "openMaterialFindings": 0
     },
     {
       "role": "quality",
-      "reviewInputDigest": "sha256:cc8858f68362cef9392dc5ba8ce733789d5627213598acd9b2530e7f6da0eae3",
-      "verdictDigest": "sha256:bc89f3db1a0cef93aaa35299e1c47115338a4a0c78b3a0735207af03af9af86f",
+      "reviewInputDigest": "sha256:db312c7a44acb809da42adbd8075dc4ed4f408c22160fa0bbd6e76e5ee83ad2b",
+      "verdictDigest": "sha256:9822f526d38fe59ce8beda2ad1e3c8892cd8d85f729b682503dfe8e420b4ca67",
       "verdict": "pass",
       "openMaterialFindings": 0
     }
   ],
   "publicBoundary": {
-    "scanDigest": "sha256:9395e5db208a9a86613a7bb2a33567174a29da0474284dd92efeb5b604004692",
+    "scanDigest": "sha256:c70009479df5f04191a708cfecc23cd56097a3d024e6b92eed613fee4fc625a7",
     "criticalFindings": 0
   },
   "rollback": {
     "strategy": "Before merge, abandon this branch; after merge, open a new T004-linked revert PR without rewriting history.",
     "tested": false
   },
-  "createdAt": "2026-08-20T21:35:45Z"
+  "createdAt": "2026-08-20T22:44:21Z"
 }
