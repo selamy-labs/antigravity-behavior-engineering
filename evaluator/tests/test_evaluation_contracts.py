@@ -402,6 +402,17 @@ def test_target_model_slugs_match_quickstart_release_targets():
     parse_contract("ReleaseCandidateLock", candidate)
 
 
+def test_package_lock_file_paths_are_normalized_relative_names():
+    package_lock = _case_value("PackageLock")
+    parse_contract("PackageLock", package_lock)
+
+    ambiguous_path = _case_value("PackageLock")
+    digest = ambiguous_path["files"].pop("plugin.json")
+    ambiguous_path["files"] = {"package//rules/core.md": digest}
+    _expect_evaluation_schema_rejects(ambiguous_path)
+    expect_reason("PackageLock", ambiguous_path, "contract.invalid_field")
+
+
 def test_production_approval_bundles_reject_fixture_signatures():
     objects = _release_objects()
 
