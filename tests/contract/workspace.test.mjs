@@ -77,12 +77,53 @@ assert.deepEqual(
   ['.', 'packages/contracts', 'packages/plugin-tooling'],
   'pnpm lock importers',
 );
-const uvPackageNames = [...uvLock.matchAll(/^\[\[package\]\]\nname = "([^"]+)"$/gm)].map(
-  (match) => match[1],
+const uvPackagePairs = [...uvLock.matchAll(/^\[\[package\]\]\nname = "([^"]+)"\nversion = "([^"]+)"$/gm)].map(
+  (match) => ({ name: match[1], version: match[2] }),
 );
+const uvPackageNames = uvPackagePairs.map(({ name }) => name);
 assert.ok(uvPackageNames.length > 1, 'uv lock must resolve evaluator dev tools');
 assert.ok(uvPackageNames.includes('pytest'), 'uv lock must resolve pytest');
 assert.match(uvLock, /^name = "abe-eval"$/m, 'uv lock evaluator package');
+
+const lockedLicenseHeader = '[tool.abe.locked-licenses]';
+const lockedLicenseOffset = pyproject.indexOf(lockedLicenseHeader);
+assert.notEqual(lockedLicenseOffset, -1, 'evaluator: missing locked-license inventory');
+const lockedLicenseLines = pyproject
+  .slice(lockedLicenseOffset + lockedLicenseHeader.length)
+  .split('\n')
+  .map((line) => line.trim())
+  .filter((line) => line.length > 0 && !line.startsWith('#'));
+const lockedLicenses = {};
+for (const line of lockedLicenseLines) {
+  const match = line.match(
+    /^([a-z0-9-]+)\s*=\s*\{\s*version\s*=\s*"([^"]+)",\s*spdx\s*=\s*"([^"]+)"\s*\}$/,
+  );
+  assert.ok(match, `evaluator: malformed locked-license record: ${line}`);
+  assert.ok(!Object.hasOwn(lockedLicenses, match[1]), `evaluator: duplicate locked-license record: ${match[1]}`);
+  lockedLicenses[match[1]] = { version: match[2], spdx: match[3] };
+}
+const thirdPartyLockVersions = Object.fromEntries(
+  uvPackagePairs
+    .filter(({ name }) => name !== 'abe-eval')
+    .map(({ name, version }) => [name, version]),
+);
+assert.deepEqual(
+  Object.fromEntries(Object.entries(lockedLicenses).map(([name, record]) => [name, record.version])),
+  thirdPartyLockVersions,
+  'evaluator: locked-license inventory must cover exactly the third-party lock packages',
+);
+assert.deepEqual(
+  Object.fromEntries(Object.entries(lockedLicenses).map(([name, record]) => [name, record.spdx])),
+  {
+    colorama: 'BSD-3-Clause',
+    iniconfig: 'MIT',
+    packaging: 'Apache-2.0 OR BSD-2-Clause',
+    pluggy: 'MIT',
+    pygments: 'BSD-2-Clause',
+    pytest: 'MIT',
+  },
+  'evaluator: locked-license SPDX inventory',
+);
 
 for (const expected of [
   {
@@ -97,6 +138,7 @@ for (const expected of [
       scripts: {
         'test:node': 'node --test tests/contract/workspace.test.mjs',
         'test:python': "uv run --no-project --offline python -c 'import sys; assert (3, 12) <= sys.version_info[:2] < (3, 14)'",
+        verify: 'pnpm verify:offline',
         'verify:offline': 'node --test tests/contract/workspace.test.mjs && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py',
       },
       workspaces: ['packages/contracts', 'packages/plugin-tooling'],

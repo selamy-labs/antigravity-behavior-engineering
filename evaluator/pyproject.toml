@@ -19,3 +19,12 @@ dev = ["pytest>=8.3,<10"]
 
 [tool.uv]
 package = true
+
+# Inventory input for T005 human legal review; not a compatibility or release verdict.
+[tool.abe.locked-licenses]
+colorama = { version = "0.4.6", spdx = "BSD-3-Clause" }
+iniconfig = { version = "2.3.0", spdx = "MIT" }
+packaging = { version = "26.3", spdx = "Apache-2.0 OR BSD-2-Clause" }
+pluggy = { version = "1.6.0", spdx = "MIT" }
+pygments = { version = "2.21.0", spdx = "BSD-2-Clause" }
+pytest = { version = "9.1.1", spdx = "MIT" }
