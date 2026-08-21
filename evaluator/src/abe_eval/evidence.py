@@ -112,6 +112,8 @@ def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
     if not events:
         _fail("evidence.lifecycle_missing", "$.attemptId")
     for index, event in enumerate(events):
+        if event["attemptId"] != attempt_id:
+            _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[" + str(index) + "].attemptId")
         if event["sequence"] != index:
             _fail("evidence.lifecycle_sequence_mismatch", "$.lifecycleEventDigests[" + str(index) + "]")
         if event["phase"] == "run_finalized":
@@ -122,10 +124,14 @@ def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
 
 
 def _validate_staging_manifest(
-    staging: Path, manifest: dict[str, object], required_outputs: frozenset[str]
+    staging: Path, manifest: dict[str, object], run_id: str, required_outputs: frozenset[str]
 ) -> list[dict[str, object]]:
+    if set(manifest) != {"schemaVersion", "runId", "entries"}:
+        _fail("evidence.invalid_staging_manifest", "$.stagingManifest")
     if manifest.get("schemaVersion") != 1:
         _fail("evidence.invalid_staging_manifest", "$.schemaVersion")
+    if manifest.get("runId") != run_id:
+        _fail("evidence.binding_mismatch", "$.stagingManifest.runId")
     entries_value = manifest.get("entries")
     if not isinstance(entries_value, list):
         _fail("evidence.invalid_staging_manifest", "$.entries")
@@ -297,12 +303,20 @@ def _append_run_finalized_event(root: Path, attempt_id: str, events: list[dict[s
         stream.write(canonical_bytes(event) + b"\n")
 
 
-def _failed_preflight(qualification: dict[str, object]) -> str:
+def _preflight_failures(qualification: dict[str, object]) -> list[tuple[str, str]]:
+    failures: list[tuple[str, str]] = []
     for field, reason_code in _PREFLIGHT_FIELDS:
         result = qualification[field]
         if isinstance(result, dict) and result["result"] == "fail":
-            return reason_code
-    return "fixtureProvisioning"
+            failures.append((field, reason_code))
+    return failures
+
+
+def _failed_preflight(qualification: dict[str, object]) -> str:
+    failures = _preflight_failures(qualification)
+    if not failures:
+        _fail("evidence.binding_mismatch", "$.attemptQualification")
+    return failures[0][1]
 
 
 def _staged_files_from_entries(entries: list[dict[str, object]]) -> dict[str, str]:
@@ -387,6 +401,17 @@ def _validate_classification(staged: dict[str, object], scenario: dict[str, obje
         _fail("evidence.binding_mismatch", "$.classification.retryEligible")
 
 
+def _validate_preflight_state(staged: dict[str, object]) -> None:
+    valid_start_at = staged["attemptQualification"]["validStartAt"]
+    failures = _preflight_failures(staged["attemptQualification"])
+    if valid_start_at == "none":
+        if not failures:
+            _fail("evidence.binding_mismatch", "$.attemptQualification")
+        return
+    if failures:
+        _fail("evidence.binding_mismatch", "$.attemptQualification." + failures[0][0] + ".result")
+
+
 def _validate_pre_worker_state(staged: dict[str, object]) -> None:
     process = staged["processState"]
     if process["workerProcessState"] != "not_started":
@@ -405,6 +430,23 @@ def _validate_pre_worker_state(staged: dict[str, object]) -> None:
         _fail("evidence.binding_mismatch", "$.agentDeclaredState")
     if staged["inputPermissionState"] != "not_requested":
         _fail("evidence.binding_mismatch", "$.inputPermissionState")
+    failed_preflight = _failed_preflight(staged["attemptQualification"])
+    expected_infrastructure = "pre_start_auth_failure" if failed_preflight == "authentication" else "invalid_controller_input"
+    if staged["infrastructureValidity"] != expected_infrastructure:
+        _fail("evidence.binding_mismatch", "$.infrastructureValidity")
+
+
+def _validate_started_process_state(staged: dict[str, object], entries: list[dict[str, object]]) -> None:
+    process = staged["processState"]
+    if process["workerProcessState"] == "not_started":
+        return
+    if process["workerProcessState"] != "terminated":
+        _fail("evidence.binding_mismatch", "$.processState.workerProcessState")
+    valid_start_at = staged["attemptQualification"]["validStartAt"]
+    if process["startedAt"] != valid_start_at:
+        _fail("evidence.binding_mismatch", "$.processState.startedAt")
+    if process["stderrDigest"] != _digest_for(entries, "stderr.txt"):
+        _fail("evidence.binding_mismatch", "$.processState.stderrDigest")
 
 
 def _validate_attempt_controller_identity(
@@ -518,7 +560,7 @@ def import_run(
     staged = bundle["stagedOutcome"]
     unclassified = bundle["unclassifiedOutcome"]
     required_outputs = frozenset() if staged["processState"]["workerProcessState"] == "not_started" else _REQUIRED_OUTPUTS
-    entries = _validate_staging_manifest(staging, manifest, required_outputs)
+    entries = _validate_staging_manifest(staging, manifest, run_id, required_outputs)
     if staged["stagingManifestDigest"] != sha256_digest(canonical_bytes(manifest)):
         _fail("evidence.binding_mismatch", "$.stagingManifestDigest")
     if staged["runId"] != run_id or staged["attemptId"] != attempt_id:
@@ -529,6 +571,7 @@ def import_run(
         _fail("evidence.binding_mismatch", "$.scenarioDigest")
     if staged["environmentQualificationDigest"] != qualification_digest:
         _fail("evidence.binding_mismatch", "$.environmentQualificationDigest")
+    _validate_preflight_state(staged)
     _validate_classification(staged, parsed_scenario)
     _validate_pre_worker_state(staged)
     _validate_attempt_controller_identity(stored_attempt, parsed_condition, parsed_scenario, staged)
@@ -538,6 +581,7 @@ def import_run(
     if event_digests != staged["lifecycleEventDigests"]:
         _fail("evidence.binding_mismatch", "$.lifecycleEventDigests")
     _validate_lifecycle_bindings(events, stored_attempt, parsed_condition, parsed_scenario, qualification_digest, staged, entries)
+    _validate_started_process_state(staged, entries)
 
     raw_entries: list[dict[str, object]] = []
     for entry in entries:
