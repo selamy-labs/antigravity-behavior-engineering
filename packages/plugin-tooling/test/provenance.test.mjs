@@ -141,6 +141,9 @@ test("provenance fails closed for malformed locks and schema-invalid source reco
       "https:example.com/repo",
       "https:/example.com/repo",
       "https://user@example.com/repo",
+      "https:///example.com/repo",
+      "https://example.com\\repo",
+      "https://example.com\\@evil.test/repo",
     ]) {
       await expectProvenanceError("provenance.invalid_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
         packageLock: packageLockFor(fixtures.benignFiles, {

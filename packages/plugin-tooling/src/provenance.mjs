@@ -5,7 +5,7 @@ import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json
 
 const encoder = new TextEncoder();
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
-const HTTPS_URL_PATTERN = /^https:\/\/[^\s\u0000-\u001f\u007f]+$/u;
+const HTTPS_SCHEME_PREFIX = "https://";
 const CONTROL_OR_WHITESPACE_PATTERN = /[\s\u0000-\u001f\u007f]/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
 const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
@@ -125,7 +125,11 @@ const validatePinnedRevision = (revision, fieldPath) => {
 };
 
 const validateHttpsUrl = (value, fieldPath) => {
-  if (typeof value !== "string" || !HTTPS_URL_PATTERN.test(value) || CONTROL_OR_WHITESPACE_PATTERN.test(value)) {
+  if (typeof value !== "string" || !value.startsWith(HTTPS_SCHEME_PREFIX) || CONTROL_OR_WHITESPACE_PATTERN.test(value) || value.includes("\\")) {
+    fail("provenance.invalid_source", fieldPath);
+  }
+  const rawAuthority = value.slice(HTTPS_SCHEME_PREFIX.length).split(/[/?#]/u)[0];
+  if (rawAuthority.length === 0 || rawAuthority.includes("@")) {
     fail("provenance.invalid_source", fieldPath);
   }
   let parsed;
