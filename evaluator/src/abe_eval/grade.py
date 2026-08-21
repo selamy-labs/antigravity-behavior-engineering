@@ -41,6 +41,15 @@ _STAGED_RUN_RECORD_BINDING_FIELDS = (
     "consumption",
     "classification",
 )
+_PREFLIGHT_FIELDS = (
+    ("authentication", "authentication"),
+    ("fixtureProvisioning", "fixtureProvisioning"),
+    ("modelPreflight", "modelPreflight"),
+    ("fallbackProbe", "fallbackProbe"),
+    ("pluginComponentDiscovery", "pluginComponentDiscovery"),
+    ("structuredCapturePreflight", "structuredCapturePreflight"),
+    ("authorityToolInventory", "authorityToolInventory"),
+)
 
 
 def _fail(reason_code: str, path: str = "$") -> None:
@@ -103,6 +112,57 @@ def _resolve_run_artifact_locator(root: Path, run_id: str, value: object, path: 
 def _ensure_not_owner_writable(path: Path, error_path: str, reason_code: str = "grade.raw_evidence_mutable") -> None:
     if stat.S_IMODE(path.stat().st_mode) & stat.S_IWUSR:
         _fail(reason_code, error_path)
+
+
+def _preflight_failures(qualification: dict[str, object]) -> list[tuple[str, str]]:
+    failures: list[tuple[str, str]] = []
+    for field, reason_code in _PREFLIGHT_FIELDS:
+        result = qualification[field]
+        if isinstance(result, dict) and result["result"] == "fail":
+            failures.append((field, reason_code))
+    return failures
+
+
+def _failed_preflight(qualification: dict[str, object]) -> str:
+    failures = _preflight_failures(qualification)
+    if not failures:
+        _fail("grade.run_finalization_digest_mismatch", "$.attemptQualification")
+    return failures[0][1]
+
+
+def _expected_terminal_kind(staged: dict[str, object]) -> str:
+    process = staged["processState"]
+    infrastructure = staged["infrastructureValidity"]
+    if process["workerProcessState"] == "not_started":
+        return "preflight_failed"
+    if process["timeout"] or process["controllerExitCode"] == 124:
+        return "product_timeout"
+    if infrastructure == "adapter_failure":
+        return "adapter_failure"
+    if infrastructure in {"capture_malformed", "capture_truncated", "grader_leakage_detected", "test_flake"}:
+        return "capture_indeterminate"
+    return "agent_finished"
+
+
+def _terminal_evidence_digest(staged: dict[str, object], staged_files: dict[str, str]) -> str:
+    process = staged["processState"]
+    if process["workerProcessState"] == "not_started":
+        terminal_evidence = {"failedPreflight": _failed_preflight(staged["attemptQualification"])}
+    else:
+        terminal_evidence = {
+            "terminalKind": _expected_terminal_kind(staged),
+            "controllerExitCode": process["controllerExitCode"],
+            "workerExitCode": process["workerExitCode"],
+            "signal": process["signal"],
+            "timeout": process["timeout"],
+            "agentDeclaredState": staged["agentDeclaredState"],
+            "inputPermissionState": staged["inputPermissionState"],
+            "infrastructureValidity": staged["infrastructureValidity"],
+            "consumption": staged["consumption"],
+            "observedModel": staged["observedModel"],
+            "stagedFiles": staged_files,
+        }
+    return sha256_digest(canonical_bytes(terminal_evidence))
 
 
 def _ensure_plain_dir(path: Path, reason_code: str, error_path: str) -> None:
@@ -181,7 +241,13 @@ def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
     return events
 
 
-def _validate_run_finalization_digest(root: Path, run: dict[str, object], manifest: dict[str, object]) -> None:
+def _validate_run_finalization_digest(
+    root: Path,
+    run: dict[str, object],
+    manifest: dict[str, object],
+    staged: dict[str, object],
+    terminal_evidence_digest: str,
+) -> None:
     attempt_id = _safe_identifier(run["attemptId"], "$.attemptId", "grade.unsafe_identifier_path")
     events = _read_lifecycle(root, attempt_id)
     if not events:
@@ -202,6 +268,11 @@ def _validate_run_finalization_digest(root: Path, run: dict[str, object], manife
     finalized = events[-1]
     if len(events) < 2 or events[-2]["phase"] != "execution_terminal":
         _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests")
+    terminal_index = len(events) - 2
+    if events[terminal_index]["terminalKind"] != _expected_terminal_kind(staged):
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[" + str(terminal_index) + "].terminalKind")
+    if events[terminal_index]["evidenceDigest"] != terminal_evidence_digest:
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[" + str(terminal_index) + "].evidenceDigest")
     if finalized["terminalKind"] != "none":
         _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[" + str(len(events) - 1) + "].terminalKind")
     if finalized["occurredAt"] != run["processState"]["endedAt"]:
@@ -269,7 +340,7 @@ def _validate_run_record_binding(manifest: dict[str, object], run: dict[str, obj
             _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
-def _validate_raw_evidence(root: Path, run: dict[str, object]) -> dict[str, object]:
+def _validate_raw_evidence(root: Path, run: dict[str, object]) -> tuple[dict[str, object], dict[str, object], str]:
     run_id = _safe_identifier(run["runId"], "$.runId", "grade.unsafe_identifier_path")
     manifest_path = _resolve_run_artifact_locator(
         root, run_id, run["rawEvidenceLocator"], "$.rawEvidenceLocator", run["artifactManifestDigest"]
@@ -298,6 +369,7 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> dict[str, obje
     entries = manifest.get("entries")
     if not isinstance(entries, list):
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.entries")
+    staged_files: dict[str, str] = {}
     for index, entry in enumerate(entries):
         entry_path = "$.rawEvidenceLocator.entries[" + str(index) + "]"
         if not isinstance(entry, dict):
@@ -315,7 +387,11 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> dict[str, obje
         if sha256_digest(data) != entry.get("digest") or len(data) != entry.get("byteLength"):
             _fail("grade.raw_evidence_digest_mismatch", entry_path + ".digest")
         _ensure_not_owner_writable(object_path, entry_path + ".objectLocator")
-    return manifest
+        try:
+            staged_files[str(entry["path"])] = data.decode("utf-8")
+        except UnicodeDecodeError:
+            _fail("grade.raw_evidence_digest_mismatch", entry_path + ".objectLocator")
+    return manifest, staged, _terminal_evidence_digest(staged, staged_files)
 
 
 def _read_grade_ledger(run_dir: Path) -> set[str]:
@@ -372,9 +448,9 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     if parsed_run["runId"] != safe_run_id:
         _fail("grade.run_record_mismatch", "$.runId")
     _validate_run_digest_anchor(run_dir, parsed_run)
-    manifest = _validate_raw_evidence(root, parsed_run)
+    manifest, staged, terminal_evidence_digest = _validate_raw_evidence(root, parsed_run)
     _validate_attempt_anchor(root, manifest, parsed_run)
-    _validate_run_finalization_digest(root, parsed_run, manifest)
+    _validate_run_finalization_digest(root, parsed_run, manifest, staged, terminal_evidence_digest)
 
     grade_segment = _safe_digest_segment(str(parsed_grade["graderDigest"]), "$.graderDigest")
     grades_dir = run_dir / "grades"
