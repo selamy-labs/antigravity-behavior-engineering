@@ -124,3 +124,17 @@ def test_append_grade_rejects_run_directory_with_mismatched_run_record(tmp_path)
 
     assert excinfo.value.reason_code == "grade.run_record_mismatch"
     assert not (other_run_dir / "grades").exists()
+
+
+def test_append_grade_rejects_tampered_run_json_that_no_longer_matches_finalization_event(tmp_path):
+    run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    tampered = copy.deepcopy(run)
+    tampered["redactedEvidenceLocator"] = "tampered-after-finalization"
+    run_path.write_bytes(canonical_bytes(parse_contract("RunRecord", tampered)) + b"\n")
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
+    assert not (tmp_path / "runs" / str(run["runId"]) / "grades").exists()

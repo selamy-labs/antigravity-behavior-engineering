@@ -16,6 +16,18 @@ from abe_eval.runner import _OUTPUT_NAMES, _worker_invocation
 
 _REQUIRED_OUTPUTS = frozenset({"raw-stream.ndjson", "process.json"})
 _ALL_OUTPUTS = frozenset(_OUTPUT_NAMES)
+_T007_POLICY_DIGEST = "sha256:e37d8012ffe55956d37837d66475fe9362591a6f23a70b63cd6d60ce49db054a"
+_RETRY_ELIGIBLE_REASONS_BY_POLICY = {
+    _T007_POLICY_DIGEST: frozenset(
+        {
+            "adapter_failure",
+            "malformed_ndjson",
+            "pre_start_auth_failure",
+            "test_flake",
+            "truncated_ndjson",
+        }
+    )
+}
 _PREFLIGHT_FIELDS = (
     ("authentication", "authentication"),
     ("fixtureProvisioning", "fixtureProvisioning"),
@@ -358,6 +370,9 @@ def _validate_classification(staged: dict[str, object], scenario: dict[str, obje
     classification = staged["classification"]
     if classification["policyDigest"] != scenario["classificationPolicyDigest"]:
         _fail("evidence.binding_mismatch", "$.classification.policyDigest")
+    retry_eligible_reasons = _RETRY_ELIGIBLE_REASONS_BY_POLICY.get(str(classification["policyDigest"]))
+    if retry_eligible_reasons is None:
+        _fail("evidence.unknown_classification_policy", "$.classification.policyDigest")
     expected_reason = _reason_code(staged)
     if classification["reasonCode"] != expected_reason:
         _fail("evidence.binding_mismatch", "$.classification.reasonCode")
@@ -368,6 +383,28 @@ def _validate_classification(staged: dict[str, object], scenario: dict[str, obje
         _fail("evidence.binding_mismatch", "$.classification.countsInIntentionToTreat")
     if classification["countsInValidRun"] != (expected_class == "gradable"):
         _fail("evidence.binding_mismatch", "$.classification.countsInValidRun")
+    if classification["retryEligible"] != (expected_reason in retry_eligible_reasons):
+        _fail("evidence.binding_mismatch", "$.classification.retryEligible")
+
+
+def _validate_pre_worker_state(staged: dict[str, object]) -> None:
+    process = staged["processState"]
+    if process["workerProcessState"] != "not_started":
+        return
+    if process["controllerExitCode"] != 64:
+        _fail("evidence.binding_mismatch", "$.processState.controllerExitCode")
+    if process["workerExitCode"] != "none":
+        _fail("evidence.binding_mismatch", "$.processState.workerExitCode")
+    if process["signal"] != "none":
+        _fail("evidence.binding_mismatch", "$.processState.signal")
+    if process["timeout"] is not False:
+        _fail("evidence.binding_mismatch", "$.processState.timeout")
+    if process["startedAt"] != "none":
+        _fail("evidence.binding_mismatch", "$.processState.startedAt")
+    if staged["agentDeclaredState"] != "none":
+        _fail("evidence.binding_mismatch", "$.agentDeclaredState")
+    if staged["inputPermissionState"] != "not_requested":
+        _fail("evidence.binding_mismatch", "$.inputPermissionState")
 
 
 def _validate_attempt_controller_identity(
@@ -381,6 +418,20 @@ def _validate_attempt_controller_identity(
         _fail("evidence.binding_mismatch", "$.conditionDigest")
     if attempt["scenarioId"] != scenario["scenarioId"] and not controller_failure:
         _fail("evidence.binding_mismatch", "$.scenarioDigest")
+
+
+def _expected_terminal_kind(staged: dict[str, object]) -> str:
+    process = staged["processState"]
+    infrastructure = staged["infrastructureValidity"]
+    if process["workerProcessState"] == "not_started":
+        return "preflight_failed"
+    if infrastructure == "adapter_failure":
+        return "adapter_failure"
+    if process["timeout"] or process["controllerExitCode"] == 124:
+        return "product_timeout"
+    if infrastructure in {"capture_malformed", "capture_truncated", "grader_leakage_detected", "test_flake"}:
+        return "capture_indeterminate"
+    return "agent_finished"
 
 
 def _validate_lifecycle_bindings(
@@ -422,6 +473,8 @@ def _validate_lifecycle_bindings(
 
     if events[-1]["occurredAt"] != staged["processState"]["endedAt"]:
         _fail("evidence.binding_mismatch", "$.processState.endedAt")
+    if events[-1]["terminalKind"] != _expected_terminal_kind(staged):
+        _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[" + str(len(events) - 1) + "].terminalKind")
     terminal_evidence = _terminal_evidence(staged, events[-1], entries)
     if events[-1]["evidenceDigest"] != _digest_payload(terminal_evidence):
         _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[" + str(len(events) - 1) + "].evidenceDigest")
@@ -477,6 +530,7 @@ def import_run(
     if staged["environmentQualificationDigest"] != qualification_digest:
         _fail("evidence.binding_mismatch", "$.environmentQualificationDigest")
     _validate_classification(staged, parsed_scenario)
+    _validate_pre_worker_state(staged)
     _validate_attempt_controller_identity(stored_attempt, parsed_condition, parsed_scenario, staged)
 
     events = _read_lifecycle(root, attempt_id)

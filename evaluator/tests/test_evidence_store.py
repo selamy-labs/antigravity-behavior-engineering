@@ -410,6 +410,72 @@ def test_import_run_rejects_classification_reason_relabel(tmp_path):
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
+def test_import_run_rejects_classification_retry_eligibility_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    staged["classification"]["retryEligible"] = True
+    _write_json(staging / "staged-outcome.json", parse_contract("StagedAttemptOutcome", staged))
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.classification.retryEligible"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_pre_worker_terminal_state_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path, "invalid_controller_input")
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    unclassified["processState"]["controllerExitCode"] = 0
+    staged["processState"]["controllerExitCode"] = 0
+    _rewrite_outcomes(staging, unclassified, staged)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.processState.controllerExitCode"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_terminal_kind_relabel_even_with_matching_terminal_digest(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    process = staged["processState"]
+    staged_files = {
+        entry["path"]: (staging / "output" / entry["path"]).read_text()
+        for entry in json.loads((staging / "staging-manifest.json").read_text())["entries"]
+        if entry["present"]
+    }
+    terminal_evidence = {
+        "terminalKind": "adapter_failure",
+        "controllerExitCode": process["controllerExitCode"],
+        "workerExitCode": process["workerExitCode"],
+        "signal": process["signal"],
+        "timeout": process["timeout"],
+        "agentDeclaredState": staged["agentDeclaredState"],
+        "inputPermissionState": staged["inputPermissionState"],
+        "infrastructureValidity": staged["infrastructureValidity"],
+        "consumption": staged["consumption"],
+        "observedModel": staged["observedModel"],
+        "stagedFiles": staged_files,
+    }
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[-1]["terminalKind"] = "adapter_failure"
+    events[-1]["evidenceDigest"] = sha256_digest(canonical_bytes(terminal_evidence))
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    _rewrite_outcomes_with_lifecycle_digests(tmp_path, staging, str(attempt["attemptId"]))
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.lifecycleEventDigests[3].terminalKind"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
 def test_import_run_rejects_condition_id_cross_bind_that_is_not_controller_failure(tmp_path):
     staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
     tampered_condition = copy.deepcopy(condition)
