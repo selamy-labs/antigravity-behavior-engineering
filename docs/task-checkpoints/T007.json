@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T007",
+  "taskTitle": "Implement valid-start execution and frozen classification",
+  "taskEntryDigest": "sha256:bb09efac672f1d31b904b869643b943dfbf7178381dfe8a861dce3ddbbd95efe",
+  "baseCommit": "51c2576b4f71521b2c425bb9c55f5962656e42f4",
+  "implementationCommit": "83f1f25f4a1d1f242ce14ef46027ab03d7abe6b9",
+  "treeDigest": "sha256:3713d0bb37339dfde6f95d799ad069399f2ff643b22be45e1a5c02099a1e94a9",
+  "outcome": "implemented",
+  "files": {
+    "evaluator/src/abe_eval/classify.py": "sha256:c45371277abe8cad210d3d7e8756d61d5d167d81810d27b4707020bf49e378b4",
+    "evaluator/src/abe_eval/runner.py": "sha256:79b0c51096890d5ac90e2769c7002da3b14f77ef83337e1562e3418426bdf2da",
+    "evaluator/tests/fakes/fake_worker.py": "sha256:72128cb2c53289ad9a8c784623f50037e943c7f160e94ed26d0d15c24da12fa4",
+    "evaluator/tests/test_attempt_accounting.py": "sha256:6a426a23ea2cf3a7ad91b724132841213191379f24f22f28dae6b361e13b6a2a",
+    "evaluator/tests/test_valid_start_classification.py": "sha256:645339ccc3994a4c30ba6f374d5102de84f411a5198db4da57eb45265bdb743b",
+    "specs/001-improve-antigravity-behavior/tasks.md": "sha256:38b15d0617108b70df4e85161e80965537ca90513a63278cb46463e828b3bcf1"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_attempt_accounting.py",
+        "evaluator/tests/test_valid_start_classification.py",
+        "-q"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:1e547147fc304886449b4fecdfbccd6e7e05e1d868ee1d7cd1186aaf755e8df6"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_attempt_accounting.py",
+        "evaluator/tests/test_valid_start_classification.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:721bfe2bf1722bef5925264bcc3b440056b3391f90118607d1f8032bfe4e849f"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_schedule.py",
+        "evaluator/tests/test_condition_pair.py",
+        "evaluator/tests/test_evaluation_contracts.py",
+        "evaluator/tests/test_canonical_parity.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:cded9b71d81969bc57c5ed8f6a95c0f7b1c74c8f5f5a236c93a931785c9ef0f5"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:b5ed9b48d94cd04785ce79a6d08c96fb61549e74111312dd5c3c9fffa5665e3f"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "python3",
+        "-m",
+        "py_compile",
+        "evaluator/src/abe_eval/runner.py",
+        "evaluator/src/abe_eval/classify.py"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "origin/main"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--name-only",
+        "origin/main..HEAD"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:b94f84f0fceb32b54e8532ddb13c1ae0e11bb894c0ada016a12ba968059add09"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t007-public-boundary-scan",
+        "83f1f25f4a1d1f242ce14ef46027ab03d7abe6b9"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:60a63e734b4fbeafd068fbdf407814830bf2a0bfc5bb22688ec400830cec5b4e"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:74e212779e273c19ac565e0734f9de10f04959ac867aec8ccd75eb7551daf025",
+      "verdictDigest": "sha256:0b8d7a10b5a5f8a805fe4b8c5f430c6e7b00c76e8899882b577278c75a148020",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:74e212779e273c19ac565e0734f9de10f04959ac867aec8ccd75eb7551daf025",
+      "verdictDigest": "sha256:8e24bc099241595fc8b0591290e2fe93a5c961f77f2e79bf9445d02271068ca0",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:60a63e734b4fbeafd068fbdf407814830bf2a0bfc5bb22688ec400830cec5b4e",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T007 branch; after merge, open a T007-linked revert PR without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-21T18:17:16Z"
+}
