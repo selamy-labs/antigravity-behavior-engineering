@@ -443,7 +443,9 @@ condition pair can expose a task to either agent.
 ```python
 def run_attempt(inputs: RunAttemptInputs, worker: Worker) -> UnclassifiedStagedAttemptOutcome: ...
 def classify(outcome: UnclassifiedStagedAttemptOutcome,
-             policy: ClassificationPolicy) -> StagedAttemptOutcome: ...
+             policy: ClassificationPolicy,
+             *,
+             expected_policy_digest: str) -> StagedAttemptOutcome: ...
 ```
 
 - [ ] Add the full fake matrix: pre-start auth failure, invalid controller input,
@@ -454,7 +456,8 @@ def classify(outcome: UnclassifiedStagedAttemptOutcome,
 - [ ] Implement the monotonic append-only lifecycle through
   `execution_terminal` and write `validStartAt` immediately before input
   visibility. Stage an unclassified outcome even when the worker is
-  `not_started`, then apply the frozen decision table to create a digest-bound
+  `not_started`, then apply the frozen decision table bound to the
+  `ScenarioCard.classificationPolicyDigest` to create a digest-bound
   StagedAttemptOutcome; do not write `run.json` or `run_finalized`, and never
   derive task success from exit.
 - [ ] Run both focused tests; expect every scheduled attempt in intention-to-
