@@ -74,6 +74,8 @@ def test_validate_pair_accepts_digest_bound_treatment_component_difference():
         path="$",
         blocked_condition_ids=(),
     )
+    assert lock["allowedDifferences"] == ["/enabledComponents"]
+    assert baseline["conditionId"] != treatment["conditionId"]
     assert parse_contract("ConditionPairLock", lock) == lock
 
 
@@ -116,6 +118,19 @@ def test_validate_pair_rejects_digest_binding_mismatch_before_input():
     assert result.reason_code == "condition_pair.baseline_digest_mismatch"
     assert result.path == "/baselineConditionDigest"
     assert result.blocked_condition_ids == ("bare", "full")
+
+
+def test_validate_pair_rejects_pair_members_with_same_condition_id_before_input():
+    baseline = _condition("bare", [])
+    treatment = _condition("bare", ["verification-before-completion"])
+    lock = _pair_lock(baseline, treatment)
+
+    result = validate_pair(lock, baseline, treatment)
+
+    assert not result.ok
+    assert result.reason_code == "condition_pair.condition_id_not_distinct"
+    assert result.path == "/conditionId"
+    assert result.blocked_condition_ids == ("bare", "bare")
 
 
 @pytest.mark.parametrize("forbidden_path", ["pluginDigest", "environmentQualificationDigest"])

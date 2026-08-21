@@ -10,6 +10,33 @@ from abe_eval.contracts import ContractValidationError, canonical_contract_diges
 _SCHEDULED_AT = "2026-08-18T12:00:00Z"
 
 
+class _FrozenContractDict(dict):
+    """Dict-compatible immutable contract record for scheduled attempts."""
+
+    def __readonly(self, *_args: object, **_kwargs: object) -> None:
+        raise TypeError("scheduled attempts are immutable; create a replacement attempt instead")
+
+    __setitem__ = __readonly
+    __delitem__ = __readonly
+    clear = __readonly
+    pop = __readonly
+    popitem = __readonly
+    setdefault = __readonly
+    update = __readonly
+    __ior__ = __readonly
+
+    def __reduce__(self) -> tuple[object, tuple[dict[str, object]]]:
+        return (_freeze_contract, (dict(self),))
+
+
+def _freeze_contract(value: object) -> object:
+    if isinstance(value, dict):
+        frozen = _FrozenContractDict()
+        dict.update(frozen, ((key, _freeze_contract(item)) for key, item in value.items()))
+        return frozen
+    return value
+
+
 def _digest_payload(payload: dict[str, object]) -> str:
     return sha256_digest(canonical_bytes(payload))
 
@@ -74,6 +101,12 @@ def build_schedule(block: object, seed: str) -> tuple[dict[str, object], ...]:
     if not isinstance(seed, str) or not seed:
         raise ContractValidationError("schedule.invalid_seed", "$seed")
     parsed_block = parse_contract("BlockSpec", block)
+    try:
+        seed_digest = sha256_digest(seed.encode("utf-8"))
+    except UnicodeEncodeError as error:
+        raise ContractValidationError("schedule.invalid_seed", "$seed") from error
+    if seed_digest != parsed_block["randomizationSeedCommitment"]:
+        raise ContractValidationError("schedule.seed_commitment_mismatch", "$.randomizationSeedCommitment")
     units = [
         (str(scenario_id), repetition)
         for scenario_id in parsed_block["scenarioDigests"]
@@ -106,11 +139,11 @@ def build_schedule(block: object, seed: str) -> tuple[dict[str, object], ...]:
                 "replacementForAttemptId": "none",
                 "retryOrdinal": 0,
             }
-            attempts.append(parse_contract("ScheduledAttempt", attempt))
+            attempts.append(_freeze_contract(parse_contract("ScheduledAttempt", attempt)))
     return tuple(attempts)
 
 
-def import_scheduled_attempt(attempt: object, expected_digest: str) -> dict[str, object]:
+def _import_scheduled_attempt(attempt: object, expected_digest: str) -> dict[str, object]:
     """Import one scheduled attempt only if its hash still matches."""
 
     parsed_attempt = parse_contract("ScheduledAttempt", attempt)
@@ -119,4 +152,4 @@ def import_scheduled_attempt(attempt: object, expected_digest: str) -> dict[str,
     return parsed_attempt
 
 
-__all__ = ["build_schedule", "import_scheduled_attempt"]
+__all__ = ["build_schedule"]

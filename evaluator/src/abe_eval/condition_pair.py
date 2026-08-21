@@ -101,6 +101,8 @@ def validate_pair(lock: object, baseline: object, treatment: object) -> PairVali
         parsed_lock = parse_contract("ConditionPairLock", lock)
     except ContractValidationError as error:
         return _fail("condition_pair.invalid_lock_contract:" + error.reason_code, error.path, blocked_condition_ids)
+    if blocked_condition_ids[0] == blocked_condition_ids[1]:
+        return _fail("condition_pair.condition_id_not_distinct", "/conditionId", blocked_condition_ids)
 
     if parsed_lock["baselineConditionDigest"] != canonical_contract_digest("ConditionLock", parsed_baseline):
         return _fail("condition_pair.baseline_digest_mismatch", "/baselineConditionDigest", blocked_condition_ids)

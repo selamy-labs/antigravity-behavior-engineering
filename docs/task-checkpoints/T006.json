@@ -4,15 +4,15 @@
   "taskTitle": "Preallocate randomized attempts and validate condition pairs",
   "taskEntryDigest": "sha256:67baab5c832e1ec0d7d76c91fcf6d80acec55cc45e8586207abfe351864f376b",
   "baseCommit": "177428dec8364f5bd288f3490d3a7df32004aa71",
-  "implementationCommit": "dc3e56ac0b4a8194057bd7e2c682daee779960d6",
-  "treeDigest": "sha256:8c96e1e2f64db2ebb443ab2db37643ae965481b2b4d1c1afb249756942476064",
+  "implementationCommit": "57b7882d92a661a549b7be70553304bb945fbd75",
+  "treeDigest": "sha256:fb0302845640bf9b606d90b86c069c5895e0f2f905301f9a39783cd0caa2250e",
   "outcome": "implemented",
   "files": {
     "evals/protocols/fake-block.json": "sha256:a12c567e7b9049b2c141386bdf4e1061cfc7d7e95496cf8ac38950ffe951c002",
-    "evaluator/src/abe_eval/condition_pair.py": "sha256:db2d4d97bae9e263833ac00eac7564347e50bfa0680afbed4812337bcae8cb83",
-    "evaluator/src/abe_eval/schedule.py": "sha256:754fdb7ba90565532f82cfcdae4beab39f2b3d1936e9d039e7b48eb602972481",
-    "evaluator/tests/test_condition_pair.py": "sha256:2d5978dd86c3f400cbb02b913dc5eba038cb88a3721d321a8a13f2957355b5ab",
-    "evaluator/tests/test_schedule.py": "sha256:f0e2d5a56ad98422b426ee7d10f622aadb60275d09b35c1f6dfc336184ec308e"
+    "evaluator/src/abe_eval/condition_pair.py": "sha256:c0903012b5d75158ea1c5db44999383c0755cc5fa671660ef66a6989cdcbe0e2",
+    "evaluator/src/abe_eval/schedule.py": "sha256:5bca2230896abdb9b59dfba34ee379de918f0f7a7e22ac1dad0f7dc2c2463549",
+    "evaluator/tests/test_condition_pair.py": "sha256:ebf07e04d8196c642d9859d382c30ff046fdb9415fc1fdf1556601aa21eb9f13",
+    "evaluator/tests/test_schedule.py": "sha256:281cdfcc3e959861021eca4f90a5ce9a9df134697077eb1fbc97d4e15ff5d281"
   },
   "verification": [
     {
@@ -23,13 +23,27 @@
         "--project",
         "evaluator",
         "pytest",
-        "evaluator/tests/test_schedule.py",
-        "evaluator/tests/test_condition_pair.py",
+        "evaluator/tests/test_schedule.py::test_build_schedule_returns_dict_compatible_immutable_attempts",
         "-q"
       ],
-      "expectedExit": 2,
-      "actualExit": 2,
-      "outputDigest": "sha256:2b4a7c8c1cf9cb4e8aba62abd591bb8100e6eada7818dfe4f23c3e5eefb512bb"
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:857940ddf843e559c15634f011995d2aafa6019fc96c73c634a725ee4ad346c2"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_schedule.py::test_build_schedule_returns_dict_compatible_immutable_attempts",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:3605abb09038ce24e90d81df8f7c0d87bb6f647a5e016bf461d8a8fcb408f6e9"
     },
     {
       "phase": "green",
@@ -45,7 +59,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:b2728860fe13ac136000e8c6ddd1cfece787b596aa39d6ae0309ad13dccdc56d"
+      "outputDigest": "sha256:168bb88573b44876966c64ec2dc2b9e030fc7635ca0b18538678f1c492c97ea2"
     },
     {
       "phase": "sentinel",
@@ -60,7 +74,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:1705dd873943c0e3f9acb1747e2a5e5d68efb172175a0a44a3fd3432b7ebf3e7"
+      "outputDigest": "sha256:5a961ae6b5a739012d31ba720d2396e7a1b4cacd8e55ef157f1ec37f48cdc9f1"
     },
     {
       "phase": "sentinel",
@@ -71,7 +85,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:bbf061bc6b289bebf2f2040d0d627bcea5f5aae700e4ab7ed5fe2f2657c2e071"
+      "outputDigest": "sha256:42e8e5fd87f5351e5f03a7a2d4e0047d754464f9b54d723cee09513f9d7a6a1e"
     },
     {
       "phase": "artifact",
@@ -84,7 +98,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:bb4ad49f4bc959817e791cf0762ff585b828ecfef8494cc1540b5c85dcf1d9f7"
+      "outputDigest": "sha256:7acb23bd154dcfad7ebc5d0f3c63657114925e9bcc42244f31627b426d8a0373"
     },
     {
       "phase": "artifact",
@@ -98,7 +112,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:e57dcb78653cdc2e831f5d047dc11d7ae22ef688f6430486ed696e6ed9d66130"
+      "outputDigest": "sha256:bbba2f910718a6a5e9e3f8f6e998f3f93d8147077b23833124d196fe39a70b54"
     },
     {
       "phase": "artifact",
@@ -112,12 +126,12 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:6bae6b1ea8ac51196fcf0beb5331e4b038f65a4bb8b84ca32b4869f85b04acef"
+      "outputDigest": "sha256:db4f0776cf81749ff43dc3a2c3f9366f4783e11b2164b9d216806ca0a3e6de62"
     },
     {
       "phase": "gate",
       "argv": [
-        "python",
+        "python3",
         "-m",
         "py_compile",
         "evaluator/src/abe_eval/schedule.py",
@@ -125,7 +139,7 @@
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:1342e9a1b3763e5086709108efbe85005250632cb4575b08e334819718f7355d"
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "phase": "gate",
@@ -133,11 +147,11 @@
         "git",
         "diff",
         "--check",
-        "177428dec8364f5bd288f3490d3a7df32004aa71...HEAD"
+        "origin/main"
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:1f97c04f59141b3f6f68ac65057b001027f4b9f9e611ec29123cbb9cd8f7013c"
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "phase": "gate",
@@ -145,46 +159,46 @@
         "git",
         "diff",
         "--name-only",
-        "177428dec8364f5bd288f3490d3a7df32004aa71...HEAD"
+        "origin/main..HEAD"
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:85310a61291d4a7bb67f2a9955f15d7d1722f7c79e738384aa94f65bab133812"
+      "outputDigest": "sha256:35c1180880301e3a5b12ba6c41abbcdb90cb96717032a497c9459967470b4afc"
     },
     {
       "phase": "gate",
       "argv": [
         "t006-public-boundary-scan",
-        "dc3e56ac0b4a8194057bd7e2c682daee779960d6"
+        "57b7882d92a661a549b7be70553304bb945fbd75"
       ],
       "expectedExit": 0,
       "actualExit": 0,
-      "outputDigest": "sha256:36d20921ad0a433f313a3ec3071ab810148bdbd10575c9b8efe8cf76125efee3"
+      "outputDigest": "sha256:f0e653039146470afebb18cc2592a1962ac491f6e7db32d9eee16c61bc72789a"
     }
   ],
   "reviews": [
     {
       "role": "requirements",
-      "reviewInputDigest": "sha256:115c7929383d2eca670b52eb7b487cf726ce53bd9f0cfcaae0ef3ddb6a775e09",
-      "verdictDigest": "sha256:746ae51226745e5759cefb56ac1a0dc8f0eaf6f023aed98a7c55a5426b0d9565",
+      "reviewInputDigest": "sha256:e4eec7ae64d4c9713b9ce9d0193b86aa9cb4d15cc42f24445b3e1a959c730147",
+      "verdictDigest": "sha256:1e69ba01bb0ca4a752fdf948b2dd7a1fba4b917119e34691c673e472d73e5051",
       "verdict": "pass",
       "openMaterialFindings": 0
     },
     {
       "role": "quality",
-      "reviewInputDigest": "sha256:115c7929383d2eca670b52eb7b487cf726ce53bd9f0cfcaae0ef3ddb6a775e09",
-      "verdictDigest": "sha256:f9630ef8078dbdc78578e3d7ba197ff0f84cd69af331fa903f466a9fec5883fc",
+      "reviewInputDigest": "sha256:e4eec7ae64d4c9713b9ce9d0193b86aa9cb4d15cc42f24445b3e1a959c730147",
+      "verdictDigest": "sha256:8f86337d4f0ac494385119387720fdb2511c7859af49b135324628ac5305563f",
       "verdict": "pass",
       "openMaterialFindings": 0
     }
   ],
   "publicBoundary": {
-    "scanDigest": "sha256:36d20921ad0a433f313a3ec3071ab810148bdbd10575c9b8efe8cf76125efee3",
+    "scanDigest": "sha256:f0e653039146470afebb18cc2592a1962ac491f6e7db32d9eee16c61bc72789a",
     "criticalFindings": 0
   },
   "rollback": {
-    "strategy": "Before merge, abandon this branch; after merge, open a new T006-linked revert PR without rewriting history.",
+    "strategy": "Before merge, abandon this corrective branch; after merge, open a new T006-linked revert PR without rewriting public history.",
     "tested": false
   },
-  "createdAt": "2026-08-21T13:14:01Z"
+  "createdAt": "2026-08-21T17:01:58Z"
 }
