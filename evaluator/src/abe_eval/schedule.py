@@ -100,7 +100,11 @@ def build_schedule(block: object, seed: str) -> tuple[dict[str, object], ...]:
     if not isinstance(seed, str) or not seed:
         raise ContractValidationError("schedule.invalid_seed", "$seed")
     parsed_block = parse_contract("BlockSpec", block)
-    if sha256_digest(seed.encode("utf-8")) != parsed_block["randomizationSeedCommitment"]:
+    try:
+        seed_digest = sha256_digest(seed.encode("utf-8"))
+    except UnicodeEncodeError as error:
+        raise ContractValidationError("schedule.invalid_seed", "$seed") from error
+    if seed_digest != parsed_block["randomizationSeedCommitment"]:
         raise ContractValidationError("schedule.seed_commitment_mismatch", "$.randomizationSeedCommitment")
     units = [
         (str(scenario_id), repetition)

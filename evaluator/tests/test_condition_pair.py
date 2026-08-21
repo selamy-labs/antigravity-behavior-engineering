@@ -120,6 +120,19 @@ def test_validate_pair_rejects_digest_binding_mismatch_before_input():
     assert result.blocked_condition_ids == ("bare", "full")
 
 
+def test_validate_pair_rejects_pair_members_with_same_condition_id_before_input():
+    baseline = _condition("bare", [])
+    treatment = _condition("bare", ["verification-before-completion"])
+    lock = _pair_lock(baseline, treatment)
+
+    result = validate_pair(lock, baseline, treatment)
+
+    assert not result.ok
+    assert result.reason_code == "condition_pair.condition_id_not_distinct"
+    assert result.path == "/conditionId"
+    assert result.blocked_condition_ids == ("bare", "bare")
+
+
 @pytest.mark.parametrize("forbidden_path", ["pluginDigest", "environmentQualificationDigest"])
 def test_validate_pair_rejects_forbidden_condition_difference_before_input(forbidden_path):
     baseline = _condition("bare", [])

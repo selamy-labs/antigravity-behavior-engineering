@@ -78,6 +78,16 @@ def test_build_schedule_rejects_seed_that_does_not_match_commitment():
     assert excinfo.value.path == "$.randomizationSeedCommitment"
 
 
+def test_build_schedule_rejects_non_utf8_seed_with_project_reason():
+    block, _seed = _fixture_block()
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        build_schedule(block, "\ud800")
+
+    assert excinfo.value.reason_code == "schedule.invalid_seed"
+    assert excinfo.value.path == "$seed"
+
+
 def test_build_schedule_returns_dict_compatible_immutable_attempts():
     block, seed = _fixture_block()
     attempt = build_schedule(block, seed)[0]
