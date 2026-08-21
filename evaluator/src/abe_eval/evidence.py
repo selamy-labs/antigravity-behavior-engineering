@@ -250,6 +250,19 @@ def _artifact_locator(run_id: str, digest: str) -> str:
     return "runs/" + run_id + "/artifacts/sha256/" + digest.removeprefix("sha256:")
 
 
+def _protected_artifact_record(path: str, run_id: str, digest: str, data: bytes, source_zone: str) -> dict[str, object]:
+    return {
+        "path": path,
+        "present": True,
+        "digest": digest,
+        "byteLength": len(data),
+        "mediaType": "application/json",
+        "sourceZone": source_zone,
+        "redactionDisposition": "protected_only_pending_redaction",
+        "objectLocator": _artifact_locator(run_id, digest),
+    }
+
+
 def _temporary_sibling(path: Path) -> Path:
     return path.with_name(path.name + ".tmp." + str(os.getpid()) + "." + uuid.uuid4().hex)
 
@@ -302,8 +315,18 @@ def _remove_run_directory_contents(run_dir: Path) -> None:
             child.unlink()
         except OSError:
             pass
-    sha256_dir = run_dir / "artifacts" / "sha256"
+    artifacts_dir = run_dir / "artifacts"
+    if not artifacts_dir.is_symlink() and artifacts_dir.is_dir():
+        try:
+            artifacts_dir.chmod(0o700)
+        except OSError:
+            pass
+    sha256_dir = artifacts_dir / "sha256"
     if not sha256_dir.is_symlink() and sha256_dir.is_dir():
+        try:
+            sha256_dir.chmod(0o700)
+        except OSError:
+            pass
         for child in sha256_dir.iterdir():
             if child.is_symlink() or not child.is_file():
                 continue
@@ -315,7 +338,6 @@ def _remove_run_directory_contents(run_dir: Path) -> None:
             sha256_dir.rmdir()
         except OSError:
             pass
-    artifacts_dir = run_dir / "artifacts"
     if not artifacts_dir.is_symlink() and artifacts_dir.is_dir():
         try:
             artifacts_dir.rmdir()
@@ -368,6 +390,8 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object], art
             (run_dir / "run.json").chmod(0o400)
             (run_dir / "run.digest").chmod(0o400)
             (run_dir / "grade-ledger.ndjson").chmod(0o600)
+            (run_dir / "artifacts" / "sha256").chmod(0o500)
+            (run_dir / "artifacts").chmod(0o500)
             (run_dir / "grades").chmod(0o700)
             run_dir.chmod(0o500)
         except OSError:
@@ -773,11 +797,41 @@ def import_run(
     environment_qualification_digest = canonical_contract_digest("EnvironmentQualificationRecord", parsed_qualification)
     staged_outcome_digest = canonical_contract_digest("StagedAttemptOutcome", staged)
     unclassified_outcome_digest = canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified)
-    artifact_payloads.append((condition_digest, canonical_bytes(parsed_condition)))
-    artifact_payloads.append((scenario_digest, canonical_bytes(parsed_scenario)))
-    artifact_payloads.append((environment_qualification_digest, canonical_bytes(parsed_qualification)))
-    artifact_payloads.append((staged_outcome_digest, canonical_bytes(staged)))
-    artifact_payloads.append((unclassified_outcome_digest, canonical_bytes(unclassified)))
+    condition_bytes = canonical_bytes(parsed_condition)
+    scenario_bytes = canonical_bytes(parsed_scenario)
+    environment_qualification_bytes = canonical_bytes(parsed_qualification)
+    staged_outcome_bytes = canonical_bytes(staged)
+    unclassified_outcome_bytes = canonical_bytes(unclassified)
+    artifact_payloads.append((condition_digest, condition_bytes))
+    artifact_payloads.append((scenario_digest, scenario_bytes))
+    artifact_payloads.append((environment_qualification_digest, environment_qualification_bytes))
+    artifact_payloads.append((staged_outcome_digest, staged_outcome_bytes))
+    artifact_payloads.append((unclassified_outcome_digest, unclassified_outcome_bytes))
+    protected_artifacts = [
+        _protected_artifact_record(
+            "controller/condition-lock.json", run_id, condition_digest, condition_bytes, "protected_controller_input"
+        ),
+        _protected_artifact_record(
+            "controller/scenario-card.json", run_id, scenario_digest, scenario_bytes, "protected_controller_input"
+        ),
+        _protected_artifact_record(
+            "controller/environment-qualification.json",
+            run_id,
+            environment_qualification_digest,
+            environment_qualification_bytes,
+            "protected_controller_input",
+        ),
+        _protected_artifact_record(
+            "outcomes/staged-outcome.json", run_id, staged_outcome_digest, staged_outcome_bytes, "protected_staged_outcome"
+        ),
+        _protected_artifact_record(
+            "outcomes/unclassified-outcome.json",
+            run_id,
+            unclassified_outcome_digest,
+            unclassified_outcome_bytes,
+            "protected_staged_outcome",
+        ),
+    ]
     for entry in entries:
         raw_entry = {key: entry[key] for key in ("path", "present", "digest", "byteLength")}
         raw_entry["mediaType"] = _media_type(str(entry["path"]))
@@ -823,6 +877,7 @@ def import_run(
         "unclassifiedOutcomeLocator": _artifact_locator(run_id, unclassified_outcome_digest),
         "sourceStagingManifestDigest": staged["stagingManifestDigest"],
         "runRecordBinding": run_record_binding,
+        "artifacts": protected_artifacts,
         "entries": raw_entries,
     }
     raw_manifest_bytes = canonical_bytes(raw_manifest)

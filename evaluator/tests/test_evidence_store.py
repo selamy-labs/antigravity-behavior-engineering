@@ -264,9 +264,49 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
     assert ".." not in raw_locator.parts
     assert raw_locator.parts[:4] == ("runs", str(run["runId"]), "artifacts", "sha256")
     raw_manifest_path = tmp_path / raw_locator
+    artifacts_dir = raw_manifest_path.parents[1]
+    sha256_dir = raw_manifest_path.parent
+    assert stat.S_IMODE(artifacts_dir.stat().st_mode) & stat.S_IWUSR == 0
+    assert stat.S_IMODE(sha256_dir.stat().st_mode) & stat.S_IWUSR == 0
     assert stat.S_IMODE(raw_manifest_path.stat().st_mode) & stat.S_IWUSR == 0
     raw_manifest = json.loads(raw_manifest_path.read_bytes())
     assert run["artifactManifestDigest"] == sha256_digest(canonical_bytes(raw_manifest))
+
+    protected_artifacts = {artifact["path"]: artifact for artifact in raw_manifest["artifacts"]}
+    unclassified = parse_contract("UnclassifiedStagedAttemptOutcome", json.loads((staging / "unclassified-outcome.json").read_text()))
+    expected_protected_artifacts = {
+        "controller/condition-lock.json": (
+            canonical_contract_digest("ConditionLock", condition),
+            "protected_controller_input",
+        ),
+        "controller/scenario-card.json": (
+            canonical_contract_digest("ScenarioCard", scenario),
+            "protected_controller_input",
+        ),
+        "controller/environment-qualification.json": (
+            canonical_contract_digest("EnvironmentQualificationRecord", environment),
+            "protected_controller_input",
+        ),
+        "outcomes/staged-outcome.json": (
+            canonical_contract_digest("StagedAttemptOutcome", staged),
+            "protected_staged_outcome",
+        ),
+        "outcomes/unclassified-outcome.json": (
+            canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified),
+            "protected_staged_outcome",
+        ),
+    }
+    assert set(expected_protected_artifacts) <= set(protected_artifacts)
+    for artifact_path, (digest, source_zone) in expected_protected_artifacts.items():
+        artifact = protected_artifacts[artifact_path]
+        assert artifact["present"] is True
+        assert artifact["digest"] == digest
+        assert artifact["mediaType"] == "application/json"
+        assert artifact["sourceZone"] == source_zone
+        assert artifact["redactionDisposition"] == "protected_only_pending_redaction"
+        object_path = tmp_path / str(artifact["objectLocator"])
+        assert object_path.read_bytes()
+        assert artifact["byteLength"] == len(object_path.read_bytes())
 
     entries = {entry["path"]: entry for entry in raw_manifest["entries"]}
     assert entries["raw-stream.ndjson"]["digest"] == run["transcriptDigest"]
@@ -286,6 +326,9 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
         staged_bytes = (staging / "output" / entry["path"]).read_bytes()
         assert object_path.read_bytes() == staged_bytes
         assert sha256_digest(staged_bytes) == entry["digest"]
+        with pytest.raises(PermissionError):
+            object_path.unlink()
+        assert object_path.exists()
 
     events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
     assert [event["phase"] for event in events] == ["scheduled", "preflight", "valid_started", "execution_terminal", "run_finalized"]

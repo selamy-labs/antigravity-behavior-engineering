@@ -183,6 +183,13 @@ def _ensure_existing_plain_dir(path: Path, reason_code: str, error_path: str) ->
         _fail(reason_code, error_path)
 
 
+def _ensure_existing_plain_artifact_dir(path: Path, error_path: str) -> None:
+    if path.is_symlink():
+        _fail("grade.unsafe_identifier_path", error_path)
+    if not path.is_dir():
+        _fail("grade.raw_evidence_missing", error_path)
+
+
 def _temporary_sibling(path: Path) -> Path:
     return path.with_name(path.name + ".tmp." + str(os.getpid()) + "." + uuid.uuid4().hex)
 
@@ -388,6 +395,12 @@ def _validate_raw_evidence(
     root: Path, run: dict[str, object]
 ) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object], dict[str, object], str]:
     run_id = _safe_identifier(run["runId"], "$.runId", "grade.unsafe_identifier_path")
+    artifacts_dir = root / "runs" / run_id / "artifacts"
+    sha256_dir = artifacts_dir / "sha256"
+    _ensure_existing_plain_artifact_dir(artifacts_dir, "$.rawEvidenceLocator.artifacts")
+    _ensure_existing_plain_artifact_dir(sha256_dir, "$.rawEvidenceLocator.artifacts.sha256")
+    _ensure_not_owner_writable(artifacts_dir, "$.rawEvidenceLocator.artifacts")
+    _ensure_not_owner_writable(sha256_dir, "$.rawEvidenceLocator.artifacts.sha256")
     manifest_path = _resolve_run_artifact_locator(
         root, run_id, run["rawEvidenceLocator"], "$.rawEvidenceLocator", run["artifactManifestDigest"]
     )
@@ -469,9 +482,19 @@ def _append_grade_ledger(run_dir: Path, grader_digest: str, grade_digest: str) -
     ledger_path = run_dir / "grade-ledger.ndjson"
     event = {"schemaVersion": 1, "graderDigest": grader_digest, "gradeDigest": grade_digest}
     with ledger_path.open("ab") as stream:
-        stream.write(canonical_bytes(event) + b"\n")
-        stream.flush()
-        os.fsync(stream.fileno())
+        start = stream.tell()
+        try:
+            stream.write(canonical_bytes(event) + b"\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        except Exception:
+            try:
+                stream.truncate(start)
+                stream.flush()
+                os.fsync(stream.fileno())
+            except OSError:
+                pass
+            raise
 
 
 def append_grade(run_id: str, grade: object, root: Path) -> str:
@@ -525,8 +548,13 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     grade_digest = canonical_contract_digest("GradeRecord", parsed_grade)
     try:
         _write_grade_exclusive(grade_path, parsed_grade)
+        grader_dir.chmod(0o500)
         _append_grade_ledger(run_dir, str(parsed_grade["graderDigest"]), grade_digest)
     except Exception:
+        try:
+            grader_dir.chmod(0o700)
+        except OSError:
+            pass
         if grade_path.exists() and not grade_path.is_symlink():
             try:
                 grade_path.unlink()
