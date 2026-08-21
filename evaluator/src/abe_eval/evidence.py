@@ -9,11 +9,22 @@ import uuid
 from pathlib import Path
 
 from abe_eval.canonical import canonical_bytes, sha256_digest
+from abe_eval.classify import _REASON_CLASS, _reason_code
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
-from abe_eval.runner import _worker_invocation
+from abe_eval.runner import _OUTPUT_NAMES, _worker_invocation
 
 
 _REQUIRED_OUTPUTS = frozenset({"raw-stream.ndjson", "process.json"})
+_ALL_OUTPUTS = frozenset(_OUTPUT_NAMES)
+_PREFLIGHT_FIELDS = (
+    ("authentication", "authentication"),
+    ("fixtureProvisioning", "fixtureProvisioning"),
+    ("modelPreflight", "modelPreflight"),
+    ("fallbackProbe", "fallbackProbe"),
+    ("pluginComponentDiscovery", "pluginComponentDiscovery"),
+    ("structuredCapturePreflight", "structuredCapturePreflight"),
+    ("authorityToolInventory", "authorityToolInventory"),
+)
 
 
 def _fail(reason_code: str, path: str = "$") -> None:
@@ -33,6 +44,16 @@ def _safe_staged_output_name(value: object, path: str) -> str:
     if not value or value in {".", ".."} or "/" in value or "\\" in value or "\x00" in value:
         _fail("evidence.unsafe_staged_path", path)
     return value
+
+
+def _media_type(name: str) -> str:
+    if name.endswith(".ndjson"):
+        return "application/x-ndjson"
+    if name.endswith(".json"):
+        return "application/json"
+    if name.endswith(".txt"):
+        return "text/plain; charset=utf-8"
+    return "application/octet-stream"
 
 
 def _ensure_plain_dir(path: Path, reason_code: str, error_path: str) -> None:
@@ -160,6 +181,9 @@ def _validate_staging_manifest(
     missing_required = sorted(name for name in required_outputs if name not in seen)
     if missing_required:
         _fail("evidence.missing_staged_output", "$.output." + missing_required[0])
+    missing_markers = sorted(name for name in _ALL_OUTPUTS if name not in seen)
+    if missing_markers:
+        _fail("evidence.missing_staged_output_marker", "$.output." + missing_markers[0])
     return validated
 
 
@@ -261,6 +285,48 @@ def _append_run_finalized_event(root: Path, attempt_id: str, events: list[dict[s
         stream.write(canonical_bytes(event) + b"\n")
 
 
+def _failed_preflight(qualification: dict[str, object]) -> str:
+    for field, reason_code in _PREFLIGHT_FIELDS:
+        result = qualification[field]
+        if isinstance(result, dict) and result["result"] == "fail":
+            return reason_code
+    return "fixtureProvisioning"
+
+
+def _staged_files_from_entries(entries: list[dict[str, object]]) -> dict[str, str]:
+    staged_files: dict[str, str] = {}
+    for entry in entries:
+        if not entry["present"]:
+            continue
+        data = entry.get("data")
+        if not isinstance(data, bytes):
+            _fail("evidence.staged_output_missing", "$.output." + str(entry["path"]))
+        try:
+            staged_files[str(entry["path"])] = data.decode("utf-8")
+        except UnicodeDecodeError:
+            _fail("evidence.staged_output_not_utf8", "$.output." + str(entry["path"]))
+    return staged_files
+
+
+def _terminal_evidence(staged: dict[str, object], terminal: dict[str, object], entries: list[dict[str, object]]) -> dict[str, object]:
+    process = staged["processState"]
+    if process["workerProcessState"] == "not_started":
+        return {"failedPreflight": _failed_preflight(staged["attemptQualification"])}
+    return {
+        "terminalKind": terminal["terminalKind"],
+        "controllerExitCode": process["controllerExitCode"],
+        "workerExitCode": process["workerExitCode"],
+        "signal": process["signal"],
+        "timeout": process["timeout"],
+        "agentDeclaredState": staged["agentDeclaredState"],
+        "inputPermissionState": staged["inputPermissionState"],
+        "infrastructureValidity": staged["infrastructureValidity"],
+        "consumption": staged["consumption"],
+        "observedModel": staged["observedModel"],
+        "stagedFiles": _staged_files_from_entries(entries),
+    }
+
+
 def _read_stored_attempt(root: Path, attempt_id: str, supplied_attempt: dict[str, object]) -> dict[str, object]:
     stored_attempt = parse_contract(
         "ScheduledAttempt",
@@ -288,6 +354,35 @@ def _validate_controller_bindings(
     return qualification_digest
 
 
+def _validate_classification(staged: dict[str, object], scenario: dict[str, object]) -> None:
+    classification = staged["classification"]
+    if classification["policyDigest"] != scenario["classificationPolicyDigest"]:
+        _fail("evidence.binding_mismatch", "$.classification.policyDigest")
+    expected_reason = _reason_code(staged)
+    if classification["reasonCode"] != expected_reason:
+        _fail("evidence.binding_mismatch", "$.classification.reasonCode")
+    expected_class = _REASON_CLASS[expected_reason]
+    if classification["class"] != expected_class:
+        _fail("evidence.binding_mismatch", "$.classification.class")
+    if classification["countsInIntentionToTreat"] is not True:
+        _fail("evidence.binding_mismatch", "$.classification.countsInIntentionToTreat")
+    if classification["countsInValidRun"] != (expected_class == "gradable"):
+        _fail("evidence.binding_mismatch", "$.classification.countsInValidRun")
+
+
+def _validate_attempt_controller_identity(
+    attempt: dict[str, object], condition: dict[str, object], scenario: dict[str, object], staged: dict[str, object]
+) -> None:
+    controller_failure = (
+        staged["processState"]["workerProcessState"] == "not_started"
+        and staged["classification"]["reasonCode"] == "invalid_controller_input"
+    )
+    if attempt["conditionId"] != condition["conditionId"] and not controller_failure:
+        _fail("evidence.binding_mismatch", "$.conditionDigest")
+    if attempt["scenarioId"] != scenario["scenarioId"] and not controller_failure:
+        _fail("evidence.binding_mismatch", "$.scenarioDigest")
+
+
 def _validate_lifecycle_bindings(
     events: list[dict[str, object]],
     attempt: dict[str, object],
@@ -295,6 +390,7 @@ def _validate_lifecycle_bindings(
     scenario: dict[str, object],
     qualification_digest: str,
     staged: dict[str, object],
+    entries: list[dict[str, object]],
 ) -> None:
     valid_start_at = str(staged["attemptQualification"]["validStartAt"])
     expected_phases = ["scheduled", "preflight"]
@@ -326,6 +422,9 @@ def _validate_lifecycle_bindings(
 
     if events[-1]["occurredAt"] != staged["processState"]["endedAt"]:
         _fail("evidence.binding_mismatch", "$.processState.endedAt")
+    terminal_evidence = _terminal_evidence(staged, events[-1], entries)
+    if events[-1]["evidenceDigest"] != _digest_payload(terminal_evidence):
+        _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[" + str(len(events) - 1) + "].evidenceDigest")
 
 
 def import_run(
@@ -377,16 +476,21 @@ def import_run(
         _fail("evidence.binding_mismatch", "$.scenarioDigest")
     if staged["environmentQualificationDigest"] != qualification_digest:
         _fail("evidence.binding_mismatch", "$.environmentQualificationDigest")
+    _validate_classification(staged, parsed_scenario)
+    _validate_attempt_controller_identity(stored_attempt, parsed_condition, parsed_scenario, staged)
 
     events = _read_lifecycle(root, attempt_id)
     event_digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events]
     if event_digests != staged["lifecycleEventDigests"]:
         _fail("evidence.binding_mismatch", "$.lifecycleEventDigests")
-    _validate_lifecycle_bindings(events, stored_attempt, parsed_condition, parsed_scenario, qualification_digest, staged)
+    _validate_lifecycle_bindings(events, stored_attempt, parsed_condition, parsed_scenario, qualification_digest, staged, entries)
 
     raw_entries: list[dict[str, object]] = []
     for entry in entries:
         raw_entry = {key: entry[key] for key in ("path", "present", "digest", "byteLength")}
+        raw_entry["mediaType"] = _media_type(str(entry["path"]))
+        raw_entry["sourceZone"] = "protected_raw_staging"
+        raw_entry["redactionDisposition"] = "protected_only_pending_redaction"
         if entry["present"]:
             raw_entry["objectLocator"] = _write_content_object(root, str(entry["digest"]), entry["data"])  # type: ignore[arg-type]
         raw_entries.append(raw_entry)

@@ -150,6 +150,11 @@ def _write_json(path: Path, value: dict[str, object]) -> None:
     path.write_bytes(canonical_bytes(value) + b"\n")
 
 
+def _write_lifecycle(root: Path, attempt_id: str, events: list[dict[str, object]]) -> None:
+    lifecycle = root / "attempts" / attempt_id / "lifecycle.ndjson"
+    lifecycle.write_bytes(b"".join(canonical_bytes(parse_contract("AttemptLifecycleEvent", event)) + b"\n" for event in events))
+
+
 def _rewrite_outcomes(staging: Path, unclassified: dict[str, object], staged: dict[str, object]) -> None:
     staged["unclassifiedOutcomeDigest"] = canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified)
     _write_json(staging / "unclassified-outcome.json", parse_contract("UnclassifiedStagedAttemptOutcome", unclassified))
@@ -196,6 +201,9 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
     assert entries["process.json"]["digest"] != "none"
     assert entries["stdout.txt"]["present"] is False
     for entry in raw_manifest["entries"]:
+        assert entry["sourceZone"] == "protected_raw_staging"
+        assert entry["redactionDisposition"] == "protected_only_pending_redaction"
+        assert isinstance(entry["mediaType"], str) and entry["mediaType"]
         if not entry["present"]:
             assert entry["digest"] == "none"
             continue
@@ -225,8 +233,12 @@ def test_import_run_finalizes_pre_worker_controller_failure_with_explicit_missin
     assert run["transcriptDigest"] == "none"
     raw_manifest = json.loads((tmp_path / str(run["rawEvidenceLocator"])).read_bytes())
     entries = {entry["path"]: entry for entry in raw_manifest["entries"]}
-    assert entries["raw-stream.ndjson"] == {"path": "raw-stream.ndjson", "present": False, "digest": "none", "byteLength": 0}
-    assert entries["process.json"] == {"path": "process.json", "present": False, "digest": "none", "byteLength": 0}
+    assert entries["raw-stream.ndjson"]["present"] is False
+    assert entries["raw-stream.ndjson"]["digest"] == "none"
+    assert entries["raw-stream.ndjson"]["byteLength"] == 0
+    assert entries["process.json"]["present"] is False
+    assert entries["process.json"]["digest"] == "none"
+    assert entries["process.json"]["byteLength"] == 0
     assert staged["classification"]["countsInValidRun"] is False
     assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "run_finalized"
 
@@ -256,6 +268,26 @@ def test_import_run_rejects_unsafe_staged_output_paths_before_finalization(tmp_p
         import_run(staging, attempt, condition, scenario, environment, tmp_path)
 
     assert excinfo.value.reason_code == "evidence.unsafe_staged_path"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_requires_explicit_missing_marker_for_every_runner_output(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    manifest_path = staging / "staging-manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["entries"] = [entry for entry in manifest["entries"] if entry["path"] != "stderr.txt"]
+    _write_json(manifest_path, manifest)
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    unclassified["stagingManifestDigest"] = sha256_digest(canonical_bytes(manifest))
+    staged["stagingManifestDigest"] = sha256_digest(canonical_bytes(manifest))
+    _rewrite_outcomes(staging, unclassified, staged)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.missing_staged_output_marker"
+    assert excinfo.value.path == "$.output.stderr.txt"
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
@@ -325,6 +357,83 @@ def test_import_run_rejects_lifecycle_event_digest_that_does_not_bind_attempt(tm
 
     assert excinfo.value.reason_code == "evidence.binding_mismatch"
     assert excinfo.value.path == "$.lifecycleEventDigests[0].evidenceDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_terminal_lifecycle_event_digest_that_does_not_bind_worker_result(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[-1]["evidenceDigest"] = _digest("34")
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    _rewrite_outcomes_with_lifecycle_digests(tmp_path, staging, str(attempt["attemptId"]))
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.lifecycleEventDigests[3].evidenceDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_classification_policy_digest_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    staged["classification"]["policyDigest"] = _digest("12")
+    _write_json(staging / "staged-outcome.json", parse_contract("StagedAttemptOutcome", staged))
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.classification.policyDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_classification_reason_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    staged["classification"].update(
+        {
+            "class": "product_failure",
+            "reasonCode": "product_timeout",
+            "retryEligible": False,
+            "countsInValidRun": False,
+        }
+    )
+    _write_json(staging / "staged-outcome.json", parse_contract("StagedAttemptOutcome", staged))
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.classification.reasonCode"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_condition_id_cross_bind_that_is_not_controller_failure(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    tampered_condition = copy.deepcopy(condition)
+    tampered_condition["conditionId"] = "full"
+    tampered_condition["enabledComponents"] = ["verification-before-completion"]
+    tampered_condition = parse_contract("ConditionLock", tampered_condition)
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[1]["evidenceDigest"] = sha256_digest(canonical_bytes({"condition": tampered_condition, "scenario": scenario}))
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events]
+    tampered_condition_digest = canonical_contract_digest("ConditionLock", tampered_condition)
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    unclassified["conditionDigest"] = tampered_condition_digest
+    staged["conditionDigest"] = tampered_condition_digest
+    unclassified["lifecycleEventDigests"] = digests
+    staged["lifecycleEventDigests"] = digests
+    _rewrite_outcomes(staging, unclassified, staged)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, tampered_condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.conditionDigest"
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
