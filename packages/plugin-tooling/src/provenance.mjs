@@ -8,6 +8,7 @@ const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 const HTTPS_URL_PATTERN = /^https:\/\/[^\s\u0000-\u001f\u007f]+$/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
 const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
+const NODE_RANGE_PATTERN = /^(?:(?:>=|>|<=|<|=|\^|~)?[0-9]+(?:\.[0-9]+){0,2})(?:\s+(?:(?:>=|>|<=|<|=|\^|~)?[0-9]+(?:\.[0-9]+){0,2}))*$/u;
 const SPDX_LICENSE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*(?:\+)?$/u;
 const TIMESTAMP_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/u;
 const UNPINNED_REVISIONS = new Set(["HEAD", "latest", "main", "master"]);
@@ -147,7 +148,7 @@ const validatePlatformRecord = (platform, index) => {
   assertNonEmptyString(platform.os, "$.packageLock.supportedPlatforms[" + index + "].os", "provenance.invalid_package_lock");
   assertNonEmptyString(platform.architecture, "$.packageLock.supportedPlatforms[" + index + "].architecture", "provenance.invalid_package_lock");
   assertNonEmptyString(platform.nodeRange, "$.packageLock.supportedPlatforms[" + index + "].nodeRange", "provenance.invalid_package_lock");
-  if (platform.nodeRange.includes("\u0000")) {
+  if (!NODE_RANGE_PATTERN.test(platform.nodeRange)) {
     fail("provenance.invalid_package_lock", "$.packageLock.supportedPlatforms[" + index + "].nodeRange");
   }
 };

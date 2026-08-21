@@ -169,6 +169,12 @@ test("provenance fails closed for incomplete or unpinned package locks", async (
       supportedPlatforms: [{ schemaVersion: 1, os: "linux", architecture: "x64" }],
     });
     await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, { packageLock: missingNodeRange })));
+
+    await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, {
+        supportedPlatforms: [{ schemaVersion: 1, os: "linux", architecture: "x64", nodeRange: "not a semver range" }],
+      }),
+    })));
   });
 });
 
