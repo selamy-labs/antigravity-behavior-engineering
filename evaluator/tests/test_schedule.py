@@ -5,7 +5,8 @@ from pathlib import Path
 import pytest
 
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
-from abe_eval.schedule import build_schedule, import_scheduled_attempt
+import abe_eval.schedule as schedule
+from abe_eval.schedule import build_schedule
 
 
 FIXTURE = Path("evals/protocols/fake-block.json")
@@ -80,11 +81,11 @@ def test_import_scheduled_attempt_rejects_tampering_after_hashing():
     block, seed = _fixture_block()
     attempt = build_schedule(block, seed)[0]
     digest = canonical_contract_digest("ScheduledAttempt", attempt)
-    assert import_scheduled_attempt(copy.deepcopy(attempt), digest) == attempt
+    assert schedule._import_scheduled_attempt(copy.deepcopy(attempt), digest) == attempt
 
     tampered = copy.deepcopy(attempt)
     tampered["runId"] = "run-tampered-after-hash"
     with pytest.raises(ContractValidationError) as excinfo:
-        import_scheduled_attempt(tampered, digest)
+        schedule._import_scheduled_attempt(tampered, digest)
 
     assert excinfo.value.reason_code == "schedule.attempt_digest_mismatch"

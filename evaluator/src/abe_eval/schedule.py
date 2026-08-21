@@ -110,7 +110,7 @@ def build_schedule(block: object, seed: str) -> tuple[dict[str, object], ...]:
     return tuple(attempts)
 
 
-def import_scheduled_attempt(attempt: object, expected_digest: str) -> dict[str, object]:
+def _import_scheduled_attempt(attempt: object, expected_digest: str) -> dict[str, object]:
     """Import one scheduled attempt only if its hash still matches."""
 
     parsed_attempt = parse_contract("ScheduledAttempt", attempt)
@@ -119,4 +119,4 @@ def import_scheduled_attempt(attempt: object, expected_digest: str) -> dict[str,
     return parsed_attempt
 
 
-__all__ = ["build_schedule", "import_scheduled_attempt"]
+__all__ = ["build_schedule"]
