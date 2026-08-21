@@ -68,7 +68,7 @@ def _condition(
 
 def _policy() -> dict[str, object]:
     reason_codes = sorted({str(value["reasonCode"]) for value in MATRIX.values()})
-    return {
+    policy = {
         "schemaVersion": 1,
         "policyId": "classification-policy-t007",
         "reasonCodes": [
@@ -85,6 +85,14 @@ def _policy() -> dict[str, object]:
         "validRunProjection": "gradable_only",
         "policyDigest": _digest("df"),
     }
+    policy["policyDigest"] = _policy_body_digest(policy)
+    return policy
+
+
+def _policy_body_digest(policy: dict[str, object]) -> str:
+    body = copy.deepcopy(policy)
+    body.pop("policyDigest", None)
+    return sha256_digest(canonical_bytes(body))
 
 
 def _attempt(condition_id: str = "bare") -> dict[str, object]:
@@ -183,6 +191,7 @@ def test_exit_zero_soft_denial_is_never_reclassified_as_success(tmp_path):
 def test_unknown_reason_code_policy_fails_closed(tmp_path):
     inputs, worker, policy = _inputs(tmp_path, "tool_misuse")
     policy["reasonCodes"] = [rule for rule in policy["reasonCodes"] if rule["reasonCode"] != "tool_misuse"]
+    policy["policyDigest"] = _policy_body_digest(policy)
 
     with pytest.raises(ContractValidationError) as excinfo:
         _classify(run_attempt(inputs, worker), policy)
@@ -201,12 +210,28 @@ def test_classifier_policy_digest_must_match_scenario_frozen_digest(tmp_path):
     assert excinfo.value.path == "$.expected_policy_digest"
 
 
+def test_classifier_recomputes_policy_digest_before_applying_mutated_policy_body(tmp_path):
+    inputs, worker, policy = _inputs(tmp_path, "adapter_failure")
+    mutated_policy = copy.deepcopy(policy)
+    mutated_policy["replacementCaps"]["adapter_failure"] = 0
+    assert mutated_policy["policyDigest"] != _policy_body_digest(mutated_policy)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        classify(run_attempt(inputs, worker), mutated_policy, expected_policy_digest=str(policy["policyDigest"]))
+
+    assert excinfo.value.reason_code == "classification.policy_digest_invalid"
+    assert excinfo.value.path == "$.policyDigest"
+
+
 @pytest.mark.parametrize(
     ("case_id", "infrastructure", "expected_reason", "expected_class"),
     [
         ("valid_start_timeout", "capture_truncated", "product_timeout", "product_failure"),
+        ("valid_start_timeout", "invalid_controller_input", "product_timeout", "product_failure"),
         ("tool_misuse", "adapter_failure", "tool_misuse", "product_failure"),
+        ("tool_misuse", "invalid_controller_input", "tool_misuse", "product_failure"),
         ("budget_exhaustion", "capture_malformed", "budget_exhaustion", "product_failure"),
+        ("budget_exhaustion", "invalid_controller_input", "budget_exhaustion", "product_failure"),
     ],
 )
 def test_post_valid_start_product_signals_beat_infrastructure_like_labels(
@@ -236,3 +261,34 @@ def test_unknown_post_valid_start_terminal_state_fails_closed_instead_of_success
 
     assert excinfo.value.reason_code == "classification.unknown_terminal_state"
     assert excinfo.value.path == "$.agentDeclaredState"
+
+
+def test_missing_terminal_kind_is_capture_malformed_not_fabricated_success(tmp_path):
+    policy = _policy()
+    attempt = _attempt("bare")
+    scenario = _scenario(attempt, policy)
+    environment = _environment()
+
+    class MissingTerminalKindWorker(FakeWorker):
+        def run(self, invocation):
+            result = super().run(invocation)
+            result.pop("terminalKind", None)
+            return result
+
+    unclassified = run_attempt(
+        RunAttemptInputs(
+            scheduled_attempt=attempt,
+            condition=_condition("bare", environment=environment, scenario=scenario),
+            scenario=scenario,
+            environment_qualification=environment,
+            raw_root=tmp_path,
+        ),
+        MissingTerminalKindWorker("success"),
+    )
+    staged = _classify(unclassified, policy)
+
+    assert unclassified["attemptQualification"]["validStartAt"] != "none"
+    assert unclassified["infrastructureValidity"] == "capture_malformed"
+    assert staged["classification"]["class"] == "indeterminate"
+    assert staged["classification"]["reasonCode"] == "malformed_ndjson"
+    assert staged["classification"]["countsInValidRun"] is False

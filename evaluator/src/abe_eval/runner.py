@@ -334,7 +334,11 @@ def run_attempt(inputs: RunAttemptInputs, worker: Worker) -> dict[str, object]:
             _event(attempt_id, 2, "valid_started", "none", valid_start_at, invocation),
         )
         worker_result = worker.run(invocation)
-        terminal_kind = str(worker_result.get("terminalKind", "agent_finished"))
+        if "terminalKind" not in worker_result:
+            worker_result = copy.deepcopy(worker_result)
+            worker_result["terminalKind"] = "capture_indeterminate"
+            worker_result["infrastructureValidity"] = "capture_malformed"
+        terminal_kind = str(worker_result["terminalKind"])
         _record_lifecycle_event(
             root,
             attempt_id,

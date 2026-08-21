@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 
 
@@ -48,6 +49,10 @@ def _policy_reason_codes(policy: dict[str, Any]) -> frozenset[str]:
     return frozenset(str(rule["reasonCode"]) for rule in policy["reasonCodes"])
 
 
+def _policy_body_digest(policy: dict[str, Any]) -> str:
+    return sha256_digest(canonical_bytes({key: value for key, value in policy.items() if key != "policyDigest"}))
+
+
 def _integer_at_least(value: object, minimum: int) -> bool:
     return isinstance(value, int) and not isinstance(value, bool) and value >= minimum
 
@@ -67,8 +72,6 @@ def _reason_code(outcome: dict[str, Any]) -> str:
     if infrastructure not in _KNOWN_INFRASTRUCTURE_VALIDITY:
         _fail("classification.unknown_infrastructure_validity", "$.infrastructureValidity")
 
-    if infrastructure == "invalid_controller_input":
-        return "invalid_controller_input"
     if process["workerProcessState"] == "not_started":
         if qualification["authentication"]["result"] == "fail":
             return "pre_start_auth_failure"
@@ -85,6 +88,8 @@ def _reason_code(outcome: dict[str, Any]) -> str:
     if _integer_at_least(consumption["wallTimeMs"], 600000) or _integer_at_least(consumption["toolCalls"], 20):
         return "budget_exhaustion"
 
+    if infrastructure == "invalid_controller_input":
+        return "invalid_controller_input"
     if infrastructure == "capture_malformed":
         return "malformed_ndjson"
     if infrastructure == "capture_truncated":
@@ -109,6 +114,8 @@ def classify(outcome: object, policy: object, *, expected_policy_digest: str) ->
     parsed_policy = parse_contract("ClassificationPolicy", policy)
     if not isinstance(expected_policy_digest, str):
         _fail("classification.invalid_expected_policy_digest", "$.expected_policy_digest")
+    if parsed_policy["policyDigest"] != _policy_body_digest(parsed_policy):
+        _fail("classification.policy_digest_invalid", "$.policyDigest")
     if parsed_policy["policyDigest"] != expected_policy_digest:
         _fail("classification.policy_digest_mismatch", "$.expected_policy_digest")
     reason_code = _reason_code(parsed_outcome)
