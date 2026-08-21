@@ -4,8 +4,10 @@ import copy
 import json
 from pathlib import Path
 
+import pytest
+
 from abe_eval.classify import classify
-from abe_eval.contracts import canonical_contract_digest, parse_contract
+from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 from abe_eval.runner import RunAttemptInputs, run_attempt
 from abe_eval.schedule import build_schedule
 from fakes.fake_worker import FakeWorker
@@ -114,6 +116,32 @@ def test_pre_start_failure_still_stages_unclassified_outcome_and_lifecycle(tmp_p
     assert staged["classification"]["countsInValidRun"] is False
     assert (tmp_path / "staged" / str(attempt["runId"]) / "unclassified-outcome.json").exists()
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+@pytest.mark.parametrize("field", ["attemptId", "runId"])
+def test_runner_rejects_path_shaped_attempt_identities_before_writes(tmp_path, field):
+    attempt = copy.deepcopy(_attempts()[0])
+    attempt[field] = "../escaped"
+    attempt = parse_contract("ScheduledAttempt", attempt)
+    policy = _policy()
+    raw_root = tmp_path / "raw"
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        run_attempt(
+            RunAttemptInputs(
+                scheduled_attempt=attempt,
+                condition=_condition(str(attempt["conditionId"])),
+                scenario=_scenario(attempt, policy),
+                environment_qualification=_environment(),
+                raw_root=raw_root,
+            ),
+            FakeWorker("success"),
+        )
+
+    assert excinfo.value.reason_code == "runner.unsafe_identifier_path"
+    assert excinfo.value.path == f"$.{field}"
+    assert not (tmp_path / "escaped").exists()
+    assert not any(raw_root.rglob("*"))
 
 
 def test_replacement_attempt_links_to_original_without_overwriting(tmp_path):

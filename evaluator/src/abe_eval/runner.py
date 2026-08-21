@@ -57,6 +57,12 @@ def _seed_digest(seed: str) -> str:
     return "sha256:" + (seed * 64)[:64]
 
 
+def _safe_path_segment(value: str, path: str) -> str:
+    if not value or value in {".", ".."} or "/" in value or "\\" in value or "\x00" in value:
+        _fail("runner.unsafe_identifier_path", path)
+    return value
+
+
 def _write_json(path: Path, value: object, *, overwrite: bool = False) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     data = canonical_bytes(value) + b"\n"
@@ -281,8 +287,8 @@ def run_attempt(inputs: RunAttemptInputs, worker: Worker) -> dict[str, object]:
     scenario = parse_contract("ScenarioCard", inputs.scenario)
     environment = parse_contract("EnvironmentQualificationRecord", inputs.environment_qualification)
     root = Path(inputs.raw_root)
-    attempt_id = str(attempt["attemptId"])
-    run_id = str(attempt["runId"])
+    attempt_id = _safe_path_segment(str(attempt["attemptId"]), "$.attemptId")
+    run_id = _safe_path_segment(str(attempt["runId"]), "$.runId")
     environment_digest = canonical_contract_digest("EnvironmentQualificationRecord", environment)
 
     attempt_root = root / "attempts" / attempt_id
