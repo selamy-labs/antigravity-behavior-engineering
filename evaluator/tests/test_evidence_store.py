@@ -123,7 +123,8 @@ def _stage_classified_attempt(tmp_path: Path, case_id: str = "success") -> tuple
     attempt = _attempt("bare")
     scenario = _scenario(attempt, policy)
     environment = _environment()
-    condition = _condition("bare", environment=environment, scenario=scenario)
+    condition_id = "full" if case_id == "invalid_controller_input" else "bare"
+    condition = _condition(condition_id, environment=environment, scenario=scenario)
     unclassified = run_attempt(
         RunAttemptInputs(
             scheduled_attempt=attempt,
@@ -143,6 +144,26 @@ def _stage_classified_attempt(tmp_path: Path, case_id: str = "success") -> tuple
 def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
     lifecycle = root / "attempts" / attempt_id / "lifecycle.ndjson"
     return [json.loads(line) for line in lifecycle.read_text().splitlines() if line]
+
+
+def _write_json(path: Path, value: dict[str, object]) -> None:
+    path.write_bytes(canonical_bytes(value) + b"\n")
+
+
+def _rewrite_outcomes(staging: Path, unclassified: dict[str, object], staged: dict[str, object]) -> None:
+    staged["unclassifiedOutcomeDigest"] = canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified)
+    _write_json(staging / "unclassified-outcome.json", parse_contract("UnclassifiedStagedAttemptOutcome", unclassified))
+    _write_json(staging / "staged-outcome.json", parse_contract("StagedAttemptOutcome", staged))
+
+
+def _rewrite_outcomes_with_lifecycle_digests(tmp_path: Path, staging: Path, attempt_id: str) -> None:
+    events = _read_lifecycle(tmp_path, attempt_id)
+    digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events]
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    unclassified["lifecycleEventDigests"] = digests
+    staged["lifecycleEventDigests"] = digests
+    _rewrite_outcomes(staging, unclassified, staged)
 
 
 def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
@@ -194,6 +215,22 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
     assert run_json.read_bytes() == original_run_bytes
 
 
+def test_import_run_finalizes_pre_worker_controller_failure_with_explicit_missing_outputs(tmp_path):
+    staging, attempt, condition, scenario, environment, staged = _stage_classified_attempt(tmp_path, "invalid_controller_input")
+
+    run = import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert run["processState"]["workerProcessState"] == "not_started"
+    assert run["classification"]["reasonCode"] == "invalid_controller_input"
+    assert run["transcriptDigest"] == "none"
+    raw_manifest = json.loads((tmp_path / str(run["rawEvidenceLocator"])).read_bytes())
+    entries = {entry["path"]: entry for entry in raw_manifest["entries"]}
+    assert entries["raw-stream.ndjson"] == {"path": "raw-stream.ndjson", "present": False, "digest": "none", "byteLength": 0}
+    assert entries["process.json"] == {"path": "process.json", "present": False, "digest": "none", "byteLength": 0}
+    assert staged["classification"]["countsInValidRun"] is False
+    assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "run_finalized"
+
+
 def test_import_run_rejects_missing_required_staged_output_without_fabricating_empty_transcript(tmp_path):
     staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
     (staging / "output" / "raw-stream.ndjson").unlink()
@@ -237,6 +274,96 @@ def test_import_run_rejects_symlinked_staged_output(tmp_path):
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
+def test_import_run_rejects_unmanifested_staged_output_before_finalization(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    (staging / "output" / "unmanifested-extra.txt").write_text("extra\n")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.unmanifested_staged_output"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_unmanifested_staged_symlink_before_finalization(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    target = tmp_path / "outside-secret.txt"
+    target.write_text("do not import\n")
+    (staging / "output" / "unmanifested-link.txt").symlink_to(target)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.symlink_staged_output"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_supplied_attempt_that_differs_from_stored_attempt(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    tampered_attempt = copy.deepcopy(attempt)
+    tampered_attempt["scheduledAt"] = "2026-08-18T13:09:00Z"
+    tampered_attempt = parse_contract("ScheduledAttempt", tampered_attempt)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, tampered_attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.attemptDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_lifecycle_event_digest_that_does_not_bind_attempt(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    lifecycle_path = tmp_path / "attempts" / str(attempt["attemptId"]) / "lifecycle.ndjson"
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[0]["evidenceDigest"] = _digest("ab")
+    lifecycle_path.write_bytes(b"".join(canonical_bytes(parse_contract("AttemptLifecycleEvent", event)) + b"\n" for event in events))
+    _rewrite_outcomes_with_lifecycle_digests(tmp_path, staging, str(attempt["attemptId"]))
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.lifecycleEventDigests[0].evidenceDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_valid_start_time_that_disagrees_with_lifecycle(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    unclassified["attemptQualification"]["validStartAt"] = "2026-08-18T12:10:01Z"
+    staged["attemptQualification"]["validStartAt"] = "2026-08-18T12:10:01Z"
+    _rewrite_outcomes(staging, unclassified, staged)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.attemptQualification.validStartAt"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_condition_environment_qualification_mismatch(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    tampered_condition = copy.deepcopy(condition)
+    tampered_condition["environmentQualificationDigest"] = _digest("cd")
+    tampered_condition = parse_contract("ConditionLock", tampered_condition)
+    tampered_condition_digest = canonical_contract_digest("ConditionLock", tampered_condition)
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    unclassified["conditionDigest"] = tampered_condition_digest
+    staged["conditionDigest"] = tampered_condition_digest
+    _rewrite_outcomes(staging, unclassified, staged)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, tampered_condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.environmentQualificationDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
 def test_import_run_requires_bindings_to_controller_objects(tmp_path):
     staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
     tampered_condition = copy.deepcopy(condition)
@@ -275,3 +402,4 @@ def test_concurrent_import_publishes_one_run_without_changing_bytes(tmp_path):
     assert excinfo.value.reason_code == "evidence.run_already_finalized"
     assert (tmp_path / "runs" / str(attempt["runId"]) / "run.json").read_bytes() == first_bytes
     assert json.loads(first_bytes) == first
+    assert [event["phase"] for event in _read_lifecycle(tmp_path, str(attempt["attemptId"]))].count("run_finalized") == 1

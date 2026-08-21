@@ -10,6 +10,7 @@ from pathlib import Path
 
 from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
+from abe_eval.runner import _worker_invocation
 
 
 _REQUIRED_OUTPUTS = frozenset({"raw-stream.ndjson", "process.json"})
@@ -44,6 +45,10 @@ def _ensure_plain_dir(path: Path, reason_code: str, error_path: str) -> None:
     except FileExistsError:
         if path.is_symlink() or not path.is_dir():
             _fail(reason_code, error_path)
+
+
+def _digest_payload(payload: object) -> str:
+    return sha256_digest(canonical_bytes(payload))
 
 
 def _read_json(path: Path, reason_code: str, error_path: str) -> dict[str, object]:
@@ -83,17 +88,23 @@ def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
     return events
 
 
-def _validate_staging_manifest(staging: Path, manifest: dict[str, object]) -> list[dict[str, object]]:
+def _validate_staging_manifest(
+    staging: Path, manifest: dict[str, object], required_outputs: frozenset[str]
+) -> list[dict[str, object]]:
     if manifest.get("schemaVersion") != 1:
         _fail("evidence.invalid_staging_manifest", "$.schemaVersion")
     entries_value = manifest.get("entries")
     if not isinstance(entries_value, list):
         _fail("evidence.invalid_staging_manifest", "$.entries")
     output_root = staging / "output"
-    if output_root.is_symlink() or not output_root.is_dir():
+    if output_root.is_symlink():
+        _fail("evidence.symlink_staged_output", "$.output")
+    output_root_exists = output_root.exists()
+    if output_root_exists and not output_root.is_dir():
         _fail("evidence.output_directory_missing", "$.output")
 
     seen: set[str] = set()
+    present_by_name: dict[str, bool] = {}
     validated: list[dict[str, object]] = []
     for index, entry_value in enumerate(entries_value):
         entry_path = "$.entries[" + str(index) + "]"
@@ -108,6 +119,7 @@ def _validate_staging_manifest(staging: Path, manifest: dict[str, object]) -> li
         present = entry_value["present"]
         if not isinstance(present, bool):
             _fail("evidence.invalid_staging_manifest", entry_path + ".present")
+        present_by_name[name] = present
         digest = entry_value["digest"]
         byte_length = entry_value["byteLength"]
         if not isinstance(digest, str) or not isinstance(byte_length, int) or isinstance(byte_length, bool) or byte_length < 0:
@@ -115,16 +127,20 @@ def _validate_staging_manifest(staging: Path, manifest: dict[str, object]) -> li
         if not present:
             if digest != "none" or byte_length != 0:
                 _fail("evidence.invalid_staging_manifest", entry_path)
-            if name in _REQUIRED_OUTPUTS:
+            if name in required_outputs:
                 _fail("evidence.missing_staged_output", "$.output." + name)
             validated.append({"path": name, "present": False, "digest": "none", "byteLength": 0})
             continue
 
         source = output_root / name
+        if not output_root_exists:
+            if name in required_outputs:
+                _fail("evidence.missing_staged_output", "$.output." + name)
+            _fail("evidence.staged_output_missing", "$.output." + name)
         if source.is_symlink():
             _fail("evidence.symlink_staged_output", "$.output." + name)
         if not source.is_file():
-            if name in _REQUIRED_OUTPUTS:
+            if name in required_outputs:
                 _fail("evidence.missing_staged_output", "$.output." + name)
             _fail("evidence.staged_output_missing", "$.output." + name)
         data = source.read_bytes()
@@ -133,7 +149,15 @@ def _validate_staging_manifest(staging: Path, manifest: dict[str, object]) -> li
             _fail("evidence.staged_output_digest_mismatch", "$.output." + name)
         validated.append({"path": name, "present": True, "digest": digest, "byteLength": byte_length, "data": data})
 
-    missing_required = sorted(name for name in _REQUIRED_OUTPUTS if name not in seen)
+    if output_root_exists:
+        for child in output_root.iterdir():
+            name = _safe_staged_output_name(child.name, "$.output")
+            if child.is_symlink():
+                _fail("evidence.symlink_staged_output", "$.output." + name)
+            if name not in seen or not present_by_name[name]:
+                _fail("evidence.unmanifested_staged_output", "$.output." + name)
+
+    missing_required = sorted(name for name in required_outputs if name not in seen)
     if missing_required:
         _fail("evidence.missing_staged_output", "$.output." + missing_required[0])
     return validated
@@ -185,24 +209,38 @@ def _write_content_object(root: Path, digest: str, data: bytes) -> str:
     return _object_locator(digest)
 
 
-def _write_json_exclusive(path: Path, value: dict[str, object], reason_code: str) -> None:
+def _write_json_file(path: Path, value: dict[str, object]) -> None:
     data = canonical_bytes(value) + b"\n"
-    tmp_path = _temporary_sibling(path)
+    with path.open("xb") as stream:
+        stream.write(data)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> None:
+    runs_dir = root / "runs"
+    _ensure_plain_dir(runs_dir, "evidence.run_store_invalid", "$.runs")
+    run_dir = runs_dir / run_id
+    if run_dir.exists() or run_dir.is_symlink():
+        _fail("evidence.run_already_finalized", "$.runId")
+    temporary_run_dir = runs_dir / (".tmp-" + run_id + "." + str(os.getpid()) + "." + uuid.uuid4().hex)
+    temporary_run_dir.mkdir(mode=0o700)
     try:
-        with tmp_path.open("xb") as stream:
-            stream.write(data)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.link(tmp_path, path)
+        _write_json_file(temporary_run_dir / "run.json", run)
+        os.rename(temporary_run_dir, run_dir)
     except OSError as exc:
-        if exc.errno == errno.EEXIST:
-            _fail(reason_code, "$.runId")
+        if exc.errno in {errno.EEXIST, errno.ENOTEMPTY}:
+            _fail("evidence.run_already_finalized", "$.runId")
         raise
     finally:
-        try:
-            tmp_path.unlink()
-        except FileNotFoundError:
-            pass
+        temporary_run_json = temporary_run_dir / "run.json"
+        if temporary_run_json.exists() and not temporary_run_json.is_symlink():
+            temporary_run_json.unlink()
+        if temporary_run_dir.exists() and not temporary_run_dir.is_symlink():
+            try:
+                temporary_run_dir.rmdir()
+            except OSError:
+                pass
 
 
 def _append_run_finalized_event(root: Path, attempt_id: str, events: list[dict[str, object]], run: dict[str, object]) -> None:
@@ -221,6 +259,73 @@ def _append_run_finalized_event(root: Path, attempt_id: str, events: list[dict[s
     path = root / "attempts" / attempt_id / "lifecycle.ndjson"
     with path.open("ab") as stream:
         stream.write(canonical_bytes(event) + b"\n")
+
+
+def _read_stored_attempt(root: Path, attempt_id: str, supplied_attempt: dict[str, object]) -> dict[str, object]:
+    stored_attempt = parse_contract(
+        "ScheduledAttempt",
+        _read_json(root / "attempts" / attempt_id / "attempt.json", "evidence.attempt_missing", "$.attemptId"),
+    )
+    if canonical_contract_digest("ScheduledAttempt", stored_attempt) != canonical_contract_digest(
+        "ScheduledAttempt", supplied_attempt
+    ):
+        _fail("evidence.binding_mismatch", "$.attemptDigest")
+    return stored_attempt
+
+
+def _validate_controller_bindings(
+    condition: dict[str, object], scenario: dict[str, object], qualification: dict[str, object]
+) -> str:
+    qualification_digest = canonical_contract_digest("EnvironmentQualificationRecord", qualification)
+    if condition["environmentQualificationDigest"] != qualification_digest:
+        _fail("evidence.binding_mismatch", "$.environmentQualificationDigest")
+    if condition["cliDigest"] != qualification["cliDigest"]:
+        _fail("evidence.binding_mismatch", "$.environmentQualificationDigest")
+    if condition["authorityManifestDigest"] != canonical_contract_digest("AuthorityManifest", scenario["authorityManifest"]):
+        _fail("evidence.binding_mismatch", "$.conditionDigest")
+    if condition["resourceEnvelopeDigest"] != canonical_contract_digest("ResourceEnvelope", scenario["resourceEnvelope"]):
+        _fail("evidence.binding_mismatch", "$.conditionDigest")
+    return qualification_digest
+
+
+def _validate_lifecycle_bindings(
+    events: list[dict[str, object]],
+    attempt: dict[str, object],
+    condition: dict[str, object],
+    scenario: dict[str, object],
+    qualification_digest: str,
+    staged: dict[str, object],
+) -> None:
+    valid_start_at = str(staged["attemptQualification"]["validStartAt"])
+    expected_phases = ["scheduled", "preflight"]
+    if valid_start_at != "none":
+        expected_phases.append("valid_started")
+    expected_phases.append("execution_terminal")
+    if [event["phase"] for event in events] != expected_phases:
+        _fail("evidence.binding_mismatch", "$.lifecycleEventDigests")
+
+    if events[0]["occurredAt"] != attempt["scheduledAt"]:
+        _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[0].occurredAt")
+    if events[0]["evidenceDigest"] != canonical_contract_digest("ScheduledAttempt", attempt):
+        _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[0].evidenceDigest")
+
+    preflight_evidence = {"condition": condition, "scenario": scenario}
+    if events[1]["evidenceDigest"] != _digest_payload(preflight_evidence):
+        _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[1].evidenceDigest")
+
+    if valid_start_at == "none":
+        if staged["processState"]["workerProcessState"] != "not_started":
+            _fail("evidence.binding_mismatch", "$.attemptQualification.validStartAt")
+    else:
+        valid_started = events[2]
+        if valid_started["occurredAt"] != valid_start_at:
+            _fail("evidence.binding_mismatch", "$.attemptQualification.validStartAt")
+        invocation = _worker_invocation(attempt, condition, scenario, qualification_digest)
+        if valid_started["evidenceDigest"] != _digest_payload(invocation):
+            _fail("evidence.binding_mismatch", "$.lifecycleEventDigests[2].evidenceDigest")
+
+    if events[-1]["occurredAt"] != staged["processState"]["endedAt"]:
+        _fail("evidence.binding_mismatch", "$.processState.endedAt")
 
 
 def import_run(
@@ -248,37 +353,36 @@ def import_run(
     run_json = run_dir / "run.json"
     if run_json.exists() or run_json.is_symlink():
         _fail("evidence.run_already_finalized", "$.runId")
+    stored_attempt = _read_stored_attempt(root, attempt_id, parsed_attempt)
+    qualification_digest = _validate_controller_bindings(parsed_condition, parsed_scenario, parsed_qualification)
 
     unclassified = _read_json(staging / "unclassified-outcome.json", "evidence.unclassified_outcome_missing", "$.unclassifiedOutcome")
     staged = _read_json(staging / "staged-outcome.json", "evidence.staged_outcome_missing", "$.stagedOutcome")
     manifest = _read_json(staging / "staging-manifest.json", "evidence.staging_manifest_missing", "$.stagingManifest")
-    entries = _validate_staging_manifest(staging, manifest)
-
     bundle = parse_contract(
         "StagedAttemptOutcomeBundle",
         {"schemaVersion": 1, "unclassifiedOutcome": unclassified, "stagedOutcome": staged},
     )
     staged = bundle["stagedOutcome"]
     unclassified = bundle["unclassifiedOutcome"]
+    required_outputs = frozenset() if staged["processState"]["workerProcessState"] == "not_started" else _REQUIRED_OUTPUTS
+    entries = _validate_staging_manifest(staging, manifest, required_outputs)
     if staged["stagingManifestDigest"] != sha256_digest(canonical_bytes(manifest)):
         _fail("evidence.binding_mismatch", "$.stagingManifestDigest")
     if staged["runId"] != run_id or staged["attemptId"] != attempt_id:
         _fail("evidence.binding_mismatch", "$.runId")
-    if parsed_attempt["conditionId"] != parsed_condition["conditionId"]:
-        _fail("evidence.binding_mismatch", "$.conditionDigest")
-    if parsed_attempt["scenarioId"] != parsed_scenario["scenarioId"]:
-        _fail("evidence.binding_mismatch", "$.scenarioDigest")
     if staged["conditionDigest"] != canonical_contract_digest("ConditionLock", parsed_condition):
         _fail("evidence.binding_mismatch", "$.conditionDigest")
     if staged["scenarioDigest"] != canonical_contract_digest("ScenarioCard", parsed_scenario):
         _fail("evidence.binding_mismatch", "$.scenarioDigest")
-    if staged["environmentQualificationDigest"] != canonical_contract_digest("EnvironmentQualificationRecord", parsed_qualification):
+    if staged["environmentQualificationDigest"] != qualification_digest:
         _fail("evidence.binding_mismatch", "$.environmentQualificationDigest")
 
     events = _read_lifecycle(root, attempt_id)
     event_digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events]
     if event_digests != staged["lifecycleEventDigests"]:
         _fail("evidence.binding_mismatch", "$.lifecycleEventDigests")
+    _validate_lifecycle_bindings(events, stored_attempt, parsed_condition, parsed_scenario, qualification_digest, staged)
 
     raw_entries: list[dict[str, object]] = []
     for entry in entries:
@@ -323,9 +427,7 @@ def import_run(
             "redactedEvidenceLocator": "not_redacted",
         },
     )
-    _ensure_plain_dir(root / "runs", "evidence.run_store_invalid", "$.runs")
-    _ensure_plain_dir(run_dir, "evidence.run_store_invalid", "$.runId")
-    _write_json_exclusive(run_json, run, "evidence.run_already_finalized")
+    _finalize_run_directory(root, run_id, run)
     _append_run_finalized_event(root, attempt_id, events, run)
     return run
 

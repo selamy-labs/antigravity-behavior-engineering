@@ -81,7 +81,9 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     run_json = run_dir / "run.json"
     if run_json.is_symlink() or not run_json.is_file():
         _fail("grade.run_missing", "$.runId")
-    parse_contract("RunRecord", json.loads(run_json.read_text(encoding="utf-8")))
+    parsed_run = parse_contract("RunRecord", json.loads(run_json.read_text(encoding="utf-8")))
+    if parsed_run["runId"] != safe_run_id:
+        _fail("grade.run_record_mismatch", "$.runId")
 
     grade_segment = _safe_digest_segment(str(parsed_grade["graderDigest"]), "$.graderDigest")
     grades_dir = run_dir / "grades"

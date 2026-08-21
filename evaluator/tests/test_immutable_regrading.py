@@ -109,3 +109,18 @@ def test_append_grade_rejects_run_id_mismatch_and_missing_run(tmp_path):
     with pytest.raises(ContractValidationError) as missing_exc:
         append_grade("missing-run", missing, tmp_path)
     assert missing_exc.value.reason_code == "grade.run_missing"
+
+
+def test_append_grade_rejects_run_directory_with_mismatched_run_record(tmp_path):
+    run, _attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    other_run_id = "other-run"
+    other_run_dir = tmp_path / "runs" / other_run_id
+    other_run_dir.mkdir()
+    (other_run_dir / "run.json").write_bytes(canonical_bytes(run) + b"\n")
+    grade = _grade(other_run_id, "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(other_run_id, grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_record_mismatch"
+    assert not (other_run_dir / "grades").exists()
