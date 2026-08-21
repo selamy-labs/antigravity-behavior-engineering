@@ -192,3 +192,50 @@ test("provenance enforces package identity, component uniqueness, and lock self-
     })));
   });
 });
+
+test("provenance rejects hidden lock fields and control-bearing source URLs", async () => {
+  await withTree(fixtures.benignFiles, async (root) => {
+    await expectProvenanceError("provenance.invalid_field", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, {
+        dependencies: [{ ...fixtures.pinnedDependencies[0], hiddenReviewerNote: "must not be silently dropped" }],
+      }),
+    })));
+
+    await expectProvenanceError("provenance.invalid_field", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      adaptations: [{ ...fixtures.adaptations[0], approvalDecision: "must remain a human provenance record" }],
+    })));
+
+    await expectProvenanceError("provenance.invalid_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, {
+        dependencies: [{ ...fixtures.pinnedDependencies[0], sourceUrl: "https://github.com/example/repo" + "\u0000" + "suffix" }],
+      }),
+    })));
+  });
+});
+
+test("provenance binds component locks to package files", async () => {
+  await withTree(fixtures.benignFiles, async (root) => {
+    const component = {
+      schemaVersion: 1,
+      kind: "skill",
+      name: "example",
+      path: "src/index.md",
+      claimId: "claim-example",
+      defaultEnabled: true,
+      digest: rawDigest(fixtures.benignFiles["src/index.md"]),
+    };
+
+    const inventory = await buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, { components: [component] }),
+    }));
+    assert.match(inventory.rootDigest, /^sha256:[0-9a-f]{64}$/u);
+
+    await expectProvenanceError("provenance.file_digest_mismatch", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, { components: [{ ...component, digest: "sha256:" + "0".repeat(64) }] }),
+    })));
+
+    await expectProvenanceError("provenance.missing_file", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, { components: [{ ...component, path: "skills/missing/SKILL.md" }] }),
+    })));
+  });
+});

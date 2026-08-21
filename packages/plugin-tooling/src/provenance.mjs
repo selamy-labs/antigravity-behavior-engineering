@@ -5,7 +5,7 @@ import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json
 
 const encoder = new TextEncoder();
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
-const HTTPS_URL_PATTERN = /^https:\/\/[^\s]+$/u;
+const HTTPS_URL_PATTERN = /^https:\/\/[^\s\u0000-\u001f\u007f]+$/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
 const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
 const TIMESTAMP_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/u;
@@ -14,6 +14,8 @@ const PACKAGE_LOCK_KEYS = new Set(["schemaVersion", "packageName", "packageVersi
 const PLATFORM_KEYS = new Set(["schemaVersion", "os", "architecture"]);
 const COMPONENT_KEYS = new Set(["schemaVersion", "kind", "name", "path", "claimId", "defaultEnabled", "digest"]);
 const COMPONENT_KINDS = new Set(["skill", "rule", "agent", "hook", "script"]);
+const DEPENDENCY_KEYS = new Set(["schemaVersion", "name", "sourceUrl", "revision", "license", "consumption", "required", "qualificationEvidence"]);
+const ADAPTATION_KEYS = new Set(["schemaVersion", "sourceDigest", "localPath", "classification"]);
 
 export class ProvenanceValidationError extends TypeError {
   constructor(code, path = "$") {
@@ -209,6 +211,7 @@ const validatePackageIdentity = (files, packageLock) => {
 
 const sourceRecordFromDependency = (dependency, index) => {
   assertObject(dependency, "$.packageLock.dependencies[" + index + "]");
+  assertKnownKeys(dependency, DEPENDENCY_KEYS, "$.packageLock.dependencies[" + index + "]");
   if (dependency.schemaVersion !== 1) {
     fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].schemaVersion");
   }
@@ -272,12 +275,25 @@ const validateFileLock = (files, packageFiles) => {
   }
 };
 
+const validateComponentFiles = (files, components) => {
+  const actual = new Map(files.map((file) => [file.relativePath, digestBytes(file.bytes)]));
+  for (const component of components) {
+    if (!actual.has(component.path)) {
+      fail("provenance.missing_file", component.path);
+    }
+    if (actual.get(component.path) !== component.digest) {
+      fail("provenance.file_digest_mismatch", component.path);
+    }
+  }
+};
+
 const materializeAdaptations = (adaptations) => {
   if (!Array.isArray(adaptations)) {
     fail("provenance.invalid_field", "$.adaptations");
   }
   return adaptations.map((adaptation, index) => {
     assertObject(adaptation, "$.adaptations[" + index + "]");
+    assertKnownKeys(adaptation, ADAPTATION_KEYS, "$.adaptations[" + index + "]");
     validateDigest(adaptation.sourceDigest, "$.adaptations[" + index + "].sourceDigest");
     assertRelativePath(adaptation.localPath, "$.adaptations[" + index + "].localPath");
     if (typeof adaptation.classification !== "string" || adaptation.classification.length === 0) {
@@ -299,6 +315,7 @@ export const buildProvenanceInventory = async (root, locks) => {
   const files = await listFiles(root);
   validatePackageIdentity(files, packageLock);
   validateFileLock(files, packageLock.files);
+  validateComponentFiles(files, packageLock.components);
 
   const noticePath = typeof lockSet.noticePath === "string" ? lockSet.noticePath : "NOTICE";
   assertRelativePath(noticePath, "$.noticePath");
