@@ -1,0 +1,20 @@
+{
+  "seed": "t006-fake-block-seed",
+  "block": {
+    "schemaVersion": 1,
+    "blockId": "fake-block-001",
+    "modelRequest": "gemini-3.7-flash-high",
+    "scenarioDigests": [
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    ],
+    "conditionIds": [
+      "bare",
+      "full"
+    ],
+    "conditionPairLockDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "repetitions": 2,
+    "randomizationSeedCommitment": "sha256:9ba255b5e59dc1103550f4941ff4960ea1a708075cd330e6ebf4a68427e53b06",
+    "resourceEnvelopeDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+  }
+}
