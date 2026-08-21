@@ -10,7 +10,7 @@ from abe_eval.canonical import canonical_bytes
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 from abe_eval.evidence import import_run
 from abe_eval.grade import append_grade
-from test_evidence_store import _case_value, _stage_classified_attempt
+from test_evidence_store import _case_value, _read_lifecycle, _stage_classified_attempt, _write_lifecycle
 
 
 def _grade(run_id: str, grader_seed: str = "cb") -> dict[str, object]:
@@ -130,6 +130,7 @@ def test_append_grade_rejects_tampered_run_json_that_no_longer_matches_finalizat
     run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
     tampered = copy.deepcopy(run)
     tampered["redactedEvidenceLocator"] = "tampered-after-finalization"
+    run_path.chmod(0o600)
     run_path.write_bytes(canonical_bytes(parse_contract("RunRecord", tampered)) + b"\n")
     grade = _grade(str(run["runId"]), "ef")
 
@@ -137,4 +138,19 @@ def test_append_grade_rejects_tampered_run_json_that_no_longer_matches_finalizat
         append_grade(str(run["runId"]), grade, tmp_path)
 
     assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
+    assert not (tmp_path / "runs" / str(run["runId"]) / "grades").exists()
+
+
+def test_append_grade_rejects_lifecycle_finalization_attempt_id_tamper(tmp_path):
+    run, attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[-1]["attemptId"] = "other-attempt"
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
+    assert excinfo.value.path == "$.lifecycleEventDigests[4].attemptId"
     assert not (tmp_path / "runs" / str(run["runId"]) / "grades").exists()

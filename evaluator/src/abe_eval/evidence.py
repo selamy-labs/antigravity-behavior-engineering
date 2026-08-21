@@ -17,6 +17,7 @@ from abe_eval.runner import _OUTPUT_NAMES, _worker_invocation
 _REQUIRED_OUTPUTS = frozenset({"raw-stream.ndjson", "process.json"})
 _ALL_OUTPUTS = frozenset(_OUTPUT_NAMES)
 _T007_POLICY_DIGEST = "sha256:e37d8012ffe55956d37837d66475fe9362591a6f23a70b63cd6d60ce49db054a"
+_T007_PRE_WORKER_STDERR_DIGEST = "sha256:" + ("ee" * 64)[:64]
 _RETRY_ELIGIBLE_REASONS_BY_POLICY = {
     _T007_POLICY_DIGEST: frozenset(
         {
@@ -152,6 +153,8 @@ def _validate_staging_manifest(
         if set(entry_value) != {"path", "present", "digest", "byteLength"}:
             _fail("evidence.invalid_staging_manifest", entry_path)
         name = _safe_staged_output_name(entry_value["path"], entry_path + ".path")
+        if name not in _ALL_OUTPUTS:
+            _fail("evidence.unexpected_staged_output", entry_path + ".path")
         if name in seen:
             _fail("evidence.duplicate_staged_path", entry_path + ".path")
         seen.add(name)
@@ -270,6 +273,7 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> 
     try:
         _write_json_file(temporary_run_dir / "run.json", run)
         os.rename(temporary_run_dir, run_dir)
+        (run_dir / "run.json").chmod(0o400)
     except OSError as exc:
         if exc.errno in {errno.EEXIST, errno.ENOTEMPTY}:
             _fail("evidence.run_already_finalized", "$.runId")
@@ -412,7 +416,15 @@ def _validate_preflight_state(staged: dict[str, object]) -> None:
         _fail("evidence.binding_mismatch", "$.attemptQualification." + failures[0][0] + ".result")
 
 
-def _validate_pre_worker_state(staged: dict[str, object]) -> None:
+def _validate_observed_model_binding(staged: dict[str, object], condition: dict[str, object]) -> None:
+    observed = staged["observedModel"]
+    if observed["requestedModel"] != condition["modelRequest"]:
+        _fail("evidence.binding_mismatch", "$.observedModel.requestedModel")
+    if observed["requestedReasoning"] != condition["reasoningRequest"]:
+        _fail("evidence.binding_mismatch", "$.observedModel.requestedReasoning")
+
+
+def _validate_pre_worker_state(staged: dict[str, object], entries: list[dict[str, object]]) -> None:
     process = staged["processState"]
     if process["workerProcessState"] != "not_started":
         return
@@ -434,12 +446,19 @@ def _validate_pre_worker_state(staged: dict[str, object]) -> None:
     expected_infrastructure = "pre_start_auth_failure" if failed_preflight == "authentication" else "invalid_controller_input"
     if staged["infrastructureValidity"] != expected_infrastructure:
         _fail("evidence.binding_mismatch", "$.infrastructureValidity")
+    expected_stderr_digest = _digest_for(entries, "stderr.txt")
+    if expected_stderr_digest == "none":
+        expected_stderr_digest = _T007_PRE_WORKER_STDERR_DIGEST
+    if process["stderrDigest"] != expected_stderr_digest:
+        _fail("evidence.binding_mismatch", "$.processState.stderrDigest")
 
 
 def _validate_started_process_state(staged: dict[str, object], entries: list[dict[str, object]]) -> None:
     process = staged["processState"]
     if process["workerProcessState"] == "not_started":
         return
+    if staged["infrastructureValidity"] in {"invalid_controller_input", "pre_start_auth_failure"}:
+        _fail("evidence.binding_mismatch", "$.infrastructureValidity")
     if process["workerProcessState"] != "terminated":
         _fail("evidence.binding_mismatch", "$.processState.workerProcessState")
     valid_start_at = staged["attemptQualification"]["validStartAt"]
@@ -572,8 +591,9 @@ def import_run(
     if staged["environmentQualificationDigest"] != qualification_digest:
         _fail("evidence.binding_mismatch", "$.environmentQualificationDigest")
     _validate_preflight_state(staged)
+    _validate_observed_model_binding(staged, parsed_condition)
     _validate_classification(staged, parsed_scenario)
-    _validate_pre_worker_state(staged)
+    _validate_pre_worker_state(staged, entries)
     _validate_attempt_controller_identity(stored_attempt, parsed_condition, parsed_scenario, staged)
 
     events = _read_lifecycle(root, attempt_id)

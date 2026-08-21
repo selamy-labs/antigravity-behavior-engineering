@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import stat
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -180,6 +181,53 @@ def _rewrite_manifest_and_bind_outcomes(staging: Path, manifest: dict[str, objec
     _rewrite_paired_outcomes(staging, update_manifest_digest)
 
 
+def _present_staged_files(staging: Path) -> dict[str, str]:
+    manifest = json.loads((staging / "staging-manifest.json").read_text())
+    return {
+        entry["path"]: (staging / "output" / entry["path"]).read_text()
+        for entry in manifest["entries"]
+        if entry["present"]
+    }
+
+
+def _terminal_evidence_from_staged(staging: Path, staged: dict[str, object], terminal_kind: str) -> dict[str, object]:
+    process = staged["processState"]
+    return {
+        "terminalKind": terminal_kind,
+        "controllerExitCode": process["controllerExitCode"],
+        "workerExitCode": process["workerExitCode"],
+        "signal": process["signal"],
+        "timeout": process["timeout"],
+        "agentDeclaredState": staged["agentDeclaredState"],
+        "inputPermissionState": staged["inputPermissionState"],
+        "infrastructureValidity": staged["infrastructureValidity"],
+        "consumption": staged["consumption"],
+        "observedModel": staged["observedModel"],
+        "stagedFiles": _present_staged_files(staging),
+    }
+
+
+def _rewrite_started_terminal_evidence_and_outcomes(
+    tmp_path: Path,
+    staging: Path,
+    attempt_id: str,
+    mutator: Callable[[dict[str, object]], None],
+) -> None:
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    mutator(unclassified)
+    mutator(staged)
+    events = _read_lifecycle(tmp_path, attempt_id)
+    events[-1]["evidenceDigest"] = sha256_digest(
+        canonical_bytes(_terminal_evidence_from_staged(staging, staged, str(events[-1]["terminalKind"])))
+    )
+    _write_lifecycle(tmp_path, attempt_id, events)
+    digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events]
+    unclassified["lifecycleEventDigests"] = digests
+    staged["lifecycleEventDigests"] = digests
+    _rewrite_outcomes(staging, unclassified, staged)
+
+
 def _rewrite_outcomes_with_lifecycle_digests(tmp_path: Path, staging: Path, attempt_id: str) -> None:
     events = _read_lifecycle(tmp_path, attempt_id)
     digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events]
@@ -207,6 +255,7 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
 
     run_json = tmp_path / "runs" / str(attempt["runId"]) / "run.json"
     original_run_bytes = run_json.read_bytes()
+    assert stat.S_IMODE(run_json.stat().st_mode) & stat.S_IWUSR == 0
     assert json.loads(original_run_bytes) == run
 
     raw_locator = Path(str(run["rawEvidenceLocator"]))
@@ -321,6 +370,26 @@ def test_import_run_rejects_staging_manifest_run_id_relabel_even_when_digest_mat
 
     assert excinfo.value.reason_code == "evidence.binding_mismatch"
     assert excinfo.value.path == "$.stagingManifest.runId"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_manifested_unknown_staged_output_even_when_terminal_digest_matches(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    extra = staging / "output" / "extra.txt"
+    extra.write_text("extra evidence\n")
+    manifest = json.loads((staging / "staging-manifest.json").read_text())
+    extra_data = extra.read_bytes()
+    manifest["entries"].append(
+        {"path": "extra.txt", "present": True, "digest": sha256_digest(extra_data), "byteLength": len(extra_data)}
+    )
+    _rewrite_manifest_and_bind_outcomes(staging, manifest)
+    _rewrite_started_terminal_evidence_and_outcomes(tmp_path, staging, str(attempt["attemptId"]), lambda _outcome: None)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.unexpected_staged_output"
+    assert excinfo.value.path == "$.entries[10].path"
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
@@ -539,6 +608,22 @@ def test_import_run_rejects_pre_worker_infrastructure_relabel(tmp_path):
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
+def test_import_run_rejects_pre_worker_stderr_digest_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path, "invalid_controller_input")
+
+    def relabel_stderr_digest(outcome: dict[str, object]) -> None:
+        outcome["processState"]["stderrDigest"] = _digest("99")
+
+    _rewrite_paired_outcomes(staging, relabel_stderr_digest)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.processState.stderrDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
 @pytest.mark.parametrize(
     ("field", "value", "path"),
     [
@@ -560,6 +645,51 @@ def test_import_run_rejects_started_process_state_relabel(tmp_path, field, value
 
     assert excinfo.value.reason_code == "evidence.binding_mismatch"
     assert excinfo.value.path == path
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_valid_started_invalid_controller_relabel_even_when_terminal_digest_matches(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+
+    def relabel_as_controller_input_failure(outcome: dict[str, object]) -> None:
+        outcome["infrastructureValidity"] = "invalid_controller_input"
+        if "classification" in outcome:
+            outcome["classification"] = {
+                "schemaVersion": 1,
+                "policyDigest": outcome["classification"]["policyDigest"],
+                "reasonCode": "invalid_controller_input",
+                "class": "infrastructure_failure",
+                "countsInIntentionToTreat": True,
+                "countsInValidRun": False,
+                "retryEligible": False,
+            }
+
+    _rewrite_started_terminal_evidence_and_outcomes(
+        tmp_path, staging, str(attempt["attemptId"]), relabel_as_controller_input_failure
+    )
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.infrastructureValidity"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_observed_model_relabel_even_when_terminal_digest_matches(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+
+    def relabel_observed_model(outcome: dict[str, object]) -> None:
+        outcome["observedModel"]["requestedModel"] = "gemini-3.1-pro-high"
+        outcome["observedModel"]["requestedReasoning"] = "medium"
+
+    _rewrite_started_terminal_evidence_and_outcomes(tmp_path, staging, str(attempt["attemptId"]), relabel_observed_model)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.observedModel.requestedModel"
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 

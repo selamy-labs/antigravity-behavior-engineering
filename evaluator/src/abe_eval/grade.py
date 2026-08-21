@@ -86,10 +86,24 @@ def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
 
 def _validate_run_finalization_digest(root: Path, run: dict[str, object]) -> None:
     attempt_id = _safe_identifier(run["attemptId"], "$.attemptId", "grade.unsafe_identifier_path")
-    finalized = [event for event in _read_lifecycle(root, attempt_id) if event["phase"] == "run_finalized"]
-    if len(finalized) != 1:
+    events = _read_lifecycle(root, attempt_id)
+    if not events:
         _fail("grade.run_finalization_missing", "$.runId")
-    if finalized[0]["evidenceDigest"] != canonical_contract_digest("RunRecord", run):
+    for index, event in enumerate(events):
+        event_path = "$.lifecycleEventDigests[" + str(index) + "]"
+        if event["attemptId"] != attempt_id:
+            _fail("grade.run_finalization_digest_mismatch", event_path + ".attemptId")
+        if event["sequence"] != index:
+            _fail("grade.run_finalization_digest_mismatch", event_path + ".sequence")
+    finalized_indices = [index for index, event in enumerate(events) if event["phase"] == "run_finalized"]
+    if finalized_indices != [len(events) - 1]:
+        _fail("grade.run_finalization_missing", "$.runId")
+    finalized = events[-1]
+    if len(events) < 2 or events[-2]["phase"] != "execution_terminal":
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests")
+    if finalized["terminalKind"] != "none":
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[" + str(len(events) - 1) + "].terminalKind")
+    if finalized["evidenceDigest"] != canonical_contract_digest("RunRecord", run):
         _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
