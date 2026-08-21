@@ -262,6 +262,7 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
     raw_locator = Path(str(run["rawEvidenceLocator"]))
     assert not raw_locator.is_absolute()
     assert ".." not in raw_locator.parts
+    assert raw_locator.parts[:4] == ("runs", str(run["runId"]), "artifacts", "sha256")
     raw_manifest_path = tmp_path / raw_locator
     assert stat.S_IMODE(raw_manifest_path.stat().st_mode) & stat.S_IWUSR == 0
     raw_manifest = json.loads(raw_manifest_path.read_bytes())
@@ -278,6 +279,8 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
         if not entry["present"]:
             assert entry["digest"] == "none"
             continue
+        object_locator = Path(str(entry["objectLocator"]))
+        assert object_locator.parts[:4] == ("runs", str(run["runId"]), "artifacts", "sha256")
         object_path = tmp_path / str(entry["objectLocator"])
         assert stat.S_IMODE(object_path.stat().st_mode) & stat.S_IWUSR == 0
         staged_bytes = (staging / "output" / entry["path"]).read_bytes()
@@ -936,5 +939,24 @@ def test_import_run_rolls_back_run_directory_when_lifecycle_append_write_fails(t
         import_run(staging, attempt, condition, scenario, environment, tmp_path)
 
     assert excinfo.value.reason_code == "evidence.lifecycle_not_appendable"
+    assert not run_dir.exists()
+    assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "execution_terminal"
+
+
+def test_import_run_rolls_back_run_directory_when_finalized_chmod_fails(tmp_path, monkeypatch):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    run_dir = tmp_path / "runs" / str(attempt["runId"])
+    original_chmod = Path.chmod
+
+    def fail_finalized_run_json_chmod(self, mode, *args, **kwargs):
+        if Path(self) == run_dir / "run.json":
+            raise OSError(5, "simulated chmod failure after rename")
+        return original_chmod(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "chmod", fail_finalized_run_json_chmod)
+
+    with pytest.raises(OSError):
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
     assert not run_dir.exists()
     assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "execution_terminal"

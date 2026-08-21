@@ -230,27 +230,27 @@ def _digest_for(entries: list[dict[str, object]], name: str) -> str:
     return "none"
 
 
-def _object_locator(digest: str) -> str:
-    return "objects/sha256/" + digest.removeprefix("sha256:")
+def _artifact_locator(run_id: str, digest: str) -> str:
+    return "runs/" + run_id + "/artifacts/sha256/" + digest.removeprefix("sha256:")
 
 
 def _temporary_sibling(path: Path) -> Path:
     return path.with_name(path.name + ".tmp." + str(os.getpid()) + "." + uuid.uuid4().hex)
 
 
-def _write_content_object(root: Path, digest: str, data: bytes) -> str:
+def _write_content_object(temporary_run_dir: Path, digest: str, data: bytes) -> None:
     if sha256_digest(data) != digest:
-        _fail("evidence.content_digest_mismatch", "$.objects")
-    objects = root / "objects"
-    sha256_dir = objects / "sha256"
-    _ensure_plain_dir(objects, "evidence.object_store_invalid", "$.objects")
-    _ensure_plain_dir(sha256_dir, "evidence.object_store_invalid", "$.objects.sha256")
-    object_path = root / _object_locator(digest)
+        _fail("evidence.content_digest_mismatch", "$.artifacts")
+    artifacts = temporary_run_dir / "artifacts"
+    sha256_dir = artifacts / "sha256"
+    _ensure_plain_dir(artifacts, "evidence.object_store_invalid", "$.artifacts")
+    _ensure_plain_dir(sha256_dir, "evidence.object_store_invalid", "$.artifacts.sha256")
+    object_path = sha256_dir / digest.removeprefix("sha256:")
     if object_path.exists() or object_path.is_symlink():
         if object_path.is_symlink() or not object_path.is_file() or object_path.read_bytes() != data:
-            _fail("evidence.object_digest_collision", "$.objects")
+            _fail("evidence.object_digest_collision", "$.artifacts")
         object_path.chmod(0o400)
-        return _object_locator(digest)
+        return
 
     tmp_path = _temporary_sibling(object_path)
     try:
@@ -262,14 +262,49 @@ def _write_content_object(root: Path, digest: str, data: bytes) -> str:
         object_path.chmod(0o400)
     except FileExistsError:
         if not object_path.is_file() or object_path.is_symlink() or object_path.read_bytes() != data:
-            _fail("evidence.object_digest_collision", "$.objects")
+            _fail("evidence.object_digest_collision", "$.artifacts")
         object_path.chmod(0o400)
     finally:
         try:
             tmp_path.unlink()
         except FileNotFoundError:
             pass
-    return _object_locator(digest)
+
+
+def _remove_run_directory_contents(run_dir: Path) -> None:
+    if run_dir.is_symlink() or not run_dir.is_dir():
+        return
+    for name in ("run.json", "run.digest"):
+        child = run_dir / name
+        if child.is_symlink() or not child.is_file():
+            continue
+        try:
+            child.unlink()
+        except OSError:
+            pass
+    sha256_dir = run_dir / "artifacts" / "sha256"
+    if not sha256_dir.is_symlink() and sha256_dir.is_dir():
+        for child in sha256_dir.iterdir():
+            if child.is_symlink() or not child.is_file():
+                continue
+            try:
+                child.unlink()
+            except OSError:
+                pass
+        try:
+            sha256_dir.rmdir()
+        except OSError:
+            pass
+    artifacts_dir = run_dir / "artifacts"
+    if not artifacts_dir.is_symlink() and artifacts_dir.is_dir():
+        try:
+            artifacts_dir.rmdir()
+        except OSError:
+            pass
+    try:
+        run_dir.rmdir()
+    except OSError:
+        pass
 
 
 def _write_json_file(path: Path, value: dict[str, object]) -> None:
@@ -287,7 +322,7 @@ def _write_text_file(path: Path, value: str) -> None:
         os.fsync(stream.fileno())
 
 
-def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> None:
+def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object], artifacts: list[tuple[str, bytes]]) -> None:
     runs_dir = root / "runs"
     _ensure_plain_dir(runs_dir, "evidence.run_store_invalid", "$.runs")
     run_dir = runs_dir / run_id
@@ -296,45 +331,29 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> 
     temporary_run_dir = runs_dir / (".tmp-" + run_id + "." + str(os.getpid()) + "." + uuid.uuid4().hex)
     temporary_run_dir.mkdir(mode=0o700)
     try:
+        for digest, data in artifacts:
+            _write_content_object(temporary_run_dir, digest, data)
         _write_json_file(temporary_run_dir / "run.json", run)
         _write_text_file(temporary_run_dir / "run.digest", canonical_contract_digest("RunRecord", run) + "\n")
         os.rename(temporary_run_dir, run_dir)
-        (run_dir / "run.json").chmod(0o400)
-        (run_dir / "run.digest").chmod(0o400)
+        try:
+            (run_dir / "run.json").chmod(0o400)
+            (run_dir / "run.digest").chmod(0o400)
+        except OSError:
+            _rollback_finalized_run_directory(root, run_id)
+            raise
     except OSError as exc:
         if exc.errno in {errno.EEXIST, errno.ENOTEMPTY}:
             _fail("evidence.run_already_finalized", "$.runId")
         raise
     finally:
-        temporary_run_json = temporary_run_dir / "run.json"
-        if temporary_run_json.exists() and not temporary_run_json.is_symlink():
-            temporary_run_json.unlink()
-        temporary_run_digest = temporary_run_dir / "run.digest"
-        if temporary_run_digest.exists() and not temporary_run_digest.is_symlink():
-            temporary_run_digest.unlink()
         if temporary_run_dir.exists() and not temporary_run_dir.is_symlink():
-            try:
-                temporary_run_dir.rmdir()
-            except OSError:
-                pass
+            _remove_run_directory_contents(temporary_run_dir)
 
 
 def _rollback_finalized_run_directory(root: Path, run_id: str) -> None:
     run_dir = root / "runs" / run_id
-    if run_dir.is_symlink() or not run_dir.is_dir():
-        return
-    for name in ("run.json", "run.digest"):
-        child = run_dir / name
-        if child.is_symlink() or not child.is_file():
-            continue
-        try:
-            child.unlink()
-        except OSError:
-            pass
-    try:
-        run_dir.rmdir()
-    except OSError:
-        pass
+    _remove_run_directory_contents(run_dir)
 
 
 def _run_finalized_event(attempt_id: str, events: list[dict[str, object]], run: dict[str, object]) -> dict[str, object]:
@@ -694,13 +713,15 @@ def import_run(
     _validate_started_process_state(staged, entries)
 
     raw_entries: list[dict[str, object]] = []
+    artifact_payloads: list[tuple[str, bytes]] = []
     for entry in entries:
         raw_entry = {key: entry[key] for key in ("path", "present", "digest", "byteLength")}
         raw_entry["mediaType"] = _media_type(str(entry["path"]))
         raw_entry["sourceZone"] = "protected_raw_staging"
         raw_entry["redactionDisposition"] = "protected_only_pending_redaction"
         if entry["present"]:
-            raw_entry["objectLocator"] = _write_content_object(root, str(entry["digest"]), entry["data"])  # type: ignore[arg-type]
+            raw_entry["objectLocator"] = _artifact_locator(run_id, str(entry["digest"]))
+            artifact_payloads.append((str(entry["digest"]), entry["data"]))  # type: ignore[arg-type]
         raw_entries.append(raw_entry)
     raw_manifest = {
         "schemaVersion": 1,
@@ -713,7 +734,8 @@ def import_run(
     }
     raw_manifest_bytes = canonical_bytes(raw_manifest)
     raw_manifest_digest = sha256_digest(raw_manifest_bytes)
-    raw_manifest_locator = _write_content_object(root, raw_manifest_digest, raw_manifest_bytes)
+    raw_manifest_locator = _artifact_locator(run_id, raw_manifest_digest)
+    artifact_payloads.append((raw_manifest_digest, raw_manifest_bytes))
 
     run = parse_contract(
         "RunRecord",
@@ -741,7 +763,7 @@ def import_run(
     )
     finalized_event = _run_finalized_event(attempt_id, events, run)
     with _open_lifecycle_append_stream(root, attempt_id) as lifecycle_stream:
-        _finalize_run_directory(root, run_id, run)
+        _finalize_run_directory(root, run_id, run, artifact_payloads)
         try:
             _append_run_finalized_event(lifecycle_stream, finalized_event)
         except Exception:

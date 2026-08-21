@@ -34,7 +34,7 @@ def _safe_digest_segment(value: str, path: str) -> str:
     return hex_digest
 
 
-def _resolve_relative_locator(root: Path, value: object, path: str) -> Path:
+def _relative_locator(value: object, path: str) -> Path:
     text = str(value)
     candidate = Path(text)
     if (
@@ -45,7 +45,27 @@ def _resolve_relative_locator(root: Path, value: object, path: str) -> Path:
         or any(part in {"", ".", ".."} for part in candidate.parts)
     ):
         _fail("grade.unsafe_identifier_path", path)
-    return root / candidate
+    return candidate
+
+
+def _ensure_plain_ancestors(root: Path, relative: Path, path: str) -> None:
+    current = root
+    for part in relative.parts[:-1]:
+        current = current / part
+        if current.is_symlink() or not current.is_dir():
+            _fail("grade.unsafe_identifier_path", path)
+
+
+def _resolve_run_artifact_locator(root: Path, run_id: str, value: object, path: str) -> Path:
+    relative = _relative_locator(value, path)
+    expected_prefix = ("runs", run_id, "artifacts", "sha256")
+    if len(relative.parts) != 5 or relative.parts[:4] != expected_prefix:
+        _fail("grade.unsafe_identifier_path", path)
+    digest_segment = relative.parts[4]
+    if len(digest_segment) != 64 or any(character not in "0123456789abcdef" for character in digest_segment):
+        _fail("grade.unsafe_identifier_path", path)
+    _ensure_plain_ancestors(root, relative, path)
+    return root / relative
 
 
 def _ensure_not_owner_writable(path: Path, error_path: str, reason_code: str = "grade.raw_evidence_mutable") -> None:
@@ -63,6 +83,11 @@ def _ensure_plain_dir(path: Path, reason_code: str, error_path: str) -> None:
     except FileExistsError:
         if path.is_symlink() or not path.is_dir():
             _fail(reason_code, error_path)
+
+
+def _ensure_existing_plain_dir(path: Path, reason_code: str, error_path: str) -> None:
+    if path.is_symlink() or not path.is_dir():
+        _fail(reason_code, error_path)
 
 
 def _temporary_sibling(path: Path) -> Path:
@@ -144,7 +169,8 @@ def _validate_run_digest_anchor(run_dir: Path, run: dict[str, object]) -> None:
 
 
 def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
-    manifest_path = _resolve_relative_locator(root, run["rawEvidenceLocator"], "$.rawEvidenceLocator")
+    run_id = _safe_identifier(run["runId"], "$.runId", "grade.unsafe_identifier_path")
+    manifest_path = _resolve_run_artifact_locator(root, run_id, run["rawEvidenceLocator"], "$.rawEvidenceLocator")
     if manifest_path.is_symlink() or not manifest_path.is_file():
         _fail("grade.raw_evidence_missing", "$.rawEvidenceLocator")
     manifest_bytes = manifest_path.read_bytes()
@@ -170,7 +196,7 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
             if entry.get("digest") != "none" or entry.get("byteLength") != 0:
                 _fail("grade.raw_evidence_digest_mismatch", entry_path)
             continue
-        object_path = _resolve_relative_locator(root, entry.get("objectLocator"), entry_path + ".objectLocator")
+        object_path = _resolve_run_artifact_locator(root, run_id, entry.get("objectLocator"), entry_path + ".objectLocator")
         if object_path.is_symlink() or not object_path.is_file():
             _fail("grade.raw_evidence_missing", entry_path + ".objectLocator")
         data = object_path.read_bytes()
@@ -187,7 +213,10 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     if parsed_grade["runId"] != safe_run_id:
         _fail("grade.run_id_mismatch", "$.runId")
     root = Path(root)
-    run_dir = root / "runs" / safe_run_id
+    runs_dir = root / "runs"
+    _ensure_existing_plain_dir(runs_dir, "grade.run_missing", "$.runId")
+    run_dir = runs_dir / safe_run_id
+    _ensure_existing_plain_dir(run_dir, "grade.run_missing", "$.runId")
     run_json = run_dir / "run.json"
     if run_json.is_symlink() or not run_json.is_file():
         _fail("grade.run_missing", "$.runId")

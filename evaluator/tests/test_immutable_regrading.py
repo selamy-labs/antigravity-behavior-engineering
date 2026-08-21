@@ -147,6 +147,21 @@ def test_append_grade_rejects_run_id_mismatch_and_missing_run(tmp_path):
     assert missing_exc.value.reason_code == "grade.run_missing"
 
 
+def test_append_grade_rejects_symlinked_run_directory_without_writing_outside_root(tmp_path):
+    run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    run_dir = run_path.parent
+    outside_run_dir = tmp_path.with_name(tmp_path.name + "-outside-run")
+    run_dir.rename(outside_run_dir)
+    run_dir.symlink_to(outside_run_dir, target_is_directory=True)
+    grade = _grade(str(run["runId"]), "ab")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_missing"
+    assert not (outside_run_dir / "grades").exists()
+
+
 def test_append_grade_rejects_run_directory_with_mismatched_run_record(tmp_path):
     run, _attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
     other_run_id = "other-run"
@@ -241,6 +256,22 @@ def test_append_grade_rejects_tampered_raw_manifest(tmp_path):
         append_grade(str(run["runId"]), grade, tmp_path)
 
     assert excinfo.value.reason_code == "grade.raw_evidence_digest_mismatch"
+    assert excinfo.value.path == "$.rawEvidenceLocator"
+    assert not _grade_path(tmp_path, run, grade).exists()
+
+
+def test_append_grade_rejects_symlinked_raw_artifact_directory(tmp_path):
+    run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    artifacts_dir = run_path.parent / "artifacts"
+    outside_artifacts_dir = tmp_path.with_name(tmp_path.name + "-outside-artifacts")
+    artifacts_dir.rename(outside_artifacts_dir)
+    artifacts_dir.symlink_to(outside_artifacts_dir, target_is_directory=True)
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.unsafe_identifier_path"
     assert excinfo.value.path == "$.rawEvidenceLocator"
     assert not _grade_path(tmp_path, run, grade).exists()
 
