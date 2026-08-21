@@ -53,6 +53,22 @@ _PREFLIGHT_EVIDENCE_DIGESTS = {
     "structuredCapturePreflight": _t007_seed_digest("8a"),
     "authorityToolInventory": _t007_seed_digest("9b"),
 }
+_RUN_RECORD_BINDING_FIELDS = (
+    "conditionDigest",
+    "scenarioDigest",
+    "environmentQualificationDigest",
+    "attemptQualification",
+    "observedModel",
+    "processState",
+    "agentDeclaredState",
+    "inputPermissionState",
+    "infrastructureValidity",
+    "transcriptDigest",
+    "eventStreamDigest",
+    "consumption",
+    "classification",
+    "redactedEvidenceLocator",
+)
 
 
 def _fail(reason_code: str, path: str = "$") -> None:
@@ -386,6 +402,29 @@ def _append_run_finalized_event(stream, event: dict[str, object]) -> None:
         os.fsync(stream.fileno())
     except OSError:
         _fail("evidence.lifecycle_not_appendable", "$.attemptId")
+
+
+def _truncate_lifecycle_stream(stream, position: int) -> None:
+    try:
+        stream.truncate(position)
+        stream.flush()
+        os.fsync(stream.fileno())
+    except OSError:
+        pass
+
+
+def _lifecycle_ends_with_event(root: Path, attempt_id: str, expected: dict[str, object]) -> bool:
+    path = root / "attempts" / attempt_id / "lifecycle.ndjson"
+    try:
+        lines = [line for line in path.read_text(encoding="utf-8").splitlines() if line]
+        if not lines:
+            return False
+        actual = parse_contract("AttemptLifecycleEvent", json.loads(lines[-1]))
+    except (OSError, json.JSONDecodeError, ContractValidationError):
+        return False
+    return canonical_contract_digest("AttemptLifecycleEvent", actual) == canonical_contract_digest(
+        "AttemptLifecycleEvent", expected
+    )
 
 
 def _preflight_failures(qualification: dict[str, object]) -> list[tuple[str, str]]:
@@ -723,6 +762,24 @@ def import_run(
             raw_entry["objectLocator"] = _artifact_locator(run_id, str(entry["digest"]))
             artifact_payloads.append((str(entry["digest"]), entry["data"]))  # type: ignore[arg-type]
         raw_entries.append(raw_entry)
+    run_record_binding = {
+        "conditionDigest": staged["conditionDigest"],
+        "scenarioDigest": staged["scenarioDigest"],
+        "environmentQualificationDigest": staged["environmentQualificationDigest"],
+        "attemptQualification": staged["attemptQualification"],
+        "observedModel": staged["observedModel"],
+        "processState": staged["processState"],
+        "agentDeclaredState": staged["agentDeclaredState"],
+        "inputPermissionState": staged["inputPermissionState"],
+        "infrastructureValidity": staged["infrastructureValidity"],
+        "transcriptDigest": _digest_for(raw_entries, "raw-stream.ndjson"),
+        "eventStreamDigest": _digest_for(raw_entries, "hook-events.ndjson"),
+        "consumption": staged["consumption"],
+        "classification": staged["classification"],
+        "redactedEvidenceLocator": "not_redacted",
+    }
+    if set(run_record_binding) != set(_RUN_RECORD_BINDING_FIELDS):
+        _fail("evidence.invalid_raw_manifest", "$.rawEvidenceLocator.runRecordBinding")
     raw_manifest = {
         "schemaVersion": 1,
         "runId": run_id,
@@ -730,6 +787,7 @@ def import_run(
         "stagedOutcomeDigest": canonical_contract_digest("StagedAttemptOutcome", staged),
         "unclassifiedOutcomeDigest": canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified),
         "sourceStagingManifestDigest": staged["stagingManifestDigest"],
+        "runRecordBinding": run_record_binding,
         "entries": raw_entries,
     }
     raw_manifest_bytes = canonical_bytes(raw_manifest)
@@ -764,9 +822,19 @@ def import_run(
     finalized_event = _run_finalized_event(attempt_id, events, run)
     with _open_lifecycle_append_stream(root, attempt_id) as lifecycle_stream:
         _finalize_run_directory(root, run_id, run, artifact_payloads)
+        lifecycle_position = lifecycle_stream.tell()
         try:
             _append_run_finalized_event(lifecycle_stream, finalized_event)
+        except ContractValidationError as exc:
+            if exc.reason_code == "evidence.lifecycle_not_appendable" and _lifecycle_ends_with_event(
+                root, attempt_id, finalized_event
+            ):
+                return run
+            _truncate_lifecycle_stream(lifecycle_stream, lifecycle_position)
+            _rollback_finalized_run_directory(root, run_id)
+            raise
         except Exception:
+            _truncate_lifecycle_stream(lifecycle_stream, lifecycle_position)
             _rollback_finalized_run_directory(root, run_id)
             raise
     return run

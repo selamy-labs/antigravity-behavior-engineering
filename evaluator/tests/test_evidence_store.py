@@ -943,6 +943,44 @@ def test_import_run_rolls_back_run_directory_when_lifecycle_append_write_fails(t
     assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "execution_terminal"
 
 
+def test_import_run_keeps_run_when_lifecycle_append_failure_left_final_event_visible(tmp_path, monkeypatch):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    run_dir = tmp_path / "runs" / str(attempt["runId"])
+
+    def append_then_report_failure(stream, event):
+        stream.write(canonical_bytes(event) + b"\n")
+        stream.flush()
+        raise ContractValidationError("evidence.lifecycle_not_appendable", "$.attemptId")
+
+    monkeypatch.setattr(evidence_module, "_append_run_finalized_event", append_then_report_failure)
+
+    run = import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert json.loads((run_dir / "run.json").read_bytes()) == run
+    assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "run_finalized"
+
+
+def test_import_run_truncates_partial_lifecycle_append_before_rollback(tmp_path, monkeypatch):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    run_dir = tmp_path / "runs" / str(attempt["runId"])
+    lifecycle_path = tmp_path / "attempts" / str(attempt["attemptId"]) / "lifecycle.ndjson"
+    lifecycle_before = lifecycle_path.read_bytes()
+
+    def append_partial_then_report_failure(stream, _event):
+        stream.write(b"{")
+        stream.flush()
+        raise ContractValidationError("evidence.lifecycle_not_appendable", "$.attemptId")
+
+    monkeypatch.setattr(evidence_module, "_append_run_finalized_event", append_partial_then_report_failure)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.lifecycle_not_appendable"
+    assert not run_dir.exists()
+    assert lifecycle_path.read_bytes() == lifecycle_before
+
+
 def test_import_run_rolls_back_run_directory_when_finalized_chmod_fails(tmp_path, monkeypatch):
     staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
     run_dir = tmp_path / "runs" / str(attempt["runId"])

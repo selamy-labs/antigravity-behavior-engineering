@@ -202,6 +202,9 @@ def test_append_grade_rejects_self_consistent_run_json_and_finalization_tamper(t
     run_path.chmod(0o600)
     run_path.write_bytes(canonical_bytes(tampered) + b"\n")
     run_path.chmod(0o400)
+    (run_path.parent / "run.digest").chmod(0o600)
+    (run_path.parent / "run.digest").write_text(canonical_contract_digest("RunRecord", tampered) + "\n")
+    (run_path.parent / "run.digest").chmod(0o400)
     events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
     events[-1]["evidenceDigest"] = canonical_contract_digest("RunRecord", tampered)
     _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
@@ -213,6 +216,26 @@ def test_append_grade_rejects_self_consistent_run_json_and_finalization_tamper(t
     assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
     assert excinfo.value.path == "$.runId"
     assert not _grade_path(tmp_path, run, grade).exists()
+
+
+def test_append_grade_removes_grade_slot_when_grade_chmod_fails(tmp_path, monkeypatch):
+    run, _attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    grade = _grade(str(run["runId"]), "ab")
+    grade_path = _grade_path(tmp_path, run, grade)
+    original_chmod = Path.chmod
+
+    def fail_grade_chmod(self, mode, *args, **kwargs):
+        if Path(self) == grade_path:
+            raise OSError(5, "simulated grade chmod failure")
+        return original_chmod(self, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "chmod", fail_grade_chmod)
+
+    with pytest.raises(OSError):
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert not grade_path.exists()
+    assert not grade_path.parent.exists()
 
 
 def test_append_grade_rejects_lifecycle_finalization_attempt_id_tamper(tmp_path):

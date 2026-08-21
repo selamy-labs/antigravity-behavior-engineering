@@ -12,6 +12,23 @@ from pathlib import Path
 from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 
+_RUN_RECORD_BINDING_FIELDS = (
+    "conditionDigest",
+    "scenarioDigest",
+    "environmentQualificationDigest",
+    "attemptQualification",
+    "observedModel",
+    "processState",
+    "agentDeclaredState",
+    "inputPermissionState",
+    "infrastructureValidity",
+    "transcriptDigest",
+    "eventStreamDigest",
+    "consumption",
+    "classification",
+    "redactedEvidenceLocator",
+)
+
 
 def _fail(reason_code: str, path: str = "$") -> None:
     raise ContractValidationError(reason_code, path)
@@ -103,7 +120,14 @@ def _write_grade_exclusive(path: Path, grade: dict[str, object]) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.link(tmp_path, path)
-        path.chmod(0o400)
+        try:
+            path.chmod(0o400)
+        except OSError:
+            try:
+                path.unlink()
+            except OSError:
+                pass
+            raise
     except OSError as exc:
         if exc.errno == errno.EEXIST:
             _fail("grade.grader_digest_already_exists", "$.graderDigest")
@@ -168,6 +192,15 @@ def _validate_run_digest_anchor(run_dir: Path, run: dict[str, object]) -> None:
         _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
+def _validate_run_record_binding(manifest: dict[str, object], run: dict[str, object]) -> None:
+    binding = manifest.get("runRecordBinding")
+    if not isinstance(binding, dict) or set(binding) != set(_RUN_RECORD_BINDING_FIELDS):
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.runRecordBinding")
+    for field in _RUN_RECORD_BINDING_FIELDS:
+        if binding[field] != run[field]:
+            _fail("grade.run_finalization_digest_mismatch", "$.runId")
+
+
 def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
     run_id = _safe_identifier(run["runId"], "$.runId", "grade.unsafe_identifier_path")
     manifest_path = _resolve_run_artifact_locator(root, run_id, run["rawEvidenceLocator"], "$.rawEvidenceLocator")
@@ -185,6 +218,7 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
     if manifest.get("runId") != run["runId"] or manifest.get("attemptId") != run["attemptId"]:
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
+    _validate_run_record_binding(manifest, run)
     entries = manifest.get("entries")
     if not isinstance(entries, list):
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.entries")
@@ -239,7 +273,19 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     grade_path = grader_dir / "grade.json"
     if grade_path.exists() or grade_path.is_symlink():
         _fail("grade.grader_digest_already_exists", "$.graderDigest")
-    _write_grade_exclusive(grade_path, parsed_grade)
+    try:
+        _write_grade_exclusive(grade_path, parsed_grade)
+    except Exception:
+        if grade_path.exists() and not grade_path.is_symlink():
+            try:
+                grade_path.unlink()
+            except OSError:
+                pass
+        try:
+            grader_dir.rmdir()
+        except OSError:
+            pass
+        raise
     return canonical_contract_digest("GradeRecord", parsed_grade)
 
 
