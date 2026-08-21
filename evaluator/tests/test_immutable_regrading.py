@@ -110,6 +110,24 @@ def test_repeated_grader_digest_cannot_recreate_missing_grade_slot(tmp_path):
     assert not first_path.exists()
 
 
+def test_repeated_grader_digest_cannot_recreate_removed_grade_directory(tmp_path):
+    run, _attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    first = _grade(str(run["runId"]), "cb")
+    append_grade(str(run["runId"]), first, tmp_path)
+    first_path = _grade_path(tmp_path, run, first)
+    first_path.chmod(0o600)
+    first_path.unlink()
+    first_path.parent.rmdir()
+    replacement = copy.deepcopy(first)
+    replacement["outcome"] = "fail"
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), replacement, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.grader_digest_already_exists"
+    assert not first_path.exists()
+
+
 def test_second_grader_appends_without_mutating_first_grade_or_raw_evidence(tmp_path):
     run, _attempt, run_path, raw_manifest_before, run_digest_before = _finalized_run(tmp_path)
     attempt_path = tmp_path / "attempts" / str(run["attemptId"]) / "attempt.json"
@@ -151,6 +169,7 @@ def test_append_grade_rejects_symlinked_run_directory_without_writing_outside_ro
     run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
     run_dir = run_path.parent
     outside_run_dir = tmp_path.with_name(tmp_path.name + "-outside-run")
+    run_dir.chmod(0o700)
     run_dir.rename(outside_run_dir)
     run_dir.symlink_to(outside_run_dir, target_is_directory=True)
     grade = _grade(str(run["runId"]), "ab")
@@ -159,7 +178,9 @@ def test_append_grade_rejects_symlinked_run_directory_without_writing_outside_ro
         append_grade(str(run["runId"]), grade, tmp_path)
 
     assert excinfo.value.reason_code == "grade.run_missing"
-    assert not (outside_run_dir / "grades").exists()
+    assert not (
+        outside_run_dir / "grades" / str(grade["graderDigest"]).removeprefix("sha256:") / "grade.json"
+    ).exists()
 
 
 def test_append_grade_rejects_run_directory_with_mismatched_run_record(tmp_path):
@@ -169,6 +190,7 @@ def test_append_grade_rejects_run_directory_with_mismatched_run_record(tmp_path)
     other_run_dir.mkdir()
     (other_run_dir / "run.json").write_bytes(canonical_bytes(run) + b"\n")
     (other_run_dir / "run.json").chmod(0o400)
+    other_run_dir.chmod(0o500)
     grade = _grade(other_run_id, "ef")
 
     with pytest.raises(ContractValidationError) as excinfo:
@@ -191,7 +213,7 @@ def test_append_grade_rejects_tampered_run_json_that_no_longer_matches_finalizat
         append_grade(str(run["runId"]), grade, tmp_path)
 
     assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
-    assert not (tmp_path / "runs" / str(run["runId"]) / "grades").exists()
+    assert not _grade_path(tmp_path, run, grade).exists()
 
 
 def test_append_grade_rejects_self_consistent_run_json_and_finalization_tamper(tmp_path):
@@ -215,6 +237,40 @@ def test_append_grade_rejects_self_consistent_run_json_and_finalization_tamper(t
 
     assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
     assert excinfo.value.path == "$.runId"
+    assert not _grade_path(tmp_path, run, grade).exists()
+
+
+def test_append_grade_rejects_self_consistent_run_manifest_digest_lifecycle_tamper(tmp_path):
+    run, attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    raw_manifest_path = tmp_path / str(run["rawEvidenceLocator"])
+    raw_manifest = json.loads(raw_manifest_path.read_bytes())
+    tampered = copy.deepcopy(run)
+    tampered["conditionDigest"] = _digest("99")
+    raw_manifest["runRecordBinding"]["conditionDigest"] = tampered["conditionDigest"]
+    new_manifest_bytes = canonical_bytes(raw_manifest)
+    new_manifest_digest = sha256_digest(new_manifest_bytes)
+    new_manifest_locator = "runs/" + str(run["runId"]) + "/artifacts/sha256/" + new_manifest_digest.removeprefix("sha256:")
+    new_manifest_path = tmp_path / new_manifest_locator
+    new_manifest_path.write_bytes(new_manifest_bytes)
+    new_manifest_path.chmod(0o400)
+    tampered["artifactManifestDigest"] = new_manifest_digest
+    tampered["rawEvidenceLocator"] = new_manifest_locator
+    tampered = parse_contract("RunRecord", tampered)
+    run_path.chmod(0o600)
+    run_path.write_bytes(canonical_bytes(tampered) + b"\n")
+    run_path.chmod(0o400)
+    (run_path.parent / "run.digest").chmod(0o600)
+    (run_path.parent / "run.digest").write_text(canonical_contract_digest("RunRecord", tampered) + "\n")
+    (run_path.parent / "run.digest").chmod(0o400)
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[-1]["evidenceDigest"] = canonical_contract_digest("RunRecord", tampered)
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
     assert not _grade_path(tmp_path, run, grade).exists()
 
 
@@ -250,7 +306,38 @@ def test_append_grade_rejects_lifecycle_finalization_attempt_id_tamper(tmp_path)
 
     assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
     assert excinfo.value.path == "$.lifecycleEventDigests[4].attemptId"
-    assert not (tmp_path / "runs" / str(run["runId"]) / "grades").exists()
+    assert not _grade_path(tmp_path, run, grade).exists()
+
+
+def test_append_grade_rejects_prior_lifecycle_event_tamper(tmp_path):
+    run, attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[0]["evidenceDigest"] = _digest("77")
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
+    assert excinfo.value.path == "$.lifecycleEventDigests"
+    assert not _grade_path(tmp_path, run, grade).exists()
+
+
+def test_append_grade_rejects_attempt_json_tamper(tmp_path):
+    run, attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    attempt_path = tmp_path / "attempts" / str(attempt["attemptId"]) / "attempt.json"
+    tampered_attempt = copy.deepcopy(attempt)
+    tampered_attempt["scheduledAt"] = "2026-08-18T13:13:13Z"
+    attempt_path.write_bytes(canonical_bytes(parse_contract("ScheduledAttempt", tampered_attempt)) + b"\n")
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
+    assert excinfo.value.path == "$.attemptId"
+    assert not _grade_path(tmp_path, run, grade).exists()
 
 
 def test_append_grade_rejects_lifecycle_finalization_time_tamper(tmp_path):
@@ -265,7 +352,7 @@ def test_append_grade_rejects_lifecycle_finalization_time_tamper(tmp_path):
 
     assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
     assert excinfo.value.path == "$.lifecycleEventDigests[4].occurredAt"
-    assert not (tmp_path / "runs" / str(run["runId"]) / "grades").exists()
+    assert not _grade_path(tmp_path, run, grade).exists()
 
 
 def test_append_grade_rejects_tampered_raw_manifest(tmp_path):
@@ -283,12 +370,43 @@ def test_append_grade_rejects_tampered_raw_manifest(tmp_path):
     assert not _grade_path(tmp_path, run, grade).exists()
 
 
+def test_append_grade_rejects_raw_manifest_locator_digest_segment_mismatch(tmp_path):
+    run, attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    raw_manifest_path = tmp_path / str(run["rawEvidenceLocator"])
+    wrong_locator = "runs/" + str(run["runId"]) + "/artifacts/sha256/" + ("0" * 64)
+    wrong_path = tmp_path / wrong_locator
+    wrong_path.write_bytes(raw_manifest_path.read_bytes())
+    wrong_path.chmod(0o400)
+    tampered = copy.deepcopy(run)
+    tampered["rawEvidenceLocator"] = wrong_locator
+    tampered = parse_contract("RunRecord", tampered)
+    run_path.chmod(0o600)
+    run_path.write_bytes(canonical_bytes(tampered) + b"\n")
+    run_path.chmod(0o400)
+    (run_path.parent / "run.digest").chmod(0o600)
+    (run_path.parent / "run.digest").write_text(canonical_contract_digest("RunRecord", tampered) + "\n")
+    (run_path.parent / "run.digest").chmod(0o400)
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[-1]["evidenceDigest"] = canonical_contract_digest("RunRecord", tampered)
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.raw_evidence_digest_mismatch"
+    assert excinfo.value.path == "$.rawEvidenceLocator"
+    assert not _grade_path(tmp_path, run, grade).exists()
+
+
 def test_append_grade_rejects_symlinked_raw_artifact_directory(tmp_path):
     run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
     artifacts_dir = run_path.parent / "artifacts"
     outside_artifacts_dir = tmp_path.with_name(tmp_path.name + "-outside-artifacts")
+    run_path.parent.chmod(0o700)
     artifacts_dir.rename(outside_artifacts_dir)
     artifacts_dir.symlink_to(outside_artifacts_dir, target_is_directory=True)
+    run_path.parent.chmod(0o500)
     grade = _grade(str(run["runId"]), "ef")
 
     with pytest.raises(ContractValidationError) as excinfo:

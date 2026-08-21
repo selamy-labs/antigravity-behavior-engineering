@@ -290,7 +290,11 @@ def _write_content_object(temporary_run_dir: Path, digest: str, data: bytes) -> 
 def _remove_run_directory_contents(run_dir: Path) -> None:
     if run_dir.is_symlink() or not run_dir.is_dir():
         return
-    for name in ("run.json", "run.digest"):
+    try:
+        run_dir.chmod(0o700)
+    except OSError:
+        pass
+    for name in ("run.json", "run.digest", "grade-ledger.ndjson"):
         child = run_dir / name
         if child.is_symlink() or not child.is_file():
             continue
@@ -315,6 +319,12 @@ def _remove_run_directory_contents(run_dir: Path) -> None:
     if not artifacts_dir.is_symlink() and artifacts_dir.is_dir():
         try:
             artifacts_dir.rmdir()
+        except OSError:
+            pass
+    grades_dir = run_dir / "grades"
+    if not grades_dir.is_symlink() and grades_dir.is_dir():
+        try:
+            grades_dir.rmdir()
         except OSError:
             pass
     try:
@@ -349,12 +359,17 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object], art
     try:
         for digest, data in artifacts:
             _write_content_object(temporary_run_dir, digest, data)
+        (temporary_run_dir / "grades").mkdir(mode=0o700)
+        _write_text_file(temporary_run_dir / "grade-ledger.ndjson", "")
         _write_json_file(temporary_run_dir / "run.json", run)
         _write_text_file(temporary_run_dir / "run.digest", canonical_contract_digest("RunRecord", run) + "\n")
         os.rename(temporary_run_dir, run_dir)
         try:
             (run_dir / "run.json").chmod(0o400)
             (run_dir / "run.digest").chmod(0o400)
+            (run_dir / "grade-ledger.ndjson").chmod(0o600)
+            (run_dir / "grades").chmod(0o700)
+            run_dir.chmod(0o500)
         except OSError:
             _rollback_finalized_run_directory(root, run_id)
             raise
@@ -753,6 +768,10 @@ def import_run(
 
     raw_entries: list[dict[str, object]] = []
     artifact_payloads: list[tuple[str, bytes]] = []
+    staged_outcome_digest = canonical_contract_digest("StagedAttemptOutcome", staged)
+    unclassified_outcome_digest = canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified)
+    artifact_payloads.append((staged_outcome_digest, canonical_bytes(staged)))
+    artifact_payloads.append((unclassified_outcome_digest, canonical_bytes(unclassified)))
     for entry in entries:
         raw_entry = {key: entry[key] for key in ("path", "present", "digest", "byteLength")}
         raw_entry["mediaType"] = _media_type(str(entry["path"]))
@@ -784,8 +803,12 @@ def import_run(
         "schemaVersion": 1,
         "runId": run_id,
         "attemptId": attempt_id,
-        "stagedOutcomeDigest": canonical_contract_digest("StagedAttemptOutcome", staged),
-        "unclassifiedOutcomeDigest": canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified),
+        "attemptDigest": canonical_contract_digest("ScheduledAttempt", stored_attempt),
+        "lifecycleEventDigests": event_digests,
+        "stagedOutcomeDigest": staged_outcome_digest,
+        "stagedOutcomeLocator": _artifact_locator(run_id, staged_outcome_digest),
+        "unclassifiedOutcomeDigest": unclassified_outcome_digest,
+        "unclassifiedOutcomeLocator": _artifact_locator(run_id, unclassified_outcome_digest),
         "sourceStagingManifestDigest": staged["stagingManifestDigest"],
         "runRecordBinding": run_record_binding,
         "entries": raw_entries,

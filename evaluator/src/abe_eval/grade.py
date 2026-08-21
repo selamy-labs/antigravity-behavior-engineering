@@ -28,6 +28,19 @@ _RUN_RECORD_BINDING_FIELDS = (
     "classification",
     "redactedEvidenceLocator",
 )
+_STAGED_RUN_RECORD_BINDING_FIELDS = (
+    "conditionDigest",
+    "scenarioDigest",
+    "environmentQualificationDigest",
+    "attemptQualification",
+    "observedModel",
+    "processState",
+    "agentDeclaredState",
+    "inputPermissionState",
+    "infrastructureValidity",
+    "consumption",
+    "classification",
+)
 
 
 def _fail(reason_code: str, path: str = "$") -> None:
@@ -73,7 +86,7 @@ def _ensure_plain_ancestors(root: Path, relative: Path, path: str) -> None:
             _fail("grade.unsafe_identifier_path", path)
 
 
-def _resolve_run_artifact_locator(root: Path, run_id: str, value: object, path: str) -> Path:
+def _resolve_run_artifact_locator(root: Path, run_id: str, value: object, path: str, expected_digest: object) -> Path:
     relative = _relative_locator(value, path)
     expected_prefix = ("runs", run_id, "artifacts", "sha256")
     if len(relative.parts) != 5 or relative.parts[:4] != expected_prefix:
@@ -81,6 +94,8 @@ def _resolve_run_artifact_locator(root: Path, run_id: str, value: object, path: 
     digest_segment = relative.parts[4]
     if len(digest_segment) != 64 or any(character not in "0123456789abcdef" for character in digest_segment):
         _fail("grade.unsafe_identifier_path", path)
+    if not isinstance(expected_digest, str) or digest_segment != expected_digest.removeprefix("sha256:"):
+        _fail("grade.raw_evidence_digest_mismatch", path)
     _ensure_plain_ancestors(root, relative, path)
     return root / relative
 
@@ -139,6 +154,18 @@ def _write_grade_exclusive(path: Path, grade: dict[str, object]) -> None:
             pass
 
 
+def _read_json_file(path: Path, reason_code: str, error_path: str) -> dict[str, object]:
+    if path.is_symlink() or not path.is_file():
+        _fail(reason_code, error_path)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        _fail(reason_code, error_path)
+    if not isinstance(value, dict):
+        _fail(reason_code, error_path)
+    return value
+
+
 def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
     path = root / "attempts" / attempt_id / "lifecycle.ndjson"
     if path.is_symlink() or not path.is_file():
@@ -154,7 +181,7 @@ def _read_lifecycle(root: Path, attempt_id: str) -> list[dict[str, object]]:
     return events
 
 
-def _validate_run_finalization_digest(root: Path, run: dict[str, object]) -> None:
+def _validate_run_finalization_digest(root: Path, run: dict[str, object], manifest: dict[str, object]) -> None:
     attempt_id = _safe_identifier(run["attemptId"], "$.attemptId", "grade.unsafe_identifier_path")
     events = _read_lifecycle(root, attempt_id)
     if not events:
@@ -168,6 +195,10 @@ def _validate_run_finalization_digest(root: Path, run: dict[str, object]) -> Non
     finalized_indices = [index for index, event in enumerate(events) if event["phase"] == "run_finalized"]
     if finalized_indices != [len(events) - 1]:
         _fail("grade.run_finalization_missing", "$.runId")
+    expected_lifecycle_digests = manifest.get("lifecycleEventDigests")
+    actual_lifecycle_digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events[:-1]]
+    if expected_lifecycle_digests != actual_lifecycle_digests:
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests")
     finalized = events[-1]
     if len(events) < 2 or events[-2]["phase"] != "execution_terminal":
         _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests")
@@ -192,18 +223,57 @@ def _validate_run_digest_anchor(run_dir: Path, run: dict[str, object]) -> None:
         _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
-def _validate_run_record_binding(manifest: dict[str, object], run: dict[str, object]) -> None:
+def _validate_attempt_anchor(root: Path, manifest: dict[str, object], run: dict[str, object]) -> None:
+    attempt_id = _safe_identifier(run["attemptId"], "$.attemptId", "grade.unsafe_identifier_path")
+    attempt = parse_contract(
+        "ScheduledAttempt",
+        _read_json_file(root / "attempts" / attempt_id / "attempt.json", "grade.run_finalization_digest_mismatch", "$.attemptId"),
+    )
+    if attempt["runId"] != run["runId"] or canonical_contract_digest("ScheduledAttempt", attempt) != manifest.get("attemptDigest"):
+        _fail("grade.run_finalization_digest_mismatch", "$.attemptId")
+
+
+def _read_manifest_artifact(
+    root: Path,
+    run_id: str,
+    manifest: dict[str, object],
+    locator_field: str,
+    digest_field: str,
+    contract_name: str,
+) -> dict[str, object]:
+    locator_path = "$.rawEvidenceLocator." + locator_field
+    digest = manifest.get(digest_field)
+    artifact_path = _resolve_run_artifact_locator(root, run_id, manifest.get(locator_field), locator_path, digest)
+    if artifact_path.is_symlink() or not artifact_path.is_file():
+        _fail("grade.raw_evidence_missing", locator_path)
+    artifact_bytes = artifact_path.read_bytes()
+    if sha256_digest(artifact_bytes) != digest:
+        _fail("grade.raw_evidence_digest_mismatch", locator_path)
+    _ensure_not_owner_writable(artifact_path, locator_path)
+    try:
+        value = json.loads(artifact_bytes)
+        return parse_contract(contract_name, value)
+    except (json.JSONDecodeError, ContractValidationError):
+        _fail("grade.raw_evidence_digest_mismatch", locator_path)
+
+
+def _validate_run_record_binding(manifest: dict[str, object], run: dict[str, object], staged: dict[str, object]) -> None:
     binding = manifest.get("runRecordBinding")
     if not isinstance(binding, dict) or set(binding) != set(_RUN_RECORD_BINDING_FIELDS):
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.runRecordBinding")
     for field in _RUN_RECORD_BINDING_FIELDS:
         if binding[field] != run[field]:
             _fail("grade.run_finalization_digest_mismatch", "$.runId")
+    for field in _STAGED_RUN_RECORD_BINDING_FIELDS:
+        if staged[field] != run[field] or staged[field] != binding[field]:
+            _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
-def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
+def _validate_raw_evidence(root: Path, run: dict[str, object]) -> dict[str, object]:
     run_id = _safe_identifier(run["runId"], "$.runId", "grade.unsafe_identifier_path")
-    manifest_path = _resolve_run_artifact_locator(root, run_id, run["rawEvidenceLocator"], "$.rawEvidenceLocator")
+    manifest_path = _resolve_run_artifact_locator(
+        root, run_id, run["rawEvidenceLocator"], "$.rawEvidenceLocator", run["artifactManifestDigest"]
+    )
     if manifest_path.is_symlink() or not manifest_path.is_file():
         _fail("grade.raw_evidence_missing", "$.rawEvidenceLocator")
     manifest_bytes = manifest_path.read_bytes()
@@ -218,7 +288,13 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
     if manifest.get("runId") != run["runId"] or manifest.get("attemptId") != run["attemptId"]:
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
-    _validate_run_record_binding(manifest, run)
+    staged = _read_manifest_artifact(
+        root, run_id, manifest, "stagedOutcomeLocator", "stagedOutcomeDigest", "StagedAttemptOutcome"
+    )
+    _read_manifest_artifact(
+        root, run_id, manifest, "unclassifiedOutcomeLocator", "unclassifiedOutcomeDigest", "UnclassifiedStagedAttemptOutcome"
+    )
+    _validate_run_record_binding(manifest, run, staged)
     entries = manifest.get("entries")
     if not isinstance(entries, list):
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.entries")
@@ -230,13 +306,49 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
             if entry.get("digest") != "none" or entry.get("byteLength") != 0:
                 _fail("grade.raw_evidence_digest_mismatch", entry_path)
             continue
-        object_path = _resolve_run_artifact_locator(root, run_id, entry.get("objectLocator"), entry_path + ".objectLocator")
+        object_path = _resolve_run_artifact_locator(
+            root, run_id, entry.get("objectLocator"), entry_path + ".objectLocator", entry.get("digest")
+        )
         if object_path.is_symlink() or not object_path.is_file():
             _fail("grade.raw_evidence_missing", entry_path + ".objectLocator")
         data = object_path.read_bytes()
         if sha256_digest(data) != entry.get("digest") or len(data) != entry.get("byteLength"):
             _fail("grade.raw_evidence_digest_mismatch", entry_path + ".digest")
         _ensure_not_owner_writable(object_path, entry_path + ".objectLocator")
+    return manifest
+
+
+def _read_grade_ledger(run_dir: Path) -> set[str]:
+    ledger_path = run_dir / "grade-ledger.ndjson"
+    if ledger_path.is_symlink() or not ledger_path.is_file():
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+    digests: set[str] = set()
+    for index, line in enumerate(ledger_path.read_text(encoding="utf-8").splitlines()):
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            _fail("grade.grade_store_invalid", "$.graderDigest")
+        if not isinstance(event, dict) or set(event) != {"schemaVersion", "graderDigest", "gradeDigest"}:
+            _fail("grade.grade_store_invalid", "$.graderDigest")
+        if event["schemaVersion"] != 1:
+            _fail("grade.grade_store_invalid", "$.graderDigest")
+        _safe_digest_segment(str(event["graderDigest"]), "$.graderDigest")
+        _safe_digest_segment(str(event["gradeDigest"]), "$.graderDigest")
+        if event["graderDigest"] in digests:
+            _fail("grade.grade_store_invalid", "$.graderDigest")
+        digests.add(str(event["graderDigest"]))
+    return digests
+
+
+def _append_grade_ledger(run_dir: Path, grader_digest: str, grade_digest: str) -> None:
+    ledger_path = run_dir / "grade-ledger.ndjson"
+    event = {"schemaVersion": 1, "graderDigest": grader_digest, "gradeDigest": grade_digest}
+    with ledger_path.open("ab") as stream:
+        stream.write(canonical_bytes(event) + b"\n")
+        stream.flush()
+        os.fsync(stream.fileno())
 
 
 def append_grade(run_id: str, grade: object, root: Path) -> str:
@@ -251,6 +363,7 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     _ensure_existing_plain_dir(runs_dir, "grade.run_missing", "$.runId")
     run_dir = runs_dir / safe_run_id
     _ensure_existing_plain_dir(run_dir, "grade.run_missing", "$.runId")
+    _ensure_not_owner_writable(run_dir, "$.runId", "grade.run_record_mutable")
     run_json = run_dir / "run.json"
     if run_json.is_symlink() or not run_json.is_file():
         _fail("grade.run_missing", "$.runId")
@@ -259,13 +372,16 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     if parsed_run["runId"] != safe_run_id:
         _fail("grade.run_record_mismatch", "$.runId")
     _validate_run_digest_anchor(run_dir, parsed_run)
-    _validate_run_finalization_digest(root, parsed_run)
-    _validate_raw_evidence(root, parsed_run)
+    manifest = _validate_raw_evidence(root, parsed_run)
+    _validate_attempt_anchor(root, manifest, parsed_run)
+    _validate_run_finalization_digest(root, parsed_run, manifest)
 
     grade_segment = _safe_digest_segment(str(parsed_grade["graderDigest"]), "$.graderDigest")
     grades_dir = run_dir / "grades"
     grader_dir = grades_dir / grade_segment
     _ensure_plain_dir(grades_dir, "grade.grade_store_invalid", "$.grades")
+    if parsed_grade["graderDigest"] in _read_grade_ledger(run_dir):
+        _fail("grade.grader_digest_already_exists", "$.graderDigest")
     try:
         grader_dir.mkdir(mode=0o700, exist_ok=False)
     except FileExistsError:
@@ -273,8 +389,10 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     grade_path = grader_dir / "grade.json"
     if grade_path.exists() or grade_path.is_symlink():
         _fail("grade.grader_digest_already_exists", "$.graderDigest")
+    grade_digest = canonical_contract_digest("GradeRecord", parsed_grade)
     try:
         _write_grade_exclusive(grade_path, parsed_grade)
+        _append_grade_ledger(run_dir, str(parsed_grade["graderDigest"]), grade_digest)
     except Exception:
         if grade_path.exists() and not grade_path.is_symlink():
             try:
@@ -286,7 +404,7 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
         except OSError:
             pass
         raise
-    return canonical_contract_digest("GradeRecord", parsed_grade)
+    return grade_digest
 
 
 __all__ = ["append_grade"]
