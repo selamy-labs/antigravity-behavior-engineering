@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T006",
+  "taskTitle": "Preallocate randomized attempts and validate condition pairs",
+  "taskEntryDigest": "sha256:67baab5c832e1ec0d7d76c91fcf6d80acec55cc45e8586207abfe351864f376b",
+  "baseCommit": "177428dec8364f5bd288f3490d3a7df32004aa71",
+  "implementationCommit": "dc3e56ac0b4a8194057bd7e2c682daee779960d6",
+  "treeDigest": "sha256:8c96e1e2f64db2ebb443ab2db37643ae965481b2b4d1c1afb249756942476064",
+  "outcome": "implemented",
+  "files": {
+    "evals/protocols/fake-block.json": "sha256:a12c567e7b9049b2c141386bdf4e1061cfc7d7e95496cf8ac38950ffe951c002",
+    "evaluator/src/abe_eval/condition_pair.py": "sha256:db2d4d97bae9e263833ac00eac7564347e50bfa0680afbed4812337bcae8cb83",
+    "evaluator/src/abe_eval/schedule.py": "sha256:754fdb7ba90565532f82cfcdae4beab39f2b3d1936e9d039e7b48eb602972481",
+    "evaluator/tests/test_condition_pair.py": "sha256:2d5978dd86c3f400cbb02b913dc5eba038cb88a3721d321a8a13f2957355b5ab",
+    "evaluator/tests/test_schedule.py": "sha256:f0e2d5a56ad98422b426ee7d10f622aadb60275d09b35c1f6dfc336184ec308e"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_schedule.py",
+        "evaluator/tests/test_condition_pair.py",
+        "-q"
+      ],
+      "expectedExit": 2,
+      "actualExit": 2,
+      "outputDigest": "sha256:2b4a7c8c1cf9cb4e8aba62abd591bb8100e6eada7818dfe4f23c3e5eefb512bb"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_schedule.py",
+        "evaluator/tests/test_condition_pair.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:b2728860fe13ac136000e8c6ddd1cfece787b596aa39d6ae0309ad13dccdc56d"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "pytest",
+        "evaluator/tests/test_evaluation_contracts.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:1705dd873943c0e3f9acb1747e2a5e5d68efb172175a0a44a3fd3432b7ebf3e7"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:bbf061bc6b289bebf2f2040d0d627bcea5f5aae700e4ab7ed5fe2f2657c2e071"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "install",
+        "--offline",
+        "--frozen-lockfile"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:bb4ad49f4bc959817e791cf0762ff585b828ecfef8494cc1540b5c85dcf1d9f7"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "uv",
+        "lock",
+        "--project",
+        "evaluator",
+        "--check",
+        "--offline"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e57dcb78653cdc2e831f5d047dc11d7ae22ef688f6430486ed696e6ed9d66130"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "uv",
+        "sync",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:6bae6b1ea8ac51196fcf0beb5331e4b038f65a4bb8b84ca32b4869f85b04acef"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "python",
+        "-m",
+        "py_compile",
+        "evaluator/src/abe_eval/schedule.py",
+        "evaluator/src/abe_eval/condition_pair.py"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:1342e9a1b3763e5086709108efbe85005250632cb4575b08e334819718f7355d"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "177428dec8364f5bd288f3490d3a7df32004aa71...HEAD"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:1f97c04f59141b3f6f68ac65057b001027f4b9f9e611ec29123cbb9cd8f7013c"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--name-only",
+        "177428dec8364f5bd288f3490d3a7df32004aa71...HEAD"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:85310a61291d4a7bb67f2a9955f15d7d1722f7c79e738384aa94f65bab133812"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t006-public-boundary-scan",
+        "dc3e56ac0b4a8194057bd7e2c682daee779960d6"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:36d20921ad0a433f313a3ec3071ab810148bdbd10575c9b8efe8cf76125efee3"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:115c7929383d2eca670b52eb7b487cf726ce53bd9f0cfcaae0ef3ddb6a775e09",
+      "verdictDigest": "sha256:746ae51226745e5759cefb56ac1a0dc8f0eaf6f023aed98a7c55a5426b0d9565",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:115c7929383d2eca670b52eb7b487cf726ce53bd9f0cfcaae0ef3ddb6a775e09",
+      "verdictDigest": "sha256:f9630ef8078dbdc78578e3d7ba197ff0f84cd69af331fa903f466a9fec5883fc",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:36d20921ad0a433f313a3ec3071ab810148bdbd10575c9b8efe8cf76125efee3",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon this branch; after merge, open a new T006-linked revert PR without rewriting history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-21T13:14:01Z"
+}
