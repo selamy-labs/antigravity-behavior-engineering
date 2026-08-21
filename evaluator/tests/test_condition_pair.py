@@ -74,6 +74,8 @@ def test_validate_pair_accepts_digest_bound_treatment_component_difference():
         path="$",
         blocked_condition_ids=(),
     )
+    assert lock["allowedDifferences"] == ["/enabledComponents"]
+    assert baseline["conditionId"] != treatment["conditionId"]
     assert parse_contract("ConditionPairLock", lock) == lock
 
 

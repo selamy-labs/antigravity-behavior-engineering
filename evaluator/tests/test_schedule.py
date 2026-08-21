@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
+from abe_eval.canonical import sha256_digest
 import abe_eval.schedule as schedule
 from abe_eval.schedule import build_schedule
 
@@ -41,7 +42,10 @@ def test_build_schedule_is_seed_reproducible_stably_digestible_and_condition_int
 
     first = build_schedule(block, seed)
     second = build_schedule(copy.deepcopy(block), seed)
-    different_seed = build_schedule({**block, "randomizationSeedCommitment": "sha256:6eaa61e983ff61a7961552cb368ae6ab07df654e8b6db63bfcada529a1b9ea35"}, "alternate-seed")
+    different_seed = build_schedule(
+        {**block, "randomizationSeedCommitment": sha256_digest(b"alternate-seed")},
+        "alternate-seed",
+    )
 
     assert first == second
     assert _attempt_digests(first) == _attempt_digests(second)
@@ -64,6 +68,27 @@ def test_build_schedule_is_seed_reproducible_stably_digestible_and_condition_int
         assert len({attempt["repetition"] for attempt in pair}) == 1
 
 
+def test_build_schedule_rejects_seed_that_does_not_match_commitment():
+    block, _seed = _fixture_block()
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        build_schedule(block, "alternate-seed")
+
+    assert excinfo.value.reason_code == "schedule.seed_commitment_mismatch"
+    assert excinfo.value.path == "$.randomizationSeedCommitment"
+
+
+def test_build_schedule_returns_dict_compatible_immutable_attempts():
+    block, seed = _fixture_block()
+    attempt = build_schedule(block, seed)[0]
+
+    assert parse_contract("ScheduledAttempt", attempt) == attempt
+    with pytest.raises(TypeError, match="scheduled attempts are immutable"):
+        attempt["runId"] = "run-mutated"
+    with pytest.raises(TypeError, match="scheduled attempts are immutable"):
+        attempt["randomizationProof"]["ordinal"] = 99
+
+
 def test_scheduled_attempt_ids_do_not_leak_condition_names_or_implicit_retries():
     block, seed = _fixture_block()
 
@@ -83,7 +108,7 @@ def test_import_scheduled_attempt_rejects_tampering_after_hashing():
     digest = canonical_contract_digest("ScheduledAttempt", attempt)
     assert schedule._import_scheduled_attempt(copy.deepcopy(attempt), digest) == attempt
 
-    tampered = copy.deepcopy(attempt)
+    tampered = parse_contract("ScheduledAttempt", attempt)
     tampered["runId"] = "run-tampered-after-hash"
     with pytest.raises(ContractValidationError) as excinfo:
         schedule._import_scheduled_attempt(tampered, digest)
