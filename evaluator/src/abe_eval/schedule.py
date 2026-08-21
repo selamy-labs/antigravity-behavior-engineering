@@ -23,6 +23,7 @@ class _FrozenContractDict(dict):
     popitem = __readonly
     setdefault = __readonly
     update = __readonly
+    __ior__ = __readonly
 
     def __reduce__(self) -> tuple[object, tuple[dict[str, object]]]:
         return (_freeze_contract, (dict(self),))

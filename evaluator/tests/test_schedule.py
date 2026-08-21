@@ -92,11 +92,18 @@ def test_build_schedule_returns_dict_compatible_immutable_attempts():
     block, seed = _fixture_block()
     attempt = build_schedule(block, seed)[0]
 
+    def merge_update(mapping: dict[str, object], payload: dict[str, object]) -> None:
+        mapping |= payload
+
     assert parse_contract("ScheduledAttempt", attempt) == attempt
     with pytest.raises(TypeError, match="scheduled attempts are immutable"):
         attempt["runId"] = "run-mutated"
     with pytest.raises(TypeError, match="scheduled attempts are immutable"):
         attempt["randomizationProof"]["ordinal"] = 99
+    with pytest.raises(TypeError, match="scheduled attempts are immutable"):
+        merge_update(attempt, {"runId": "run-mutated-by-merge-update"})
+    with pytest.raises(TypeError, match="scheduled attempts are immutable"):
+        merge_update(attempt["randomizationProof"], {"ordinal": 99})
 
 
 def test_scheduled_attempt_ids_do_not_leak_condition_names_or_implicit_retries():
