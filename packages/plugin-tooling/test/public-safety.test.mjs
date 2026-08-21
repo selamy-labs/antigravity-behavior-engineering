@@ -141,6 +141,23 @@ test("safety reports fail visibly instead of emitting schema-invalid policy dige
   });
 });
 
+test("safety policy arrays fail visibly instead of disabling checks", async () => {
+  await withTree({ README: fixtures.copiedBodyText + "\n" }, async (root) => {
+    await assert.rejects(
+      () => scanPublicTree(root, { ...policyFor(["README"]), expectedFiles: "README" }),
+      /expectedFiles/u,
+    );
+    await assert.rejects(
+      () => scanPublicTree(root, { ...policyFor(["README"]), requiredNoticeFiles: "NOTICE" }),
+      /requiredNoticeFiles/u,
+    );
+    await assert.rejects(
+      () => scanPublicTree(root, { ...policyFor(["README"]), copiedBodyFingerprints: "not-an-array" }),
+      /copiedBodyFingerprints/u,
+    );
+  });
+});
+
 test("copied-body policy records fail visibly before they can emit schema-invalid findings", async () => {
   await withTree({ README: fixtures.copiedBodyText + "\n", NOTICE: "notice\n" }, async (root) => {
     const expectedFiles = ["NOTICE", "README"];

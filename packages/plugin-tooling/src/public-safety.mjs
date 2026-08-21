@@ -126,6 +126,16 @@ const assertSeverity = (value, name) => {
   }
 };
 
+const optionalArrayField = (record, fieldName) => {
+  if (!Object.hasOwn(record, fieldName) || record[fieldName] === undefined) {
+    return [];
+  }
+  if (!Array.isArray(record[fieldName])) {
+    throw new TypeError(fieldName + " must be an array");
+  }
+  return record[fieldName];
+};
+
 const rootDigest = (files) => digestObject(Object.fromEntries(files.map((file) => [file.relativePath, digestBytes(file.bytes)])));
 
 const policyDigest = (policy) => {
@@ -177,7 +187,7 @@ const addTextDetectorFindings = (candidates, file) => {
 };
 
 const addCopiedBodyFindings = (candidates, file, policy) => {
-  const fingerprints = Array.isArray(policy.copiedBodyFingerprints) ? policy.copiedBodyFingerprints : [];
+  const fingerprints = optionalArrayField(policy, "copiedBodyFingerprints");
   if (fingerprints.length === 0) {
     return;
   }
@@ -270,11 +280,11 @@ export const scanPublicTree = async (root, policy) => {
   const candidates = [];
 
   const actualPaths = new Set(files.map((file) => file.relativePath));
-  const expectedFiles = Array.isArray(checkedPolicy.expectedFiles) ? [...checkedPolicy.expectedFiles].sort() : [];
+  const expectedFiles = [...optionalArrayField(checkedPolicy, "expectedFiles")].sort();
   for (const expectedFile of expectedFiles) {
     assertRelativePath(expectedFile);
   }
-  for (const requiredNotice of Array.isArray(checkedPolicy.requiredNoticeFiles) ? checkedPolicy.requiredNoticeFiles : []) {
+  for (const requiredNotice of optionalArrayField(checkedPolicy, "requiredNoticeFiles")) {
     assertRelativePath(requiredNotice);
     if (!actualPaths.has(requiredNotice)) {
       candidates.push({ kind: "missing_notice", severity: "critical", location: requiredNotice, evidence: "missing_notice\n" + requiredNotice });
