@@ -319,6 +319,24 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> 
                 pass
 
 
+def _rollback_finalized_run_directory(root: Path, run_id: str) -> None:
+    run_dir = root / "runs" / run_id
+    if run_dir.is_symlink() or not run_dir.is_dir():
+        return
+    for name in ("run.json", "run.digest"):
+        child = run_dir / name
+        if child.is_symlink() or not child.is_file():
+            continue
+        try:
+            child.unlink()
+        except OSError:
+            pass
+    try:
+        run_dir.rmdir()
+    except OSError:
+        pass
+
+
 def _run_finalized_event(attempt_id: str, events: list[dict[str, object]], run: dict[str, object]) -> dict[str, object]:
     return parse_contract(
         "AttemptLifecycleEvent",
@@ -724,7 +742,11 @@ def import_run(
     finalized_event = _run_finalized_event(attempt_id, events, run)
     with _open_lifecycle_append_stream(root, attempt_id) as lifecycle_stream:
         _finalize_run_directory(root, run_id, run)
-        _append_run_finalized_event(lifecycle_stream, finalized_event)
+        try:
+            _append_run_finalized_event(lifecycle_stream, finalized_event)
+        except Exception:
+            _rollback_finalized_run_directory(root, run_id)
+            raise
     return run
 
 

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+import abe_eval.evidence as evidence_module
 from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.classify import classify
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
@@ -919,4 +920,21 @@ def test_import_run_does_not_publish_run_json_when_lifecycle_append_is_not_avail
 
     assert excinfo.value.reason_code == "evidence.lifecycle_not_appendable"
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+    assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "execution_terminal"
+
+
+def test_import_run_rolls_back_run_directory_when_lifecycle_append_write_fails(tmp_path, monkeypatch):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    run_dir = tmp_path / "runs" / str(attempt["runId"])
+
+    def fail_append(_stream, _event):
+        raise ContractValidationError("evidence.lifecycle_not_appendable", "$.attemptId")
+
+    monkeypatch.setattr(evidence_module, "_append_run_finalized_event", fail_append)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.lifecycle_not_appendable"
+    assert not run_dir.exists()
     assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "execution_terminal"
