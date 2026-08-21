@@ -12,7 +12,7 @@ const SPDX_LICENSE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*(?:\+)?$/u;
 const TIMESTAMP_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/u;
 const UNPINNED_REVISIONS = new Set(["HEAD", "latest", "main", "master"]);
 const PACKAGE_LOCK_KEYS = new Set(["schemaVersion", "packageName", "packageVersion", "sourceRevision", "minimumCliVersion", "supportedPlatforms", "components", "dependencies", "files", "generatedAt"]);
-const PLATFORM_KEYS = new Set(["schemaVersion", "os", "architecture"]);
+const PLATFORM_KEYS = new Set(["schemaVersion", "os", "architecture", "nodeRange"]);
 const COMPONENT_KEYS = new Set(["schemaVersion", "kind", "name", "path", "claimId", "defaultEnabled", "digest"]);
 const COMPONENT_KINDS = new Set(["skill", "rule", "agent", "hook", "script"]);
 const DEPENDENCY_KEYS = new Set(["schemaVersion", "name", "sourceUrl", "revision", "license", "consumption", "required", "qualificationEvidence"]);
@@ -146,6 +146,10 @@ const validatePlatformRecord = (platform, index) => {
   }
   assertNonEmptyString(platform.os, "$.packageLock.supportedPlatforms[" + index + "].os", "provenance.invalid_package_lock");
   assertNonEmptyString(platform.architecture, "$.packageLock.supportedPlatforms[" + index + "].architecture", "provenance.invalid_package_lock");
+  assertNonEmptyString(platform.nodeRange, "$.packageLock.supportedPlatforms[" + index + "].nodeRange", "provenance.invalid_package_lock");
+  if (platform.nodeRange.includes("\u0000")) {
+    fail("provenance.invalid_package_lock", "$.packageLock.supportedPlatforms[" + index + "].nodeRange");
+  }
 };
 
 const validateComponentLock = (component, index) => {

@@ -33,7 +33,7 @@ const packageLockFor = (files, overrides = {}) => ({
   packageVersion: "0.1.0",
   sourceRevision: "1234567890abcdef1234567890abcdef12345678",
   minimumCliVersion: "0.1.0",
-  supportedPlatforms: [{ schemaVersion: 1, os: "linux", architecture: "x64" }],
+  supportedPlatforms: [{ schemaVersion: 1, os: "linux", architecture: "x64", nodeRange: ">=22 <25" }],
   components: [],
   dependencies: fixtures.pinnedDependencies,
   files: fileLockFor(files),
@@ -164,6 +164,11 @@ test("provenance fails closed for incomplete or unpinned package locks", async (
     await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
       packageLock: packageLockFor(fixtures.benignFiles, { supportedPlatforms: [] }),
     })));
+
+    const missingNodeRange = packageLockFor(fixtures.benignFiles, {
+      supportedPlatforms: [{ schemaVersion: 1, os: "linux", architecture: "x64" }],
+    });
+    await expectProvenanceError("provenance.invalid_package_lock", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, { packageLock: missingNodeRange })));
   });
 });
 
