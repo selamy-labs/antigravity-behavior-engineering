@@ -561,6 +561,22 @@ def test_import_run_rejects_started_attempt_with_failed_preflight_relabel(tmp_pa
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
+def test_import_run_rejects_preflight_evidence_digest_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+
+    def relabel_preflight_digest(outcome: dict[str, object]) -> None:
+        outcome["attemptQualification"]["authentication"]["evidenceDigest"] = _digest("12")
+
+    _rewrite_paired_outcomes(staging, relabel_preflight_digest)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.attemptQualification.authentication.evidenceDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
 def test_import_run_rejects_not_started_attempt_without_failed_preflight_relabel(tmp_path):
     staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path, "invalid_controller_input")
 
@@ -624,6 +640,38 @@ def test_import_run_rejects_pre_worker_stderr_digest_relabel(tmp_path):
 
     assert excinfo.value.reason_code == "evidence.binding_mismatch"
     assert excinfo.value.path == "$.processState.stderrDigest"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_pre_worker_observed_model_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path, "invalid_controller_input")
+
+    def relabel_observed_model(outcome: dict[str, object]) -> None:
+        outcome["observedModel"]["servedIdentityEvidence"][0]["value"] = "claimed"
+
+    _rewrite_paired_outcomes(staging, relabel_observed_model)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.observedModel.servedIdentityEvidence"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_pre_worker_consumption_relabel(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path, "invalid_controller_input")
+
+    def relabel_consumption(outcome: dict[str, object]) -> None:
+        outcome["consumption"]["toolCalls"] = 123
+
+    _rewrite_paired_outcomes(staging, relabel_consumption)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.consumption"
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
@@ -859,3 +907,16 @@ def test_concurrent_import_publishes_one_run_without_changing_bytes(tmp_path):
     assert (tmp_path / "runs" / str(attempt["runId"]) / "run.json").read_bytes() == first_bytes
     assert json.loads(first_bytes) == first
     assert [event["phase"] for event in _read_lifecycle(tmp_path, str(attempt["attemptId"]))].count("run_finalized") == 1
+
+
+def test_import_run_does_not_publish_run_json_when_lifecycle_append_is_not_available(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path)
+    lifecycle_path = tmp_path / "attempts" / str(attempt["attemptId"]) / "lifecycle.ndjson"
+    lifecycle_path.chmod(0o400)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.lifecycle_not_appendable"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+    assert _read_lifecycle(tmp_path, str(attempt["attemptId"]))[-1]["phase"] == "execution_terminal"

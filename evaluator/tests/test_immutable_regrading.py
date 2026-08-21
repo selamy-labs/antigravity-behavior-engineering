@@ -11,7 +11,7 @@ from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 from abe_eval.evidence import import_run
 from abe_eval.grade import append_grade
-from test_evidence_store import _case_value, _read_lifecycle, _stage_classified_attempt, _write_lifecycle
+from test_evidence_store import _case_value, _digest, _read_lifecycle, _stage_classified_attempt, _write_lifecycle
 
 
 def _grade(run_id: str, grader_seed: str = "cb") -> dict[str, object]:
@@ -59,6 +59,19 @@ def test_append_grade_is_append_only_by_grader_digest_and_keeps_run_immutable(tm
     assert lifecycle_path.read_bytes() == lifecycle_bytes_before
 
 
+def test_append_grade_rejects_mutable_run_json_even_when_contents_match(tmp_path):
+    run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    run_path.chmod(0o600)
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_record_mutable"
+    assert excinfo.value.path == "$.runId"
+    assert not _grade_path(tmp_path, run, grade).exists()
+
+
 def test_repeated_grader_digest_cannot_replace_existing_grade(tmp_path):
     run, _attempt, run_path, raw_manifest_before, _run_digest = _finalized_run(tmp_path)
     first = _grade(str(run["runId"]), "cb")
@@ -78,6 +91,23 @@ def test_repeated_grader_digest_cannot_replace_existing_grade(tmp_path):
     assert (
         tmp_path / "runs" / str(run["runId"]) / "grades" / first["graderDigest"].removeprefix("sha256:") / "grade.json"
     ).read_bytes() == original_grade_bytes
+
+
+def test_repeated_grader_digest_cannot_recreate_missing_grade_slot(tmp_path):
+    run, _attempt, _run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    first = _grade(str(run["runId"]), "cb")
+    append_grade(str(run["runId"]), first, tmp_path)
+    first_path = _grade_path(tmp_path, run, first)
+    first_path.chmod(0o600)
+    first_path.unlink()
+    replacement = copy.deepcopy(first)
+    replacement["outcome"] = "fail"
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), replacement, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.grader_digest_already_exists"
+    assert not first_path.exists()
 
 
 def test_second_grader_appends_without_mutating_first_grade_or_raw_evidence(tmp_path):
@@ -123,6 +153,7 @@ def test_append_grade_rejects_run_directory_with_mismatched_run_record(tmp_path)
     other_run_dir = tmp_path / "runs" / other_run_id
     other_run_dir.mkdir()
     (other_run_dir / "run.json").write_bytes(canonical_bytes(run) + b"\n")
+    (other_run_dir / "run.json").chmod(0o400)
     grade = _grade(other_run_id, "ef")
 
     with pytest.raises(ContractValidationError) as excinfo:
@@ -138,6 +169,7 @@ def test_append_grade_rejects_tampered_run_json_that_no_longer_matches_finalizat
     tampered["redactedEvidenceLocator"] = "tampered-after-finalization"
     run_path.chmod(0o600)
     run_path.write_bytes(canonical_bytes(parse_contract("RunRecord", tampered)) + b"\n")
+    run_path.chmod(0o400)
     grade = _grade(str(run["runId"]), "ef")
 
     with pytest.raises(ContractValidationError) as excinfo:
@@ -145,6 +177,27 @@ def test_append_grade_rejects_tampered_run_json_that_no_longer_matches_finalizat
 
     assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
     assert not (tmp_path / "runs" / str(run["runId"]) / "grades").exists()
+
+
+def test_append_grade_rejects_self_consistent_run_json_and_finalization_tamper(tmp_path):
+    run, attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    tampered = copy.deepcopy(run)
+    tampered["conditionDigest"] = _digest("99")
+    tampered = parse_contract("RunRecord", tampered)
+    run_path.chmod(0o600)
+    run_path.write_bytes(canonical_bytes(tampered) + b"\n")
+    run_path.chmod(0o400)
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[-1]["evidenceDigest"] = canonical_contract_digest("RunRecord", tampered)
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    grade = _grade(str(run["runId"]), "ef")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), grade, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.run_finalization_digest_mismatch"
+    assert excinfo.value.path == "$.runId"
+    assert not _grade_path(tmp_path, run, grade).exists()
 
 
 def test_append_grade_rejects_lifecycle_finalization_attempt_id_tamper(tmp_path):

@@ -17,7 +17,13 @@ from abe_eval.runner import _OUTPUT_NAMES, _worker_invocation
 _REQUIRED_OUTPUTS = frozenset({"raw-stream.ndjson", "process.json"})
 _ALL_OUTPUTS = frozenset(_OUTPUT_NAMES)
 _T007_POLICY_DIGEST = "sha256:e37d8012ffe55956d37837d66475fe9362591a6f23a70b63cd6d60ce49db054a"
-_T007_PRE_WORKER_STDERR_DIGEST = "sha256:" + ("ee" * 64)[:64]
+
+
+def _t007_seed_digest(seed: str) -> str:
+    return "sha256:" + (seed * 64)[:64]
+
+
+_T007_PRE_WORKER_STDERR_DIGEST = _t007_seed_digest("ee")
 _RETRY_ELIGIBLE_REASONS_BY_POLICY = {
     _T007_POLICY_DIGEST: frozenset(
         {
@@ -38,6 +44,15 @@ _PREFLIGHT_FIELDS = (
     ("structuredCapturePreflight", "structuredCapturePreflight"),
     ("authorityToolInventory", "authorityToolInventory"),
 )
+_PREFLIGHT_EVIDENCE_DIGESTS = {
+    "authentication": _t007_seed_digest("35"),
+    "fixtureProvisioning": _t007_seed_digest("46"),
+    "modelPreflight": _t007_seed_digest("57"),
+    "fallbackProbe": _t007_seed_digest("68"),
+    "pluginComponentDiscovery": _t007_seed_digest("79"),
+    "structuredCapturePreflight": _t007_seed_digest("8a"),
+    "authorityToolInventory": _t007_seed_digest("9b"),
+}
 
 
 def _fail(reason_code: str, path: str = "$") -> None:
@@ -265,6 +280,13 @@ def _write_json_file(path: Path, value: dict[str, object]) -> None:
         os.fsync(stream.fileno())
 
 
+def _write_text_file(path: Path, value: str) -> None:
+    with path.open("x", encoding="utf-8") as stream:
+        stream.write(value)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
 def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> None:
     runs_dir = root / "runs"
     _ensure_plain_dir(runs_dir, "evidence.run_store_invalid", "$.runs")
@@ -275,8 +297,10 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> 
     temporary_run_dir.mkdir(mode=0o700)
     try:
         _write_json_file(temporary_run_dir / "run.json", run)
+        _write_text_file(temporary_run_dir / "run.digest", canonical_contract_digest("RunRecord", run) + "\n")
         os.rename(temporary_run_dir, run_dir)
         (run_dir / "run.json").chmod(0o400)
+        (run_dir / "run.digest").chmod(0o400)
     except OSError as exc:
         if exc.errno in {errno.EEXIST, errno.ENOTEMPTY}:
             _fail("evidence.run_already_finalized", "$.runId")
@@ -285,6 +309,9 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> 
         temporary_run_json = temporary_run_dir / "run.json"
         if temporary_run_json.exists() and not temporary_run_json.is_symlink():
             temporary_run_json.unlink()
+        temporary_run_digest = temporary_run_dir / "run.digest"
+        if temporary_run_digest.exists() and not temporary_run_digest.is_symlink():
+            temporary_run_digest.unlink()
         if temporary_run_dir.exists() and not temporary_run_dir.is_symlink():
             try:
                 temporary_run_dir.rmdir()
@@ -292,8 +319,8 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object]) -> 
                 pass
 
 
-def _append_run_finalized_event(root: Path, attempt_id: str, events: list[dict[str, object]], run: dict[str, object]) -> None:
-    event = parse_contract(
+def _run_finalized_event(attempt_id: str, events: list[dict[str, object]], run: dict[str, object]) -> dict[str, object]:
+    return parse_contract(
         "AttemptLifecycleEvent",
         {
             "schemaVersion": 1,
@@ -305,9 +332,23 @@ def _append_run_finalized_event(root: Path, attempt_id: str, events: list[dict[s
             "evidenceDigest": canonical_contract_digest("RunRecord", run),
         },
     )
+
+
+def _open_lifecycle_append_stream(root: Path, attempt_id: str):
     path = root / "attempts" / attempt_id / "lifecycle.ndjson"
-    with path.open("ab") as stream:
+    try:
+        return path.open("ab")
+    except OSError:
+        _fail("evidence.lifecycle_not_appendable", "$.attemptId")
+
+
+def _append_run_finalized_event(stream, event: dict[str, object]) -> None:
+    try:
         stream.write(canonical_bytes(event) + b"\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    except OSError:
+        _fail("evidence.lifecycle_not_appendable", "$.attemptId")
 
 
 def _preflight_failures(qualification: dict[str, object]) -> list[tuple[str, str]]:
@@ -410,6 +451,9 @@ def _validate_classification(staged: dict[str, object], scenario: dict[str, obje
 
 def _validate_preflight_state(staged: dict[str, object]) -> None:
     valid_start_at = staged["attemptQualification"]["validStartAt"]
+    for field, expected_digest in _PREFLIGHT_EVIDENCE_DIGESTS.items():
+        if staged["attemptQualification"][field]["evidenceDigest"] != expected_digest:
+            _fail("evidence.binding_mismatch", "$.attemptQualification." + field + ".evidenceDigest")
     failures = _preflight_failures(staged["attemptQualification"])
     if valid_start_at == "none":
         if not failures:
@@ -454,6 +498,31 @@ def _validate_pre_worker_state(staged: dict[str, object], entries: list[dict[str
         expected_stderr_digest = _T007_PRE_WORKER_STDERR_DIGEST
     if process["stderrDigest"] != expected_stderr_digest:
         _fail("evidence.binding_mismatch", "$.processState.stderrDigest")
+    observed = staged["observedModel"]
+    if observed["servedIdentityEvidence"] != [
+        {"schemaVersion": 1, "source": "pre-start", "value": "unreported", "digest": _t007_seed_digest("ac")}
+    ]:
+        _fail("evidence.binding_mismatch", "$.observedModel.servedIdentityEvidence")
+    if observed["fallbackProbeResult"] != {
+        "schemaVersion": 1,
+        "result": "indeterminate",
+        "evidenceDigest": _t007_seed_digest("bd"),
+    }:
+        _fail("evidence.binding_mismatch", "$.observedModel.fallbackProbeResult")
+    if observed["conclusion"] != "unobservable" or observed["limitations"] != ["Worker did not reach valid start."]:
+        _fail("evidence.binding_mismatch", "$.observedModel")
+    if staged["consumption"] != {
+        "schemaVersion": 1,
+        "inputTokens": "unavailable",
+        "outputTokens": "unavailable",
+        "cachedTokens": "unavailable",
+        "toolCalls": "unavailable",
+        "subagentCalls": "unavailable",
+        "wallTimeMs": 0,
+        "quotaOrCost": "unavailable",
+        "sourceEvidenceDigest": _t007_seed_digest("ce"),
+    }:
+        _fail("evidence.binding_mismatch", "$.consumption")
 
 
 def _validate_started_process_state(staged: dict[str, object], entries: list[dict[str, object]]) -> None:
@@ -652,8 +721,10 @@ def import_run(
             "redactedEvidenceLocator": "not_redacted",
         },
     )
-    _finalize_run_directory(root, run_id, run)
-    _append_run_finalized_event(root, attempt_id, events, run)
+    finalized_event = _run_finalized_event(attempt_id, events, run)
+    with _open_lifecycle_append_stream(root, attempt_id) as lifecycle_stream:
+        _finalize_run_directory(root, run_id, run)
+        _append_run_finalized_event(lifecycle_stream, finalized_event)
     return run
 
 

@@ -48,9 +48,9 @@ def _resolve_relative_locator(root: Path, value: object, path: str) -> Path:
     return root / candidate
 
 
-def _ensure_not_owner_writable(path: Path, error_path: str) -> None:
+def _ensure_not_owner_writable(path: Path, error_path: str, reason_code: str = "grade.raw_evidence_mutable") -> None:
     if stat.S_IMODE(path.stat().st_mode) & stat.S_IWUSR:
-        _fail("grade.raw_evidence_mutable", error_path)
+        _fail(reason_code, error_path)
 
 
 def _ensure_plain_dir(path: Path, reason_code: str, error_path: str) -> None:
@@ -130,6 +130,19 @@ def _validate_run_finalization_digest(root: Path, run: dict[str, object]) -> Non
         _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
+def _validate_run_digest_anchor(run_dir: Path, run: dict[str, object]) -> None:
+    digest_path = run_dir / "run.digest"
+    if digest_path.is_symlink() or not digest_path.is_file():
+        _fail("grade.run_finalization_digest_mismatch", "$.runId")
+    _ensure_not_owner_writable(digest_path, "$.runId", "grade.run_record_mutable")
+    try:
+        stored_digest = digest_path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        _fail("grade.run_finalization_digest_mismatch", "$.runId")
+    if stored_digest != canonical_contract_digest("RunRecord", run) + "\n":
+        _fail("grade.run_finalization_digest_mismatch", "$.runId")
+
+
 def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
     manifest_path = _resolve_relative_locator(root, run["rawEvidenceLocator"], "$.rawEvidenceLocator")
     if manifest_path.is_symlink() or not manifest_path.is_file():
@@ -178,9 +191,11 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     run_json = run_dir / "run.json"
     if run_json.is_symlink() or not run_json.is_file():
         _fail("grade.run_missing", "$.runId")
+    _ensure_not_owner_writable(run_json, "$.runId", "grade.run_record_mutable")
     parsed_run = parse_contract("RunRecord", json.loads(run_json.read_text(encoding="utf-8")))
     if parsed_run["runId"] != safe_run_id:
         _fail("grade.run_record_mismatch", "$.runId")
+    _validate_run_digest_anchor(run_dir, parsed_run)
     _validate_run_finalization_digest(root, parsed_run)
     _validate_raw_evidence(root, parsed_run)
 
@@ -188,7 +203,10 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     grades_dir = run_dir / "grades"
     grader_dir = grades_dir / grade_segment
     _ensure_plain_dir(grades_dir, "grade.grade_store_invalid", "$.grades")
-    _ensure_plain_dir(grader_dir, "grade.grader_digest_already_exists", "$.graderDigest")
+    try:
+        grader_dir.mkdir(mode=0o700, exist_ok=False)
+    except FileExistsError:
+        _fail("grade.grader_digest_already_exists", "$.graderDigest")
     grade_path = grader_dir / "grade.json"
     if grade_path.exists() or grade_path.is_symlink():
         _fail("grade.grader_digest_already_exists", "$.graderDigest")
