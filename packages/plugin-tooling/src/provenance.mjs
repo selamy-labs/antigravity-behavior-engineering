@@ -8,6 +8,7 @@ const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 const HTTPS_URL_PATTERN = /^https:\/\/[^\s\u0000-\u001f\u007f]+$/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
 const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
+const SPDX_LICENSE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*(?:\+)?$/u;
 const TIMESTAMP_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/u;
 const UNPINNED_REVISIONS = new Set(["HEAD", "latest", "main", "master"]);
 const PACKAGE_LOCK_KEYS = new Set(["schemaVersion", "packageName", "packageVersion", "sourceRevision", "minimumCliVersion", "supportedPlatforms", "components", "dependencies", "files", "generatedAt"]);
@@ -222,10 +223,11 @@ const sourceRecordFromDependency = (dependency, index) => {
     fail("provenance.invalid_source", "$.packageLock.dependencies[" + index + "].sourceUrl");
   }
   validatePinnedRevision(dependency.revision, "$.packageLock.dependencies[" + index + "].revision");
-  for (const field of ["license", "consumption"]) {
-    if (typeof dependency[field] !== "string" || dependency[field].length === 0) {
-      fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "]." + field);
-    }
+  if (typeof dependency.license !== "string" || !SPDX_LICENSE_ID_PATTERN.test(dependency.license)) {
+    fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].license");
+  }
+  if (typeof dependency.consumption !== "string" || dependency.consumption.length === 0) {
+    fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].consumption");
   }
   if (!["runtime", "development", "research"].includes(dependency.consumption)) {
     fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].consumption");
@@ -287,15 +289,19 @@ const validateComponentFiles = (files, components) => {
   }
 };
 
-const materializeAdaptations = (adaptations) => {
+const materializeAdaptations = (adaptations, files) => {
   if (!Array.isArray(adaptations)) {
     fail("provenance.invalid_field", "$.adaptations");
   }
+  const actualPaths = new Set(files.map((file) => file.relativePath));
   return adaptations.map((adaptation, index) => {
     assertObject(adaptation, "$.adaptations[" + index + "]");
     assertKnownKeys(adaptation, ADAPTATION_KEYS, "$.adaptations[" + index + "]");
     validateDigest(adaptation.sourceDigest, "$.adaptations[" + index + "].sourceDigest");
     assertRelativePath(adaptation.localPath, "$.adaptations[" + index + "].localPath");
+    if (!actualPaths.has(adaptation.localPath)) {
+      fail("provenance.missing_file", adaptation.localPath);
+    }
     if (typeof adaptation.classification !== "string" || adaptation.classification.length === 0) {
       fail("provenance.invalid_field", "$.adaptations[" + index + "].classification");
     }
@@ -332,7 +338,7 @@ export const buildProvenanceInventory = async (root, locks) => {
   }
   const dependencies = packageLock.dependencies;
   const sources = dependencies.map(sourceRecordFromDependency).sort((left, right) => left.sourceUrl.localeCompare(right.sourceUrl) || left.revision.localeCompare(right.revision));
-  const adaptations = materializeAdaptations(lockSet.adaptations);
+  const adaptations = materializeAdaptations(lockSet.adaptations, files);
   const digest = rootDigest(files);
   const policyDigest = typeof lockSet.policyDigest === "string" ? lockSet.policyDigest : digestObject({ schemaVersion: 1, policy: "human-provenance-review-required" });
   validateDigest(policyDigest, "$.policyDigest");

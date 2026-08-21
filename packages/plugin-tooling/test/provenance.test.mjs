@@ -239,3 +239,17 @@ test("provenance binds component locks to package files", async () => {
     })));
   });
 });
+
+test("provenance validates license identifiers and adaptation targets", async () => {
+  await withTree(fixtures.benignFiles, async (root) => {
+    await expectProvenanceError("provenance.invalid_field", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, {
+        dependencies: [{ ...fixtures.pinnedDependencies[0], license: "not an SPDX id" }],
+      }),
+    })));
+
+    await expectProvenanceError("provenance.missing_file", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      adaptations: [{ ...fixtures.adaptations[0], localPath: "does/not/exist.md" }],
+    })));
+  });
+});
