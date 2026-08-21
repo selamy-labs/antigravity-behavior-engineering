@@ -139,11 +139,16 @@ const optionalArrayField = (record, fieldName) => {
 const rootDigest = (files) => digestObject(Object.fromEntries(files.map((file) => [file.relativePath, digestBytes(file.bytes)])));
 
 const policyDigest = (policy) => {
+  const { policyDigest: suppliedPolicyDigest, ...digestPolicy } = policy;
+  const computedPolicyDigest = digestObject(digestPolicy);
   if (Object.hasOwn(policy, "policyDigest")) {
-    assertDigest(policy.policyDigest, "policyDigest");
-    return policy.policyDigest;
+    assertDigest(suppliedPolicyDigest, "policyDigest");
+    if (suppliedPolicyDigest !== computedPolicyDigest) {
+      throw new TypeError("policyDigest must match policy");
+    }
+    return suppliedPolicyDigest;
   }
-  return digestObject(policy);
+  return computedPolicyDigest;
 };
 
 const lineStarts = (text) => {

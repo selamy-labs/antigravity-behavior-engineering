@@ -138,6 +138,10 @@ test("safety reports fail visibly instead of emitting schema-invalid policy dige
       () => scanPublicTree(root, { ...policyFor(Object.keys(fixtures.benignFiles).sort()), policyDigest: 7 }),
       /policyDigest/u,
     );
+    await assert.rejects(
+      () => scanPublicTree(root, { ...policyFor(Object.keys(fixtures.benignFiles).sort()), policyDigest: "sha256:" + "9".repeat(64) }),
+      /policyDigest/u,
+    );
   });
 });
 

@@ -143,6 +143,20 @@ test("provenance fails closed for malformed locks and schema-invalid source reco
       })));
     }
 
+    await expectProvenanceError("provenance.invalid_source", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      packageLock: packageLockFor(fixtures.benignFiles, {
+        dependencies: [{ ...fixtures.pinnedDependencies[0], sourceUrl: "https://#fragment-only" }],
+      }),
+    })));
+
+    await expectProvenanceError("provenance.invalid_digest", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      policyDigest: 7,
+    })));
+
+    await expectProvenanceError("provenance.invalid_path", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
+      noticePath: 7,
+    })));
+
     await expectProvenanceError("provenance.unqualified_required_dependency", () => buildProvenanceInventory(root, lockSetFor(fixtures.benignFiles, {
       packageLock: packageLockFor(fixtures.benignFiles, {
         dependencies: [{ ...fixtures.pinnedDependencies[0], required: true, qualificationEvidence: "not_qualified" }],

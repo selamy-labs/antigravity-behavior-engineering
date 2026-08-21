@@ -5,7 +5,7 @@ import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json
 
 const encoder = new TextEncoder();
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
-const HTTPS_URL_PATTERN = /^https:\/\/[^\s\u0000-\u001f\u007f]+$/u;
+const CONTROL_OR_WHITESPACE_PATTERN = /[\s\u0000-\u001f\u007f]/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
 const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
 const NODE_RANGE_PATTERN = /^(?:(?:>=|>|<=|<|=|\^|~)?[0-9]+(?:\.[0-9]+){0,2})(?:\s+(?:(?:>=|>|<=|<|=|\^|~)?[0-9]+(?:\.[0-9]+){0,2}))*$/u;
@@ -123,6 +123,21 @@ const validatePinnedRevision = (revision, fieldPath) => {
   }
 };
 
+const validateHttpsUrl = (value, fieldPath) => {
+  if (typeof value !== "string" || CONTROL_OR_WHITESPACE_PATTERN.test(value)) {
+    fail("provenance.invalid_source", fieldPath);
+  }
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    fail("provenance.invalid_source", fieldPath);
+  }
+  if (parsed.protocol !== "https:" || parsed.hostname.length === 0 || parsed.username !== "" || parsed.password !== "") {
+    fail("provenance.invalid_source", fieldPath);
+  }
+};
+
 const validateSemVer = (value, fieldPath) => {
   if (typeof value !== "string" || !SEMVER_PATTERN.test(value)) {
     fail("provenance.invalid_package_lock", fieldPath);
@@ -224,9 +239,7 @@ const sourceRecordFromDependency = (dependency, index) => {
   if (typeof dependency.name !== "string" || dependency.name.length === 0) {
     fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].name");
   }
-  if (typeof dependency.sourceUrl !== "string" || !HTTPS_URL_PATTERN.test(dependency.sourceUrl)) {
-    fail("provenance.invalid_source", "$.packageLock.dependencies[" + index + "].sourceUrl");
-  }
+  validateHttpsUrl(dependency.sourceUrl, "$.packageLock.dependencies[" + index + "].sourceUrl");
   validatePinnedRevision(dependency.revision, "$.packageLock.dependencies[" + index + "].revision");
   if (typeof dependency.license !== "string" || !SPDX_LICENSE_ID_PATTERN.test(dependency.license)) {
     fail("provenance.invalid_field", "$.packageLock.dependencies[" + index + "].license");
@@ -328,7 +341,7 @@ export const buildProvenanceInventory = async (root, locks) => {
   validateFileLock(files, packageLock.files);
   validateComponentFiles(files, packageLock.components);
 
-  const noticePath = typeof lockSet.noticePath === "string" ? lockSet.noticePath : "NOTICE";
+  const noticePath = Object.hasOwn(lockSet, "noticePath") ? lockSet.noticePath : "NOTICE";
   assertRelativePath(noticePath, "$.noticePath");
   const noticeFile = files.find((file) => file.relativePath === noticePath);
   if (!noticeFile) {
@@ -345,7 +358,7 @@ export const buildProvenanceInventory = async (root, locks) => {
   const sources = dependencies.map(sourceRecordFromDependency).sort((left, right) => left.sourceUrl.localeCompare(right.sourceUrl) || left.revision.localeCompare(right.revision));
   const adaptations = materializeAdaptations(lockSet.adaptations, files);
   const digest = rootDigest(files);
-  const policyDigest = typeof lockSet.policyDigest === "string" ? lockSet.policyDigest : digestObject({ schemaVersion: 1, policy: "human-provenance-review-required" });
+  const policyDigest = Object.hasOwn(lockSet, "policyDigest") ? lockSet.policyDigest : digestObject({ schemaVersion: 1, policy: "human-provenance-review-required" });
   validateDigest(policyDigest, "$.policyDigest");
 
   return {
