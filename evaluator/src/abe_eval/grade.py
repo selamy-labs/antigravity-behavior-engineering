@@ -5,10 +5,11 @@ from __future__ import annotations
 import errno
 import json
 import os
+import stat
 import uuid
 from pathlib import Path
 
-from abe_eval.canonical import canonical_bytes
+from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 
 
@@ -31,6 +32,25 @@ def _safe_digest_segment(value: str, path: str) -> str:
     if len(hex_digest) != 64 or any(character not in "0123456789abcdef" for character in hex_digest):
         _fail("grade.invalid_grader_digest", path)
     return hex_digest
+
+
+def _resolve_relative_locator(root: Path, value: object, path: str) -> Path:
+    text = str(value)
+    candidate = Path(text)
+    if (
+        not text
+        or candidate.is_absolute()
+        or "\\" in text
+        or "\x00" in text
+        or any(part in {"", ".", ".."} for part in candidate.parts)
+    ):
+        _fail("grade.unsafe_identifier_path", path)
+    return root / candidate
+
+
+def _ensure_not_owner_writable(path: Path, error_path: str) -> None:
+    if stat.S_IMODE(path.stat().st_mode) & stat.S_IWUSR:
+        _fail("grade.raw_evidence_mutable", error_path)
 
 
 def _ensure_plain_dir(path: Path, reason_code: str, error_path: str) -> None:
@@ -58,6 +78,7 @@ def _write_grade_exclusive(path: Path, grade: dict[str, object]) -> None:
             stream.flush()
             os.fsync(stream.fileno())
         os.link(tmp_path, path)
+        path.chmod(0o400)
     except OSError as exc:
         if exc.errno == errno.EEXIST:
             _fail("grade.grader_digest_already_exists", "$.graderDigest")
@@ -103,8 +124,46 @@ def _validate_run_finalization_digest(root: Path, run: dict[str, object]) -> Non
         _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests")
     if finalized["terminalKind"] != "none":
         _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[" + str(len(events) - 1) + "].terminalKind")
+    if finalized["occurredAt"] != run["processState"]["endedAt"]:
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[" + str(len(events) - 1) + "].occurredAt")
     if finalized["evidenceDigest"] != canonical_contract_digest("RunRecord", run):
         _fail("grade.run_finalization_digest_mismatch", "$.runId")
+
+
+def _validate_raw_evidence(root: Path, run: dict[str, object]) -> None:
+    manifest_path = _resolve_relative_locator(root, run["rawEvidenceLocator"], "$.rawEvidenceLocator")
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        _fail("grade.raw_evidence_missing", "$.rawEvidenceLocator")
+    manifest_bytes = manifest_path.read_bytes()
+    if sha256_digest(manifest_bytes) != run["artifactManifestDigest"]:
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
+    _ensure_not_owner_writable(manifest_path, "$.rawEvidenceLocator")
+    try:
+        manifest = json.loads(manifest_bytes)
+    except json.JSONDecodeError:
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
+    if not isinstance(manifest, dict):
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
+    if manifest.get("runId") != run["runId"] or manifest.get("attemptId") != run["attemptId"]:
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
+    entries = manifest.get("entries")
+    if not isinstance(entries, list):
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.entries")
+    for index, entry in enumerate(entries):
+        entry_path = "$.rawEvidenceLocator.entries[" + str(index) + "]"
+        if not isinstance(entry, dict):
+            _fail("grade.raw_evidence_digest_mismatch", entry_path)
+        if not entry.get("present"):
+            if entry.get("digest") != "none" or entry.get("byteLength") != 0:
+                _fail("grade.raw_evidence_digest_mismatch", entry_path)
+            continue
+        object_path = _resolve_relative_locator(root, entry.get("objectLocator"), entry_path + ".objectLocator")
+        if object_path.is_symlink() or not object_path.is_file():
+            _fail("grade.raw_evidence_missing", entry_path + ".objectLocator")
+        data = object_path.read_bytes()
+        if sha256_digest(data) != entry.get("digest") or len(data) != entry.get("byteLength"):
+            _fail("grade.raw_evidence_digest_mismatch", entry_path + ".digest")
+        _ensure_not_owner_writable(object_path, entry_path + ".objectLocator")
 
 
 def append_grade(run_id: str, grade: object, root: Path) -> str:
@@ -123,6 +182,7 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     if parsed_run["runId"] != safe_run_id:
         _fail("grade.run_record_mismatch", "$.runId")
     _validate_run_finalization_digest(root, parsed_run)
+    _validate_raw_evidence(root, parsed_run)
 
     grade_segment = _safe_digest_segment(str(parsed_grade["graderDigest"]), "$.graderDigest")
     grades_dir = run_dir / "grades"

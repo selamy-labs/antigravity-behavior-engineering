@@ -234,6 +234,7 @@ def _write_content_object(root: Path, digest: str, data: bytes) -> str:
     if object_path.exists() or object_path.is_symlink():
         if object_path.is_symlink() or not object_path.is_file() or object_path.read_bytes() != data:
             _fail("evidence.object_digest_collision", "$.objects")
+        object_path.chmod(0o400)
         return _object_locator(digest)
 
     tmp_path = _temporary_sibling(object_path)
@@ -243,9 +244,11 @@ def _write_content_object(root: Path, digest: str, data: bytes) -> str:
             stream.flush()
             os.fsync(stream.fileno())
         os.link(tmp_path, object_path)
+        object_path.chmod(0o400)
     except FileExistsError:
         if not object_path.is_file() or object_path.is_symlink() or object_path.read_bytes() != data:
             _fail("evidence.object_digest_collision", "$.objects")
+        object_path.chmod(0o400)
     finally:
         try:
             tmp_path.unlink()
@@ -486,10 +489,10 @@ def _expected_terminal_kind(staged: dict[str, object]) -> str:
     infrastructure = staged["infrastructureValidity"]
     if process["workerProcessState"] == "not_started":
         return "preflight_failed"
-    if infrastructure == "adapter_failure":
-        return "adapter_failure"
     if process["timeout"] or process["controllerExitCode"] == 124:
         return "product_timeout"
+    if infrastructure == "adapter_failure":
+        return "adapter_failure"
     if infrastructure in {"capture_malformed", "capture_truncated", "grader_leakage_detected", "test_flake"}:
         return "capture_indeterminate"
     return "agent_finished"

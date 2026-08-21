@@ -261,7 +261,9 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
     raw_locator = Path(str(run["rawEvidenceLocator"]))
     assert not raw_locator.is_absolute()
     assert ".." not in raw_locator.parts
-    raw_manifest = json.loads((tmp_path / raw_locator).read_bytes())
+    raw_manifest_path = tmp_path / raw_locator
+    assert stat.S_IMODE(raw_manifest_path.stat().st_mode) & stat.S_IWUSR == 0
+    raw_manifest = json.loads(raw_manifest_path.read_bytes())
     assert run["artifactManifestDigest"] == sha256_digest(canonical_bytes(raw_manifest))
 
     entries = {entry["path"]: entry for entry in raw_manifest["entries"]}
@@ -276,6 +278,7 @@ def test_import_run_content_addresses_raw_evidence_and_finalizes_once(tmp_path):
             assert entry["digest"] == "none"
             continue
         object_path = tmp_path / str(entry["objectLocator"])
+        assert stat.S_IMODE(object_path.stat().st_mode) & stat.S_IWUSR == 0
         staged_bytes = (staging / "output" / entry["path"]).read_bytes()
         assert object_path.read_bytes() == staged_bytes
         assert sha256_digest(staged_bytes) == entry["digest"]
@@ -673,6 +676,31 @@ def test_import_run_rejects_valid_started_invalid_controller_relabel_even_when_t
 
     assert excinfo.value.reason_code == "evidence.binding_mismatch"
     assert excinfo.value.path == "$.infrastructureValidity"
+    assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
+
+
+def test_import_run_rejects_timeout_terminal_kind_relabel_to_adapter_failure(tmp_path):
+    staging, attempt, condition, scenario, environment, _staged = _stage_classified_attempt(tmp_path, "valid_start_timeout")
+    unclassified = json.loads((staging / "unclassified-outcome.json").read_text())
+    staged = json.loads((staging / "staged-outcome.json").read_text())
+    unclassified["infrastructureValidity"] = "adapter_failure"
+    staged["infrastructureValidity"] = "adapter_failure"
+    events = _read_lifecycle(tmp_path, str(attempt["attemptId"]))
+    events[-1]["terminalKind"] = "adapter_failure"
+    events[-1]["evidenceDigest"] = sha256_digest(
+        canonical_bytes(_terminal_evidence_from_staged(staging, staged, str(events[-1]["terminalKind"])))
+    )
+    _write_lifecycle(tmp_path, str(attempt["attemptId"]), events)
+    digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events]
+    unclassified["lifecycleEventDigests"] = digests
+    staged["lifecycleEventDigests"] = digests
+    _rewrite_outcomes(staging, unclassified, staged)
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        import_run(staging, attempt, condition, scenario, environment, tmp_path)
+
+    assert excinfo.value.reason_code == "evidence.binding_mismatch"
+    assert excinfo.value.path == "$.lifecycleEventDigests[3].terminalKind"
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
