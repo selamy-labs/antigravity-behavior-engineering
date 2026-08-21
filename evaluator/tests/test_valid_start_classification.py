@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.classify import classify
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 from abe_eval.runner import RunAttemptInputs, run_attempt
@@ -29,7 +30,14 @@ def _case_value(name: str) -> dict[str, object]:
     raise AssertionError(name)
 
 
-def _condition(condition_id: str) -> dict[str, object]:
+def _condition(
+    condition_id: str,
+    *,
+    environment: dict[str, object] | None = None,
+    scenario: dict[str, object] | None = None,
+) -> dict[str, object]:
+    environment = _environment() if environment is None else environment
+    scenario = _case_value("ScenarioCard") if scenario is None else scenario
     return {
         "schemaVersion": 1,
         "conditionId": condition_id,
@@ -45,16 +53,16 @@ def _condition(condition_id: str) -> dict[str, object]:
             "argv": ["agy", "--model", "gemini-3.7-flash-high", "--effort", "high"],
             "environment": {"AGY_PROFILE": "fresh"},
         },
-        "cliDigest": _digest("a"),
+        "cliDigest": environment["cliDigest"],
         "pluginDigest": _digest("b"),
         "dependencyDigests": {"superpowers": _digest("c")},
         "enabledComponents": [] if condition_id == "bare" else ["verification-before-completion"],
-        "authorityManifestDigest": _digest("d"),
-        "resourceEnvelopeDigest": _digest("e"),
+        "authorityManifestDigest": canonical_contract_digest("AuthorityManifest", scenario["authorityManifest"]),
+        "resourceEnvelopeDigest": canonical_contract_digest("ResourceEnvelope", scenario["resourceEnvelope"]),
         "toolInventoryDigest": _digest("f"),
         "permissionDigest": _digest("1"),
         "environmentDigest": _digest("2"),
-        "environmentQualificationDigest": _digest("3"),
+        "environmentQualificationDigest": canonical_contract_digest("EnvironmentQualificationRecord", environment),
     }
 
 
@@ -99,19 +107,25 @@ def _environment() -> dict[str, object]:
     return parse_contract("EnvironmentQualificationRecord", env)
 
 
+def _classify(outcome: object, policy: dict[str, object]) -> dict[str, object]:
+    return classify(outcome, policy, expected_policy_digest=str(policy["policyDigest"]))
+
+
 def _inputs(tmp_path: Path, case_id: str) -> tuple[RunAttemptInputs, FakeWorker, dict[str, object]]:
     policy = _policy()
     attempt = _attempt("bare")
-    condition = _condition("bare")
+    scenario = _scenario(attempt, policy)
+    environment = _environment()
+    condition = _condition("bare", environment=environment, scenario=scenario)
     worker = FakeWorker(case_id)
     if case_id == "invalid_controller_input":
-        condition = _condition("full")
+        condition = _condition("full", environment=environment, scenario=scenario)
     return (
         RunAttemptInputs(
             scheduled_attempt=attempt,
             condition=condition,
-            scenario=_scenario(attempt, policy),
-            environment_qualification=_environment(),
+            scenario=scenario,
+            environment_qualification=environment,
             raw_root=tmp_path,
         ),
         worker,
@@ -124,7 +138,7 @@ def test_frozen_classification_matrix_separates_valid_start_from_exit_status(tmp
     inputs, worker, policy = _inputs(tmp_path, case_id)
 
     unclassified = run_attempt(inputs, worker)
-    staged = classify(unclassified, policy)
+    staged = _classify(unclassified, policy)
     classification = staged["classification"]
     expected = MATRIX[case_id]
 
@@ -156,7 +170,7 @@ def test_frozen_classification_matrix_separates_valid_start_from_exit_status(tmp
 def test_exit_zero_soft_denial_is_never_reclassified_as_success(tmp_path):
     inputs, worker, policy = _inputs(tmp_path, "soft_denial_exit_zero")
 
-    staged = classify(run_attempt(inputs, worker), policy)
+    staged = _classify(run_attempt(inputs, worker), policy)
 
     assert staged["processState"]["controllerExitCode"] == 0
     assert staged["processState"]["workerExitCode"] == 0
@@ -171,7 +185,54 @@ def test_unknown_reason_code_policy_fails_closed(tmp_path):
     policy["reasonCodes"] = [rule for rule in policy["reasonCodes"] if rule["reasonCode"] != "tool_misuse"]
 
     with pytest.raises(ContractValidationError) as excinfo:
-        classify(run_attempt(inputs, worker), policy)
+        _classify(run_attempt(inputs, worker), policy)
 
     assert excinfo.value.reason_code == "classification.reason_not_in_policy"
     assert excinfo.value.path == "$.reasonCodes"
+
+
+def test_classifier_policy_digest_must_match_scenario_frozen_digest(tmp_path):
+    inputs, worker, policy = _inputs(tmp_path, "success")
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        classify(run_attempt(inputs, worker), policy, expected_policy_digest=_digest("ff"))
+
+    assert excinfo.value.reason_code == "classification.policy_digest_mismatch"
+    assert excinfo.value.path == "$.expected_policy_digest"
+
+
+@pytest.mark.parametrize(
+    ("case_id", "infrastructure", "expected_reason", "expected_class"),
+    [
+        ("valid_start_timeout", "capture_truncated", "product_timeout", "product_failure"),
+        ("tool_misuse", "adapter_failure", "tool_misuse", "product_failure"),
+        ("budget_exhaustion", "capture_malformed", "budget_exhaustion", "product_failure"),
+    ],
+)
+def test_post_valid_start_product_signals_beat_infrastructure_like_labels(
+    tmp_path, case_id, infrastructure, expected_reason, expected_class
+):
+    inputs, worker, policy = _inputs(tmp_path, case_id)
+    unclassified = run_attempt(inputs, worker)
+    assert unclassified["attemptQualification"]["validStartAt"] != "none"
+    mutated = copy.deepcopy(unclassified)
+    mutated["infrastructureValidity"] = infrastructure
+
+    staged = _classify(mutated, policy)
+
+    assert staged["classification"]["reasonCode"] == expected_reason
+    assert staged["classification"]["class"] == expected_class
+    assert staged["classification"]["countsInValidRun"] is False
+
+
+def test_unknown_post_valid_start_terminal_state_fails_closed_instead_of_success(tmp_path):
+    inputs, worker, policy = _inputs(tmp_path, "success")
+    unclassified = run_attempt(inputs, worker)
+    unclassified["agentDeclaredState"] = "mystery_terminal_state"
+    unclassified["processState"]["controllerExitCode"] = 17
+
+    with pytest.raises(ContractValidationError) as excinfo:
+        _classify(unclassified, policy)
+
+    assert excinfo.value.reason_code == "classification.unknown_terminal_state"
+    assert excinfo.value.path == "$.agentDeclaredState"

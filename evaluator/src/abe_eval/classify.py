@@ -24,6 +24,21 @@ _REASON_CLASS = {
     "truncated_ndjson": "indeterminate",
 }
 
+_KNOWN_AGENT_STATES = frozenset({"artifact_failed", "completed", "needs_input", "none", "safety_refusal", "tool_misuse"})
+_KNOWN_INPUT_STATES = frozenset({"needs_input", "not_requested", "permitted"})
+_KNOWN_INFRASTRUCTURE_VALIDITY = frozenset(
+    {
+        "adapter_failure",
+        "capture_malformed",
+        "capture_truncated",
+        "grader_leakage_detected",
+        "invalid_controller_input",
+        "pre_start_auth_failure",
+        "test_flake",
+        "valid",
+    }
+)
+
 
 def _fail(reason_code: str, path: str) -> None:
     raise ContractValidationError(reason_code, path)
@@ -31,6 +46,10 @@ def _fail(reason_code: str, path: str) -> None:
 
 def _policy_reason_codes(policy: dict[str, Any]) -> frozenset[str]:
     return frozenset(str(rule["reasonCode"]) for rule in policy["reasonCodes"])
+
+
+def _integer_at_least(value: object, minimum: int) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value >= minimum
 
 
 def _reason_code(outcome: dict[str, Any]) -> str:
@@ -41,12 +60,31 @@ def _reason_code(outcome: dict[str, Any]) -> str:
     consumption = outcome["consumption"]
     qualification = outcome["attemptQualification"]
 
+    if agent_state not in _KNOWN_AGENT_STATES:
+        _fail("classification.unknown_terminal_state", "$.agentDeclaredState")
+    if input_state not in _KNOWN_INPUT_STATES:
+        _fail("classification.unknown_input_permission_state", "$.inputPermissionState")
+    if infrastructure not in _KNOWN_INFRASTRUCTURE_VALIDITY:
+        _fail("classification.unknown_infrastructure_validity", "$.infrastructureValidity")
+
     if infrastructure == "invalid_controller_input":
         return "invalid_controller_input"
     if process["workerProcessState"] == "not_started":
         if qualification["authentication"]["result"] == "fail":
             return "pre_start_auth_failure"
         return "invalid_controller_input"
+
+    if process["timeout"] or process["controllerExitCode"] == 124:
+        return "product_timeout"
+    if input_state == "needs_input" or agent_state == "needs_input":
+        return "needs_input"
+    if agent_state == "safety_refusal":
+        return "safety_refusal"
+    if agent_state == "tool_misuse":
+        return "tool_misuse"
+    if _integer_at_least(consumption["wallTimeMs"], 600000) or _integer_at_least(consumption["toolCalls"], 20):
+        return "budget_exhaustion"
+
     if infrastructure == "capture_malformed":
         return "malformed_ndjson"
     if infrastructure == "capture_truncated":
@@ -57,26 +95,22 @@ def _reason_code(outcome: dict[str, Any]) -> str:
         return "adapter_failure"
     if infrastructure == "test_flake":
         return "test_flake"
-    if process["timeout"] or process["controllerExitCode"] == 124:
-        return "product_timeout"
-    if input_state == "needs_input" or agent_state == "needs_input":
-        return "needs_input"
-    if agent_state == "safety_refusal":
-        return "safety_refusal"
-    if agent_state == "tool_misuse":
-        return "tool_misuse"
-    if consumption["wallTimeMs"] >= 600000 or consumption["toolCalls"] == 20:
-        return "budget_exhaustion"
     if agent_state == "artifact_failed":
         return "ordinary_artifact_failure"
-    return "success"
+    if agent_state == "completed" and infrastructure == "valid":
+        return "success"
+    _fail("classification.unknown_terminal_state", "$.agentDeclaredState")
 
 
-def classify(outcome: object, policy: object) -> dict[str, object]:
+def classify(outcome: object, policy: object, *, expected_policy_digest: str) -> dict[str, object]:
     """Apply the frozen classification table to one unclassified outcome."""
 
     parsed_outcome = parse_contract("UnclassifiedStagedAttemptOutcome", outcome)
     parsed_policy = parse_contract("ClassificationPolicy", policy)
+    if not isinstance(expected_policy_digest, str):
+        _fail("classification.invalid_expected_policy_digest", "$.expected_policy_digest")
+    if parsed_policy["policyDigest"] != expected_policy_digest:
+        _fail("classification.policy_digest_mismatch", "$.expected_policy_digest")
     reason_code = _reason_code(parsed_outcome)
     if reason_code not in _REASON_CLASS:
         _fail("classification.unknown_reason", "$.reasonCode")

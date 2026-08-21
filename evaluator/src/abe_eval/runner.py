@@ -237,7 +237,7 @@ def _worker_invocation(
             "invocationId": "invocation-" + _digest_payload({"runId": attempt["runId"]}).removeprefix("sha256:")[:32],
             "runId": attempt["runId"],
             "requestPath": "/workspace/input/request.txt",
-            "requestDigest": _digest_payload({"agentInput": scenario["agentInput"], "scenarioId": scenario["scenarioId"]}),
+            "requestDigest": _digest_payload({"agentInput": scenario["agentInput"]}),
             "fixtureDigest": scenario["fixtureDigest"],
             "authorityManifestDigest": canonical_contract_digest("AuthorityManifest", authority),
             "resourceCaps": _resource_caps(scenario),
@@ -271,11 +271,25 @@ def _staging_manifest(root: Path, run_id: str, result: dict[str, object] | None)
     return _digest_payload(manifest)
 
 
-def _controller_input_failure(attempt: dict[str, object], condition: dict[str, object], scenario: dict[str, object]) -> str | None:
+def _controller_input_failure(
+    attempt: dict[str, object],
+    condition: dict[str, object],
+    scenario: dict[str, object],
+    environment: dict[str, object],
+    environment_digest: str,
+) -> str | None:
     if attempt["conditionId"] != condition["conditionId"]:
         return "fixtureProvisioning"
     if attempt["scenarioId"] != scenario["scenarioId"]:
         return "fixtureProvisioning"
+    if condition["environmentQualificationDigest"] != environment_digest:
+        return "fixtureProvisioning"
+    if condition["cliDigest"] != environment["cliDigest"]:
+        return "modelPreflight"
+    if condition["authorityManifestDigest"] != canonical_contract_digest("AuthorityManifest", scenario["authorityManifest"]):
+        return "authorityToolInventory"
+    if condition["resourceEnvelopeDigest"] != canonical_contract_digest("ResourceEnvelope", scenario["resourceEnvelope"]):
+        return "authorityToolInventory"
     return None
 
 
@@ -294,7 +308,7 @@ def run_attempt(inputs: RunAttemptInputs, worker: Worker) -> dict[str, object]:
     attempt_root = root / "attempts" / attempt_id
     _write_json(attempt_root / "attempt.json", attempt)
 
-    failed_preflight = _controller_input_failure(attempt, condition, scenario)
+    failed_preflight = _controller_input_failure(attempt, condition, scenario, environment, environment_digest)
     pre_start_failure = worker.pre_start_failure if failed_preflight is None else None
     if pre_start_failure == "authentication":
         failed_preflight = "authentication"

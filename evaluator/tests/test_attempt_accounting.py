@@ -11,7 +11,8 @@ from abe_eval.contracts import ContractValidationError, canonical_contract_diges
 from abe_eval.runner import RunAttemptInputs, run_attempt
 from abe_eval.schedule import build_schedule
 from fakes.fake_worker import FakeWorker
-from test_valid_start_classification import _condition, _environment, _policy, _scenario
+from abe_eval.canonical import canonical_bytes, sha256_digest
+from test_valid_start_classification import _classify, _condition, _digest, _environment, _policy, _scenario
 
 
 FIXTURE = Path("evals/protocols/fake-block.json")
@@ -33,18 +34,20 @@ def test_runner_accounts_for_every_scheduled_attempt_without_finalizing_runs(tmp
     staged_by_attempt: dict[str, dict[str, object]] = {}
 
     for attempt in attempts:
+        scenario = _scenario(attempt, policy)
+        environment = _environment()
         worker = FakeWorker("success" if attempt["conditionId"] == "bare" else "ordinary_artifact_failure")
         unclassified = run_attempt(
             RunAttemptInputs(
                 scheduled_attempt=attempt,
-                condition=_condition(str(attempt["conditionId"])),
-                scenario=_scenario(attempt, policy),
-                environment_qualification=_environment(),
+                condition=_condition(str(attempt["conditionId"]), environment=environment, scenario=scenario),
+                scenario=scenario,
+                environment_qualification=environment,
                 raw_root=tmp_path,
             ),
             worker,
         )
-        staged = classify(unclassified, policy)
+        staged = _classify(unclassified, policy)
         staged_by_attempt[str(attempt["attemptId"])] = staged
 
         events = _lifecycle_events(tmp_path, str(attempt["attemptId"]))
@@ -66,6 +69,8 @@ def test_runner_accounts_for_every_scheduled_attempt_without_finalizing_runs(tmp
 def test_valid_started_event_is_durable_before_worker_input_visibility(tmp_path):
     attempt = _attempts()[0]
     policy = _policy()
+    scenario = _scenario(attempt, policy)
+    environment = _environment()
 
     class LifecycleInspectingWorker(FakeWorker):
         def run(self, invocation):
@@ -74,14 +79,20 @@ def test_valid_started_event_is_durable_before_worker_input_visibility(tmp_path)
             assert events[-1]["occurredAt"] != "none"
             assert "attemptId" not in invocation
             assert "conditionId" not in invocation
+            visible_request_digest = sha256_digest(canonical_bytes({"agentInput": scenario["agentInput"]}))
+            hidden_scenario_digest = sha256_digest(
+                canonical_bytes({"agentInput": scenario["agentInput"], "scenarioId": scenario["scenarioId"]})
+            )
+            assert invocation["requestDigest"] == visible_request_digest
+            assert invocation["requestDigest"] != hidden_scenario_digest
             return super().run(invocation)
 
     run_attempt(
         RunAttemptInputs(
             scheduled_attempt=attempt,
-            condition=_condition(str(attempt["conditionId"])),
-            scenario=_scenario(attempt, policy),
-            environment_qualification=_environment(),
+            condition=_condition(str(attempt["conditionId"]), environment=environment, scenario=scenario),
+            scenario=scenario,
+            environment_qualification=environment,
             raw_root=tmp_path,
         ),
         LifecycleInspectingWorker("success"),
@@ -91,19 +102,21 @@ def test_valid_started_event_is_durable_before_worker_input_visibility(tmp_path)
 def test_pre_start_failure_still_stages_unclassified_outcome_and_lifecycle(tmp_path):
     attempt = _attempts()[0]
     policy = _policy()
+    scenario = _scenario(attempt, policy)
+    environment = _environment()
     worker = FakeWorker("pre_start_auth_failure")
 
     unclassified = run_attempt(
         RunAttemptInputs(
             scheduled_attempt=attempt,
-            condition=_condition(str(attempt["conditionId"])),
-            scenario=_scenario(attempt, policy),
-            environment_qualification=_environment(),
+            condition=_condition(str(attempt["conditionId"]), environment=environment, scenario=scenario),
+            scenario=scenario,
+            environment_qualification=environment,
             raw_root=tmp_path,
         ),
         worker,
     )
-    staged = classify(unclassified, policy)
+    staged = _classify(unclassified, policy)
     events = _lifecycle_events(tmp_path, str(attempt["attemptId"]))
 
     assert worker.invocations == []
@@ -118,21 +131,65 @@ def test_pre_start_failure_still_stages_unclassified_outcome_and_lifecycle(tmp_p
     assert not (tmp_path / "runs" / str(attempt["runId"]) / "run.json").exists()
 
 
+@pytest.mark.parametrize(
+    ("field", "bad_value", "failed_preflight"),
+    [
+        ("environmentQualificationDigest", _digest("ff"), "fixtureProvisioning"),
+        ("cliDigest", _digest("ff"), "modelPreflight"),
+    ],
+)
+def test_condition_environment_bindings_fail_before_valid_start(tmp_path, field, bad_value, failed_preflight):
+    attempt = _attempts()[0]
+    policy = _policy()
+    scenario = _scenario(attempt, policy)
+    environment = _environment()
+    condition = _condition(str(attempt["conditionId"]), environment=environment, scenario=scenario)
+    condition[field] = bad_value
+    condition = parse_contract("ConditionLock", condition)
+    worker = FakeWorker("success")
+
+    unclassified = run_attempt(
+        RunAttemptInputs(
+            scheduled_attempt=attempt,
+            condition=condition,
+            scenario=scenario,
+            environment_qualification=environment,
+            raw_root=tmp_path,
+        ),
+        worker,
+    )
+    staged = _classify(unclassified, policy)
+
+    assert worker.invocations == []
+    assert [event["phase"] for event in _lifecycle_events(tmp_path, str(attempt["attemptId"]))] == [
+        "scheduled",
+        "preflight",
+        "execution_terminal",
+    ]
+    assert unclassified["attemptQualification"]["validStartAt"] == "none"
+    assert unclassified["attemptQualification"][failed_preflight]["result"] == "fail"
+    assert unclassified["processState"]["workerProcessState"] == "not_started"
+    assert staged["classification"]["class"] == "infrastructure_failure"
+    assert staged["classification"]["reasonCode"] == "invalid_controller_input"
+
+
 @pytest.mark.parametrize("field", ["attemptId", "runId"])
 def test_runner_rejects_path_shaped_attempt_identities_before_writes(tmp_path, field):
     attempt = copy.deepcopy(_attempts()[0])
     attempt[field] = "../escaped"
     attempt = parse_contract("ScheduledAttempt", attempt)
     policy = _policy()
+    scenario = _scenario(attempt, policy)
+    environment = _environment()
     raw_root = tmp_path / "raw"
 
     with pytest.raises(ContractValidationError) as excinfo:
         run_attempt(
             RunAttemptInputs(
                 scheduled_attempt=attempt,
-                condition=_condition(str(attempt["conditionId"])),
-                scenario=_scenario(attempt, policy),
-                environment_qualification=_environment(),
+                condition=_condition(str(attempt["conditionId"]), environment=environment, scenario=scenario),
+                scenario=scenario,
+                environment_qualification=environment,
                 raw_root=raw_root,
             ),
             FakeWorker("success"),
@@ -153,13 +210,16 @@ def test_replacement_attempt_links_to_original_without_overwriting(tmp_path):
     replacement["retryOrdinal"] = 1
     replacement = parse_contract("ScheduledAttempt", replacement)
     policy = _policy()
+    original_scenario = _scenario(original, policy)
+    replacement_scenario = _scenario(replacement, policy)
+    environment = _environment()
 
     original_outcome = run_attempt(
         RunAttemptInputs(
             scheduled_attempt=original,
-            condition=_condition(str(original["conditionId"])),
-            scenario=_scenario(original, policy),
-            environment_qualification=_environment(),
+            condition=_condition(str(original["conditionId"]), environment=environment, scenario=original_scenario),
+            scenario=original_scenario,
+            environment_qualification=environment,
             raw_root=tmp_path,
         ),
         FakeWorker("adapter_failure"),
@@ -168,9 +228,9 @@ def test_replacement_attempt_links_to_original_without_overwriting(tmp_path):
     replacement_outcome = run_attempt(
         RunAttemptInputs(
             scheduled_attempt=replacement,
-            condition=_condition(str(replacement["conditionId"])),
-            scenario=_scenario(replacement, policy),
-            environment_qualification=_environment(),
+            condition=_condition(str(replacement["conditionId"]), environment=environment, scenario=replacement_scenario),
+            scenario=replacement_scenario,
+            environment_qualification=environment,
             raw_root=tmp_path,
         ),
         FakeWorker("success"),
@@ -181,5 +241,5 @@ def test_replacement_attempt_links_to_original_without_overwriting(tmp_path):
     assert (tmp_path / "attempts" / str(original["attemptId"]) / "attempt.json").read_bytes() == original_attempt_bytes
     assert original_outcome["attemptId"] == original["attemptId"]
     assert replacement_outcome["attemptId"] == replacement["attemptId"]
-    assert classify(original_outcome, policy)["classification"]["retryEligible"] is True
-    assert classify(replacement_outcome, policy)["classification"]["countsInValidRun"] is True
+    assert _classify(original_outcome, policy)["classification"]["retryEligible"] is True
+    assert _classify(replacement_outcome, policy)["classification"]["countsInValidRun"] is True
