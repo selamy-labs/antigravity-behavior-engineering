@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T005",
+  "taskTitle": "Build public-safety and provenance validators",
+  "taskEntryDigest": "sha256:286906ff7ecea73249add407415cbab00324fb9bf862c9a388a89293f83cc06d",
+  "baseCommit": "b01a6691efa35bef5fbb88a834371ac794cb5cb4",
+  "implementationCommit": "8d34c68626c86b3fbb834c6d27d6fb8f7b861fcb",
+  "treeDigest": "sha256:0de6697f310c10a0e0a0ad676a038a695ce0d7be1ba8461df0ea31d268b7b8c9",
+  "outcome": "implemented",
+  "files": {
+    "packages/plugin-tooling/src/public-safety.mjs": "sha256:9036d8add8229037d6d34fada2f08a5a86eadc8be14ea040dd58c28aaa16326a",
+    "packages/plugin-tooling/src/provenance.mjs": "sha256:f83cd98ba7c3dde9d1a4063fcf500b6f27f00e5ad84706bd41e5c587dc3969a9",
+    "packages/plugin-tooling/test/public-safety.test.mjs": "sha256:66060dda70a191d9f7c4fa0e1ad4e6523095a90410a78702f79c5cfc1961367d",
+    "packages/plugin-tooling/test/provenance.test.mjs": "sha256:430b4967145124d8548a7746bd84a2da7af38efa87fc06206b8dbfccffeda753",
+    "tests/provenance/fixtures.json": "sha256:22da0bb54bd43d846385bb98306fd024ffdca49e6c190884aecbb5902c325800"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "packages/plugin-tooling/test/public-safety.test.mjs", "packages/plugin-tooling/test/provenance.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:c59a18507ab97b8dc26fdf838bdb2453d903f51f987415c206d67b4fd3708a5e"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "packages/plugin-tooling/test/public-safety.test.mjs", "packages/plugin-tooling/test/provenance.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:4b123d1b6dd5fb0ce44d4580dbeed628f09f43c57961729825b11d1b53e982b2"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["corepack", "pnpm", "verify"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:81cef85232a02b523dad5c087c1c3ea6c952a1719d5788beaa0f43e9a165904a"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["corepack", "pnpm", "install", "--offline", "--frozen-lockfile"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:7a3ee6a87189e65ee6d82ce2e901bb7647612f831905ff3dbf3f0ab2d74d3c3e"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["uv", "lock", "--project", "evaluator", "--check", "--offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:0293595ca7281ae0bc937f144f2c5a00475336df9e69c780acc0354dd82ac752"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["uv", "sync", "--project", "evaluator", "--locked", "--offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:f5f182bc0185e91887ee308db4791dfb0437b69e50249a5da56e56da6a36eb55"
+    },
+    {
+      "phase": "gate",
+      "argv": ["git", "diff", "--check", "b01a6691efa35bef5fbb88a834371ac794cb5cb4..HEAD"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": ["node", "--check", "packages/plugin-tooling/src/public-safety.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": ["node", "--check", "packages/plugin-tooling/src/provenance.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": ["t005-schema-contract-probes", "8d34c68626c86b3fbb834c6d27d6fb8f7b861fcb"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:8674d18d81a66ebfafad60703b811dc315efbccc9960a94d8bb117241203d9c3"
+    },
+    {
+      "phase": "gate",
+      "argv": ["t005-no-network-no-child-process-scan", "8d34c68626c86b3fbb834c6d27d6fb8f7b861fcb"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:f8e33cf5f08821d4ed65f3a8aa0f1c4ab0d8af618532c2b93616e1186abb3c88"
+    },
+    {
+      "phase": "gate",
+      "argv": ["t005-benign-sample-safety-proof", "8d34c68626c86b3fbb834c6d27d6fb8f7b861fcb"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:a7dd57c0b0e7bb10e2c6b56d68df4eb4efe5284df98f5681e1530f617e1c18a3"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:47b36894ad690876db2e3cd3f07103a2efdcbf49a2cb4e320af61302dd8c0f46",
+      "verdictDigest": "sha256:c1dac0d36b302b80b5755526c646b3cd8c6649dea4d92bc4d53eb8c887f3a419",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:47b36894ad690876db2e3cd3f07103a2efdcbf49a2cb4e320af61302dd8c0f46",
+      "verdictDigest": "sha256:73eb49ad1280b54600ddcb3d265bb877d1ccd4be4caad5a53a5a966c441f24f6",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:a7dd57c0b0e7bb10e2c6b56d68df4eb4efe5284df98f5681e1530f617e1c18a3",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon this branch; after merge, open a new T005-linked revert PR without rewriting history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-21T01:46:19Z"
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "policyId": "public-release-safety-v1",
+  "copiedBodyText": "SYNTHETIC COPIED BODY FINGERPRINT ONLY: this sentence is a made-up stand-in for proprietary prose.",
+  "benignFiles": {
+    "README.md": "# Public Antigravity package\n\nThis package documents public Google, Gemini, Google Cloud, and Antigravity prerequisites without private maintainer resources.\n",
+    "NOTICE": "Synthetic public notice for antigravity-behavior-engineering fixtures.\nApache-2.0 attribution placeholder for tests only.\n",
+    "plugin.json": "{\"name\":\"antigravity-behavior-engineering\",\"version\":\"0.1.0\"}\n",
+    "src/index.md": "Public terminology control: Google Docs, Google Cloud, Gemini, and Antigravity are ordinary public product names here.\n"
+  },
+  "unsafeFiles": {
+    "bad/credentials.md": "Synthetic credential lookalike: ABE_SYNTHETIC_SECRET_ABCDEFGHIJKLMNOP.\n",
+    "bad/google-confidential.md": "Synthetic confidential identifier lookalike: GOOGLE_CONFIDENTIAL_SYNTHETIC_CASE_1234.\n",
+    "bad/private-path.md": "Synthetic private path lookalike: /Users/synthetic-private-maintainer/work/hidden-task.\n",
+    "bad/copied-body.md": "SYNTHETIC COPIED BODY FINGERPRINT ONLY: this sentence is a made-up stand-in for proprietary prose.\n",
+    "bad/unpinned-source.md": "Synthetic unpinned source: https://github.com/example/unsafe-package#main.\n",
+    "bad/zz-credential-format.md": "Synthetic credential format control: ghp_000000000000000000000000000000000000.\n",
+    "bad/zz-google-confidential-label.md": "Synthetic label: Google Confidential - synthetic-only control.\n",
+    "bad/zz-private-path.md": "Synthetic home path: /Users/example-internal/work/secret-project.\n",
+    "extra/unexpected.md": "This package-owned file is intentionally not listed by the safety policy.\n",
+    "plugin.json": "{\"name\":\"antigravity-behavior-engineering\",\"version\":\"0.1.0\"}\n"
+  },
+  "pinnedDependencies": [
+    {
+      "schemaVersion": 1,
+      "name": "superpowers",
+      "sourceUrl": "https://github.com/selamy-labs/superpowers",
+      "revision": "0123456789abcdef0123456789abcdef01234567",
+      "license": "MIT",
+      "consumption": "research",
+      "required": false,
+      "qualificationEvidence": "evidence/superpowers.json"
+    },
+    {
+      "schemaVersion": 1,
+      "name": "json-schema",
+      "sourceUrl": "https://github.com/json-schema-org/json-schema-spec",
+      "revision": "89abcdef0123456789abcdef0123456789abcdef",
+      "license": "BSD-3-Clause",
+      "consumption": "development",
+      "required": false,
+      "qualificationEvidence": "evidence/json-schema.json"
+    }
+  ],
+  "humanReviewOnlyDependency": {
+    "schemaVersion": 1,
+    "name": "human-reviewed-source",
+    "sourceUrl": "https://github.com/example/human-reviewed-source",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "license": "GPL-3.0-only",
+    "consumption": "research",
+    "required": false,
+    "qualificationEvidence": "evidence/human-reviewed-source.json"
+  },
+  "adaptations": [
+    {
+      "schemaVersion": 1,
+      "sourceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "localPath": "src/index.md",
+      "classification": "independently_authored_native_module"
+    }
+  ]
+}
