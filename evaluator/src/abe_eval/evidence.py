@@ -768,8 +768,14 @@ def import_run(
 
     raw_entries: list[dict[str, object]] = []
     artifact_payloads: list[tuple[str, bytes]] = []
+    condition_digest = canonical_contract_digest("ConditionLock", parsed_condition)
+    scenario_digest = canonical_contract_digest("ScenarioCard", parsed_scenario)
+    environment_qualification_digest = canonical_contract_digest("EnvironmentQualificationRecord", parsed_qualification)
     staged_outcome_digest = canonical_contract_digest("StagedAttemptOutcome", staged)
     unclassified_outcome_digest = canonical_contract_digest("UnclassifiedStagedAttemptOutcome", unclassified)
+    artifact_payloads.append((condition_digest, canonical_bytes(parsed_condition)))
+    artifact_payloads.append((scenario_digest, canonical_bytes(parsed_scenario)))
+    artifact_payloads.append((environment_qualification_digest, canonical_bytes(parsed_qualification)))
     artifact_payloads.append((staged_outcome_digest, canonical_bytes(staged)))
     artifact_payloads.append((unclassified_outcome_digest, canonical_bytes(unclassified)))
     for entry in entries:
@@ -805,6 +811,12 @@ def import_run(
         "attemptId": attempt_id,
         "attemptDigest": canonical_contract_digest("ScheduledAttempt", stored_attempt),
         "lifecycleEventDigests": event_digests,
+        "conditionDigest": condition_digest,
+        "conditionLocator": _artifact_locator(run_id, condition_digest),
+        "scenarioDigest": scenario_digest,
+        "scenarioLocator": _artifact_locator(run_id, scenario_digest),
+        "environmentQualificationDigest": environment_qualification_digest,
+        "environmentQualificationLocator": _artifact_locator(run_id, environment_qualification_digest),
         "stagedOutcomeDigest": staged_outcome_digest,
         "stagedOutcomeLocator": _artifact_locator(run_id, staged_outcome_digest),
         "unclassifiedOutcomeDigest": unclassified_outcome_digest,

@@ -11,6 +11,7 @@ from pathlib import Path
 
 from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
+from abe_eval.runner import _worker_invocation
 
 _RUN_RECORD_BINDING_FIELDS = (
     "conditionDigest",
@@ -245,6 +246,10 @@ def _validate_run_finalization_digest(
     root: Path,
     run: dict[str, object],
     manifest: dict[str, object],
+    attempt: dict[str, object],
+    condition: dict[str, object],
+    scenario: dict[str, object],
+    environment: dict[str, object],
     staged: dict[str, object],
     terminal_evidence_digest: str,
 ) -> None:
@@ -265,6 +270,22 @@ def _validate_run_finalization_digest(
     actual_lifecycle_digests = [canonical_contract_digest("AttemptLifecycleEvent", event) for event in events[:-1]]
     if expected_lifecycle_digests != actual_lifecycle_digests:
         _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests")
+    if events[0]["occurredAt"] != attempt["scheduledAt"]:
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[0].occurredAt")
+    if events[0]["evidenceDigest"] != manifest.get("attemptDigest"):
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[0].evidenceDigest")
+    expected_preflight_digest = sha256_digest(canonical_bytes({"condition": condition, "scenario": scenario}))
+    if events[1]["evidenceDigest"] != expected_preflight_digest:
+        _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[1].evidenceDigest")
+    valid_start_at = str(staged["attemptQualification"]["validStartAt"])
+    if valid_start_at != "none":
+        valid_started = events[2]
+        if valid_started["occurredAt"] != valid_start_at:
+            _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[2].occurredAt")
+        qualification_digest = canonical_contract_digest("EnvironmentQualificationRecord", environment)
+        expected_valid_started_digest = sha256_digest(canonical_bytes(_worker_invocation(attempt, condition, scenario, qualification_digest)))
+        if valid_started["evidenceDigest"] != expected_valid_started_digest:
+            _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests[2].evidenceDigest")
     finalized = events[-1]
     if len(events) < 2 or events[-2]["phase"] != "execution_terminal":
         _fail("grade.run_finalization_digest_mismatch", "$.lifecycleEventDigests")
@@ -294,7 +315,7 @@ def _validate_run_digest_anchor(run_dir: Path, run: dict[str, object]) -> None:
         _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
-def _validate_attempt_anchor(root: Path, manifest: dict[str, object], run: dict[str, object]) -> None:
+def _validate_attempt_anchor(root: Path, manifest: dict[str, object], run: dict[str, object]) -> dict[str, object]:
     attempt_id = _safe_identifier(run["attemptId"], "$.attemptId", "grade.unsafe_identifier_path")
     attempt = parse_contract(
         "ScheduledAttempt",
@@ -302,6 +323,7 @@ def _validate_attempt_anchor(root: Path, manifest: dict[str, object], run: dict[
     )
     if attempt["runId"] != run["runId"] or canonical_contract_digest("ScheduledAttempt", attempt) != manifest.get("attemptDigest"):
         _fail("grade.run_finalization_digest_mismatch", "$.attemptId")
+    return attempt
 
 
 def _read_manifest_artifact(
@@ -328,6 +350,28 @@ def _read_manifest_artifact(
         _fail("grade.raw_evidence_digest_mismatch", locator_path)
 
 
+def _parse_controller_artifacts(
+    root: Path, run_id: str, manifest: dict[str, object], run: dict[str, object]
+) -> tuple[dict[str, object], dict[str, object], dict[str, object]]:
+    if manifest.get("conditionDigest") != run["conditionDigest"]:
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.conditionDigest")
+    if manifest.get("scenarioDigest") != run["scenarioDigest"]:
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.scenarioDigest")
+    if manifest.get("environmentQualificationDigest") != run["environmentQualificationDigest"]:
+        _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator.environmentQualificationDigest")
+    condition = _read_manifest_artifact(root, run_id, manifest, "conditionLocator", "conditionDigest", "ConditionLock")
+    scenario = _read_manifest_artifact(root, run_id, manifest, "scenarioLocator", "scenarioDigest", "ScenarioCard")
+    environment = _read_manifest_artifact(
+        root,
+        run_id,
+        manifest,
+        "environmentQualificationLocator",
+        "environmentQualificationDigest",
+        "EnvironmentQualificationRecord",
+    )
+    return condition, scenario, environment
+
+
 def _validate_run_record_binding(manifest: dict[str, object], run: dict[str, object], staged: dict[str, object]) -> None:
     binding = manifest.get("runRecordBinding")
     if not isinstance(binding, dict) or set(binding) != set(_RUN_RECORD_BINDING_FIELDS):
@@ -340,7 +384,9 @@ def _validate_run_record_binding(manifest: dict[str, object], run: dict[str, obj
             _fail("grade.run_finalization_digest_mismatch", "$.runId")
 
 
-def _validate_raw_evidence(root: Path, run: dict[str, object]) -> tuple[dict[str, object], dict[str, object], str]:
+def _validate_raw_evidence(
+    root: Path, run: dict[str, object]
+) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object], dict[str, object], str]:
     run_id = _safe_identifier(run["runId"], "$.runId", "grade.unsafe_identifier_path")
     manifest_path = _resolve_run_artifact_locator(
         root, run_id, run["rawEvidenceLocator"], "$.rawEvidenceLocator", run["artifactManifestDigest"]
@@ -359,6 +405,7 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> tuple[dict[str
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
     if manifest.get("runId") != run["runId"] or manifest.get("attemptId") != run["attemptId"]:
         _fail("grade.raw_evidence_digest_mismatch", "$.rawEvidenceLocator")
+    condition, scenario, environment = _parse_controller_artifacts(root, run_id, manifest, run)
     staged = _read_manifest_artifact(
         root, run_id, manifest, "stagedOutcomeLocator", "stagedOutcomeDigest", "StagedAttemptOutcome"
     )
@@ -391,7 +438,7 @@ def _validate_raw_evidence(root: Path, run: dict[str, object]) -> tuple[dict[str
             staged_files[str(entry["path"])] = data.decode("utf-8")
         except UnicodeDecodeError:
             _fail("grade.raw_evidence_digest_mismatch", entry_path + ".objectLocator")
-    return manifest, staged, _terminal_evidence_digest(staged, staged_files)
+    return manifest, condition, scenario, environment, staged, _terminal_evidence_digest(staged, staged_files)
 
 
 def _read_grade_ledger(run_dir: Path) -> set[str]:
@@ -448,9 +495,19 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     if parsed_run["runId"] != safe_run_id:
         _fail("grade.run_record_mismatch", "$.runId")
     _validate_run_digest_anchor(run_dir, parsed_run)
-    manifest, staged, terminal_evidence_digest = _validate_raw_evidence(root, parsed_run)
-    _validate_attempt_anchor(root, manifest, parsed_run)
-    _validate_run_finalization_digest(root, parsed_run, manifest, staged, terminal_evidence_digest)
+    manifest, condition, scenario, environment, staged, terminal_evidence_digest = _validate_raw_evidence(root, parsed_run)
+    attempt = _validate_attempt_anchor(root, manifest, parsed_run)
+    _validate_run_finalization_digest(
+        root,
+        parsed_run,
+        manifest,
+        attempt,
+        condition,
+        scenario,
+        environment,
+        staged,
+        terminal_evidence_digest,
+    )
 
     grade_segment = _safe_digest_segment(str(parsed_grade["graderDigest"]), "$.graderDigest")
     grades_dir = run_dir / "grades"
