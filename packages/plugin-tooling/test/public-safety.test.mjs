@@ -163,6 +163,17 @@ test("safety policy arrays fail visibly instead of disabling checks", async () =
 });
 
 test("copied-body policy records fail visibly before they can emit schema-invalid findings", async () => {
+  await withTree({}, async (root) => {
+    await assert.rejects(
+      () => scanPublicTree(root, {
+        ...policyFor([]),
+        requiredNoticeFiles: [],
+        copiedBodyFingerprints: [{ digest: rawDigest(fixtures.copiedBodyText), severity: "blocker" }],
+      }),
+      /severity/u,
+    );
+  });
+
   await withTree({ README: fixtures.copiedBodyText + "\n", NOTICE: "notice\n" }, async (root) => {
     const expectedFiles = ["NOTICE", "README"];
     await assert.rejects(

@@ -173,6 +173,23 @@ const normalizedFingerprint = (text) => sha256Digest(encoder.encode(text.trim().
 
 const tokensWithPositions = (text) => [...text.matchAll(/\S+/gu)].map((match) => ({ text: match[0], index: match.index }));
 
+const copiedBodyFingerprintsFor = (policy) => {
+  const fingerprints = optionalArrayField(policy, "copiedBodyFingerprints");
+  for (const [index, fingerprint] of fingerprints.entries()) {
+    if (fingerprint === null || typeof fingerprint !== "object" || Array.isArray(fingerprint)) {
+      throw new TypeError("copiedBodyFingerprints[" + index + "] must be an object");
+    }
+    assertDigest(fingerprint.digest, "copiedBodyFingerprints[" + index + "].digest");
+    if (Object.hasOwn(fingerprint, "severity")) {
+      assertSeverity(fingerprint.severity, "copiedBodyFingerprints[" + index + "]");
+    }
+    if (Object.hasOwn(fingerprint, "normalizedTokenCount") && (!Number.isSafeInteger(fingerprint.normalizedTokenCount) || fingerprint.normalizedTokenCount < 1)) {
+      throw new TypeError("copiedBodyFingerprints[" + index + "].normalizedTokenCount must be a positive integer");
+    }
+  }
+  return fingerprints;
+};
+
 const addTextDetectorFindings = (candidates, file) => {
   const text = Buffer.from(file.bytes).toString("utf8");
   const starts = lineStarts(text);
@@ -191,22 +208,9 @@ const addTextDetectorFindings = (candidates, file) => {
   }
 };
 
-const addCopiedBodyFindings = (candidates, file, policy) => {
-  const fingerprints = optionalArrayField(policy, "copiedBodyFingerprints");
+const addCopiedBodyFindings = (candidates, file, fingerprints) => {
   if (fingerprints.length === 0) {
     return;
-  }
-  for (const [index, fingerprint] of fingerprints.entries()) {
-    if (fingerprint === null || typeof fingerprint !== "object" || Array.isArray(fingerprint)) {
-      throw new TypeError("copiedBodyFingerprints[" + index + "] must be an object");
-    }
-    assertDigest(fingerprint.digest, "copiedBodyFingerprints[" + index + "].digest");
-    if (Object.hasOwn(fingerprint, "severity")) {
-      assertSeverity(fingerprint.severity, "copiedBodyFingerprints[" + index + "]");
-    }
-    if (Object.hasOwn(fingerprint, "normalizedTokenCount") && (!Number.isSafeInteger(fingerprint.normalizedTokenCount) || fingerprint.normalizedTokenCount < 1)) {
-      throw new TypeError("copiedBodyFingerprints[" + index + "].normalizedTokenCount must be a positive integer");
-    }
   }
   const byDigest = new Map(fingerprints.map((fingerprint) => [fingerprint.digest, fingerprint]));
   const text = Buffer.from(file.bytes).toString("utf8");
@@ -281,6 +285,7 @@ const materializeFindings = (candidates) => {
 
 export const scanPublicTree = async (root, policy) => {
   const checkedPolicy = asObject(policy, "policy");
+  const copiedBodyFingerprints = copiedBodyFingerprintsFor(checkedPolicy);
   const files = await listFiles(root);
   const candidates = [];
 
@@ -310,7 +315,7 @@ export const scanPublicTree = async (root, policy) => {
       continue;
     }
     addTextDetectorFindings(candidates, file);
-    addCopiedBodyFindings(candidates, file, checkedPolicy);
+    addCopiedBodyFindings(candidates, file, copiedBodyFingerprints);
   }
 
   const findings = materializeFindings(candidates);
