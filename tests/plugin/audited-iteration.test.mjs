@@ -57,15 +57,18 @@ const collectFiles = async (directory) => {
   return files.sort();
 };
 
-const expectedEvidenceDigest = ({ evaluatorDigest, formativeReplay, liveActivationEvidence, matrixDigest, runtimeDigest }) => sha256Digest(canonicalBytes({
+const expectedEvidenceDigest = ({ evaluatorDigest, formativeReplay, liveActivationEvidence, matrixDigest, metricsInterpretation, resourceEnvelope, runtimeDigest, selectionGate }) => sha256Digest(canonicalBytes({
   component: "audited-iteration",
   decision: "not_selected",
   evaluatorDigest,
   formativeReplay,
   liveActivationEvidence,
   matrixDigest,
+  metricsInterpretation,
   rejectionReasons,
+  resourceEnvelope,
   runtimeDigest,
+  selectionGate,
 }));
 
 const runEvaluator = (...args) => spawnSync(
@@ -130,7 +133,10 @@ test("audited-iteration is rejected when replay is synthetic and repair closure 
       formativeReplay: analysis.formativeReplay,
       liveActivationEvidence: analysis.liveActivationEvidence,
       matrixDigest,
+      metricsInterpretation: analysis.metricsInterpretation,
+      resourceEnvelope: analysis.resourceEnvelope,
       runtimeDigest,
+      selectionGate: analysis.selectionGate,
     }),
     reason: "The candidate is not retained because T026 has no observed incumbent-versus-treatment long-task ablation, its deterministic replay copies authored outcomes, the T024 CLI cannot close accepted findings or pending obligations, and the required resource and regression gates are unmeasured.",
   });
