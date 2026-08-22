@@ -200,7 +200,7 @@ test("behavior lock keeps framing skill and shipped runtime script locked while 
     .filter((relativePath) => relativePath !== "behavior-lock.json")
     .sort();
 
-  assert.equal(lock.sourceRevision, "ea2347c1a31fdb511d21a0bfd75ad268edc7ce6d");
+  assert.equal(lock.sourceRevision, "f314c7e6cc06d53a1667b13aa7154ed543ecb20e");
   assert.deepEqual(lock.components, [
     {
       schemaVersion: 1,
