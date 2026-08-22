@@ -12,4 +12,4 @@ export {
   showTaskStateFile,
   validateTaskStateFile,
   writeCanonicalAtomic,
-} from "../../../plugin/scripts/runtime-lib.mjs";
+} from "./runtime-lib.mjs";

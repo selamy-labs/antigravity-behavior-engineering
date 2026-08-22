@@ -234,6 +234,11 @@ for (const expected of [
       main: undefined,
       exports: { '.': './src/task-state.mjs' },
       bin: { 'abe-evidence': './bin/abe-evidence.mjs' },
+      files: [
+        'bin/abe-evidence.mjs',
+        'src/runtime-lib.mjs',
+        'src/task-state.mjs',
+      ],
       dependencies: {},
       devDependencies: {},
     },
@@ -273,6 +278,9 @@ for (const expected of [
   assert.deepEqual(loaded.main, expected.spec.main, `${expected.id}: main`);
   assert.deepEqual(loaded.exports, expected.spec.exports, `${expected.id}: exports`);
   assert.deepEqual(loaded.bin, expected.spec.bin, `${expected.id}: bin`);
+  if (expected.spec.files) {
+    assert.deepEqual(loaded.files, expected.spec.files, `${expected.id}: files`);
+  }
   if (expected.spec.scripts) {
     assert.deepEqual(loaded.scripts, expected.spec.scripts, `${expected.id}: scripts`);
   }

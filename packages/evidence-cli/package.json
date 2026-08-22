@@ -11,6 +11,11 @@
   "bin": {
     "abe-evidence": "./bin/abe-evidence.mjs"
   },
+  "files": [
+    "bin/abe-evidence.mjs",
+    "src/runtime-lib.mjs",
+    "src/task-state.mjs"
+  ],
   "dependencies": {},
   "devDependencies": {}
 }

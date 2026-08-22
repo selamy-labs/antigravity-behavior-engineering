@@ -19,6 +19,16 @@ const packageJsonPath = path.join(packageRoot, "package.json");
 const packageBin = path.join(packageRoot, "bin", "abe-evidence.mjs");
 const pluginRuntime = path.join(repoRoot, "plugin", "scripts", "runtime-lib.mjs");
 const behaviorLockPath = path.join(repoRoot, "plugin", "behavior-lock.json");
+const blackBoxEntrypoints = Object.freeze([
+  { label: "plugin runtime", path: pluginRuntime },
+  { label: "package binary", path: packageBin },
+]);
+const packedPackageFiles = Object.freeze([
+  "package/bin/abe-evidence.mjs",
+  "package/package.json",
+  "package/src/runtime-lib.mjs",
+  "package/src/task-state.mjs",
+]);
 
 const TASK_ID = "task-0001";
 const WORKSPACE_DIGEST = "sha256:" + "0".repeat(64);
@@ -75,6 +85,13 @@ const runCommand = (command, args, { cwd = repoRoot, env = {} } = {}) => new Pro
   });
 });
 
+const runPnpm = (args, options = {}) => {
+  if (process.env.npm_execpath && process.env.npm_execpath.includes("pnpm")) {
+    return runCommand(process.execPath, [process.env.npm_execpath, ...args], options);
+  }
+  return runCommand("pnpm", args, options);
+};
+
 const withTemporaryWorkspace = async (fn) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "abe-evidence-cli-"));
   try {
@@ -87,6 +104,63 @@ const withTemporaryWorkspace = async (fn) => {
 const writeJson = async (file, value) => {
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, JSON.stringify(value, null, 2) + "\n", "utf8");
+};
+
+const copyPackageSource = async (root) => {
+  const copyRoot = path.join(root, "evidence-cli");
+  await fs.cp(packageRoot, copyRoot, {
+    recursive: true,
+    filter: (sourcePath) => !sourcePath.split(path.sep).includes("node_modules"),
+  });
+  return copyRoot;
+};
+
+const packageArchivePath = async (packDestination) => {
+  const archives = (await fs.readdir(packDestination))
+    .filter((entry) => entry.endsWith(".tgz"))
+    .sort();
+  assert.deepEqual(archives, ["antigravity-abe-evidence-cli-0.0.0.tgz"]);
+  return path.join(packDestination, archives[0]);
+};
+
+const listArchive = async (archive) => {
+  const listing = await runCommand("tar", ["-tzf", archive]);
+  assert.equal(listing.exitCode, 0, listing.stderr);
+  return listing.stdout.toString("utf8").trimEnd().split("\n").sort();
+};
+
+const extractArchive = async (archive, destination) => {
+  await fs.mkdir(destination, { recursive: true });
+  const extracted = await runCommand("tar", ["-xzf", archive, "-C", destination]);
+  assert.equal(extracted.exitCode, 0, extracted.stderr);
+  return path.join(destination, "package");
+};
+
+const buildAndInspectPackageArchive = async (sourceRoot, root) => {
+  const packDestination = path.join(root, "packed");
+  await fs.mkdir(packDestination, { recursive: true });
+  const packed = await runPnpm(["pack", "--pack-destination", packDestination], { cwd: sourceRoot });
+  assert.equal(packed.exitCode, 0, packed.stderr);
+  const archive = await packageArchivePath(packDestination);
+  const files = await listArchive(archive);
+  for (const requiredFile of packedPackageFiles) {
+    assert.ok(files.includes(requiredFile), "missing required packed file " + requiredFile);
+  }
+  assert.deepEqual(files, [...packedPackageFiles]);
+  const extractRoot = await extractArchive(archive, path.join(root, "extracted"));
+  assert.equal(
+    await digestFile(path.join(extractRoot, "src", "runtime-lib.mjs")),
+    await digestFile(pluginRuntime),
+    "package runtime copy must stay byte-identical to the plugin runtime",
+  );
+  const help = await runNode(path.join(extractRoot, "bin", "abe-evidence.mjs"), ["--help"], { cwd: root });
+  assert.equal(help.exitCode, 0, help.stderr);
+  assert.match(help.stdout, /No semantic correctness authority/u);
+  return {
+    archive,
+    digest: await digestFile(archive),
+    help: help.stdout,
+  };
 };
 
 const initArgs = () => [
@@ -187,8 +261,31 @@ test("package surface is dependency-free and exposes only the evidence CLI API",
     bin: {
       "abe-evidence": "./bin/abe-evidence.mjs",
     },
+    files: [
+      "bin/abe-evidence.mjs",
+      "src/runtime-lib.mjs",
+      "src/task-state.mjs",
+    ],
     dependencies: {},
     devDependencies: {},
+  });
+});
+
+test("packed package output is deterministic, runnable, and fails missing-bin packages", async () => {
+  await withTemporaryWorkspace(async (root) => {
+    const sourceA = await copyPackageSource(path.join(root, "clean-a"));
+    const sourceB = await copyPackageSource(path.join(root, "clean-b"));
+    const archiveA = await buildAndInspectPackageArchive(sourceA, path.join(root, "build-a"));
+    const archiveB = await buildAndInspectPackageArchive(sourceB, path.join(root, "build-b"));
+    assert.equal(archiveA.digest, archiveB.digest);
+    assert.equal(archiveA.help, archiveB.help);
+
+    const missingBinSource = await copyPackageSource(path.join(root, "missing-bin"));
+    await fs.rm(path.join(missingBinSource, "bin", "abe-evidence.mjs"));
+    await assert.rejects(
+      () => buildAndInspectPackageArchive(missingBinSource, path.join(root, "missing-bin-build")),
+      /missing required packed file package\/bin\/abe-evidence\.mjs/u,
+    );
   });
 });
 
@@ -214,10 +311,11 @@ test("behavior lock source revision recovers the locked runtime script bytes", a
 });
 
 test("init atomically creates a valid TaskState and ordinal-zero completion ledger", async () => {
-  await withTemporaryWorkspace(async (root) => {
-    const result = await initialize(root);
+  for (const entrypoint of blackBoxEntrypoints) {
+    await withTemporaryWorkspace(async (root) => {
+    const result = await initialize(root, entrypoint.path);
     assert.match(result.stdout, /"stateDigest":"sha256:[0-9a-f]{64}"/u);
-    assert.equal(result.stderr, "");
+    assert.equal(result.stderr, "", entrypoint.label);
 
     const state = await readJson(statePath(root));
     const [event] = await readLedger(ledgerPath(root));
@@ -272,34 +370,38 @@ test("init atomically creates a valid TaskState and ordinal-zero completion ledg
     ]);
     assert.deepEqual(await fs.readFile(statePath(root)), Buffer.from(canonicalBytes(state)));
     assert.equal(await fs.readFile(ledgerPath(root), "utf8"), Buffer.from(canonicalBytes(event)).toString("utf8") + "\n");
-  });
+    });
+  }
 });
 
 test("init refuses a symlinked .agents ancestry instead of escaping the workspace", async () => {
-  await withTemporaryWorkspace(async (root) => {
+  for (const entrypoint of blackBoxEntrypoints) {
+    await withTemporaryWorkspace(async (root) => {
     const outside = await fs.mkdtemp(path.join(os.tmpdir(), "abe-init-escape-"));
     try {
       await fs.symlink(outside, path.join(root, ".agents"));
-      const result = await runNode(pluginRuntime, initArgs(), { cwd: root });
-      assert.notEqual(result.exitCode, 0);
-      assert.match(result.stderr, /state\.path_escape/u);
+      const result = await runNode(entrypoint.path, initArgs(), { cwd: root });
+      assert.notEqual(result.exitCode, 0, entrypoint.label);
+      assert.match(result.stderr, /state\.path_escape/u, entrypoint.label);
       await assert.rejects(() => fs.stat(path.join(outside, "abe", TASK_ID, "state.json")), { code: "ENOENT" });
     } finally {
       await fs.rm(outside, { recursive: true, force: true });
     }
-  });
+    });
+  }
 });
 
 test("apply accepts closed patch operations, validates T003 invariants, and preserves the append-only ledger", async () => {
-  await withTemporaryWorkspace(async (root) => {
-    await initialize(root);
+  for (const entrypoint of blackBoxEntrypoints) {
+    await withTemporaryWorkspace(async (root) => {
+    await initialize(root, entrypoint.path);
     const initialLedger = await fs.readFile(ledgerPath(root), "utf8");
     const baseDigest = await digestFile(statePath(root));
     const patchPath = path.join(root, ".agents", "abe", TASK_ID, "patch.json");
     await writeJson(patchPath, patchFor(baseDigest));
 
-    const applyResult = await runNode(packageBin, ["apply", "--patch-file", ".agents/abe/task-0001/patch.json"], { cwd: root });
-    assert.equal(applyResult.exitCode, 0, applyResult.stderr);
+    const applyResult = await runNode(entrypoint.path, ["apply", "--patch-file", ".agents/abe/task-0001/patch.json"], { cwd: root });
+    assert.equal(applyResult.exitCode, 0, entrypoint.label + ": " + applyResult.stderr);
     assert.match(applyResult.stdout, /"stateDigest":"sha256:[0-9a-f]{64}"/u);
     assert.equal(await fs.readFile(ledgerPath(root), "utf8"), initialLedger);
 
@@ -321,7 +423,7 @@ test("apply accepts closed patch operations, validates T003 invariants, and pres
     assert.equal(packageShow.stdout, pluginShow.stdout);
     assert.deepEqual(JSON.parse(pluginShow.stdout), state);
 
-    const validate = await runNode(pluginRuntime, [
+    const validate = await runNode(entrypoint.path, [
       "validate",
       "--state-file", ".agents/abe/task-0001/state.json",
       "--task-id", TASK_ID,
@@ -334,12 +436,14 @@ test("apply accepts closed patch operations, validates T003 invariants, and pres
       reasonCode: "valid",
       stateDigest: await digestFile(statePath(root)),
     });
-  });
+    });
+  }
 });
 
 test("concurrent apply from one base acknowledges at most one update and preserves the survivor", async () => {
-  await withTemporaryWorkspace(async (root) => {
-    await initialize(root);
+  for (const entrypoint of blackBoxEntrypoints) {
+    await withTemporaryWorkspace(async (root) => {
+    await initialize(root, entrypoint.path);
     const baseDigest = await digestFile(statePath(root));
     const patchFiles = [];
     for (let patchIndex = 0; patchIndex < 24; patchIndex += 1) {
@@ -368,7 +472,7 @@ test("concurrent apply from one base acknowledges at most one update and preserv
     }
 
     const results = await Promise.all(
-      patchFiles.map((patchFile) => runNode(pluginRuntime, ["apply", "--patch-file", patchFile], { cwd: root })),
+      patchFiles.map((patchFile) => runNode(entrypoint.path, ["apply", "--patch-file", patchFile], { cwd: root })),
     );
     const successes = results.filter((result) => result.exitCode === 0);
     const failures = results.filter((result) => result.exitCode !== 0);
@@ -389,12 +493,14 @@ test("concurrent apply from one base acknowledges at most one update and preserv
       state.assumptions.every((assumption) => assumption.id.startsWith("A-" + survivingPatch.padStart(2, "0") + "-")),
       true,
     );
-  });
+    });
+  }
 });
 
 test("apply fails closed for unknown operations, stale bases, stale evidence, terminal inconsistency, and foreign identity", async () => {
-  await withTemporaryWorkspace(async (root) => {
-    await initialize(root);
+  for (const entrypoint of blackBoxEntrypoints) {
+    await withTemporaryWorkspace(async (root) => {
+    await initialize(root, entrypoint.path);
     const original = await fs.readFile(statePath(root), "utf8");
     const baseDigest = await digestFile(statePath(root));
     const patchPath = path.join(root, ".agents", "abe", TASK_ID, "patch.json");
@@ -496,69 +602,74 @@ test("apply fails closed for unknown operations, stale bases, stale evidence, te
       ],
     ]) {
       await writeJson(patchPath, patch);
-      const result = await runNode(pluginRuntime, ["apply", "--patch-file", ".agents/abe/task-0001/patch.json"], { cwd: root });
-      assert.notEqual(result.exitCode, 0, name);
-      assert.match(result.stderr, pattern, name);
-      assert.equal(await fs.readFile(statePath(root), "utf8"), original, name + " must roll back state");
+      const result = await runNode(entrypoint.path, ["apply", "--patch-file", ".agents/abe/task-0001/patch.json"], { cwd: root });
+      assert.notEqual(result.exitCode, 0, entrypoint.label + ": " + name);
+      assert.match(result.stderr, pattern, entrypoint.label + ": " + name);
+      assert.equal(await fs.readFile(statePath(root), "utf8"), original, entrypoint.label + ": " + name + " must roll back state");
     }
-  });
+    });
+  }
 });
 
 test("validate and show reject malformed state, foreign contexts, traversal, and symlink escapes", async () => {
-  await withTemporaryWorkspace(async (root) => {
-    await initialize(root);
+  for (const entrypoint of blackBoxEntrypoints) {
+    await withTemporaryWorkspace(async (root) => {
+    await initialize(root, entrypoint.path);
     const malformedPath = path.join(root, ".agents", "abe", TASK_ID, "malformed.json");
     await fs.writeFile(malformedPath, "{\"schemaVersion\":", "utf8");
 
-    const malformed = await runNode(pluginRuntime, ["validate", "--state-file", ".agents/abe/task-0001/malformed.json"], { cwd: root });
-    assert.notEqual(malformed.exitCode, 0);
-    assert.match(malformed.stderr, /state\.invalid_json/u);
+    const malformed = await runNode(entrypoint.path, ["validate", "--state-file", ".agents/abe/task-0001/malformed.json"], { cwd: root });
+    assert.notEqual(malformed.exitCode, 0, entrypoint.label);
+    assert.match(malformed.stderr, /state\.invalid_json/u, entrypoint.label);
 
-    const foreign = await runNode(pluginRuntime, [
+    const foreign = await runNode(entrypoint.path, [
       "validate",
       "--state-file", ".agents/abe/task-0001/state.json",
       "--workspace-digest", WRONG_DIGEST,
     ], { cwd: root });
-    assert.notEqual(foreign.exitCode, 0);
-    assert.match(foreign.stderr, new RegExp(ReasonCodes.FOREIGN_IDENTITY, "u"));
+    assert.notEqual(foreign.exitCode, 0, entrypoint.label);
+    assert.match(foreign.stderr, new RegExp(ReasonCodes.FOREIGN_IDENTITY, "u"), entrypoint.label);
 
-    const traversal = await runNode(pluginRuntime, ["show", "--state-file", "../outside.json"], { cwd: root });
-    assert.notEqual(traversal.exitCode, 0);
-    assert.match(traversal.stderr, /state\.path_escape/u);
+    const traversal = await runNode(entrypoint.path, ["show", "--state-file", "../outside.json"], { cwd: root });
+    assert.notEqual(traversal.exitCode, 0, entrypoint.label);
+    assert.match(traversal.stderr, /state\.path_escape/u, entrypoint.label);
 
     const outside = await fs.mkdtemp(path.join(os.tmpdir(), "abe-outside-"));
     try {
       await writeJson(path.join(outside, "state.json"), await readJson(statePath(root)));
       await fs.symlink(outside, path.join(taskDir(root), "link"));
-      const symlink = await runNode(pluginRuntime, ["show", "--state-file", ".agents/abe/task-0001/link/state.json"], { cwd: root });
-      assert.notEqual(symlink.exitCode, 0);
-      assert.match(symlink.stderr, /state\.path_escape/u);
+      const symlink = await runNode(entrypoint.path, ["show", "--state-file", ".agents/abe/task-0001/link/state.json"], { cwd: root });
+      assert.notEqual(symlink.exitCode, 0, entrypoint.label);
+      assert.match(symlink.stderr, /state\.path_escape/u, entrypoint.label);
     } finally {
       await fs.rm(outside, { recursive: true, force: true });
     }
-  });
+    });
+  }
 });
 
 test("init rejects unsafe identities and cleans temporary initialization residue", async () => {
-  await withTemporaryWorkspace(async (root) => {
-    const unsafe = await runNode(pluginRuntime, [
+  for (const entrypoint of blackBoxEntrypoints) {
+    await withTemporaryWorkspace(async (root) => {
+    const unsafe = await runNode(entrypoint.path, [
       "init",
       "--task-id", "../evil",
       "--workspace-digest", WORKSPACE_DIGEST,
       "--request-digest", REQUEST_DIGEST,
     ], { cwd: root });
-    assert.notEqual(unsafe.exitCode, 0);
-    assert.match(unsafe.stderr, /state\.invalid_task_id/u);
+    assert.notEqual(unsafe.exitCode, 0, entrypoint.label);
+    assert.match(unsafe.stderr, /state\.invalid_task_id/u, entrypoint.label);
     await assert.rejects(() => fs.stat(path.join(root, ".agents")), { code: "ENOENT" });
 
     await fs.mkdir(path.join(root, ".agents", "abe"), { recursive: true });
     await fs.writeFile(taskDir(root), "not a directory\n", "utf8");
-    const existing = await runNode(pluginRuntime, initArgs(), { cwd: root });
-    assert.notEqual(existing.exitCode, 0);
-    assert.match(existing.stderr, /state\.init_exists/u);
+    const existing = await runNode(entrypoint.path, initArgs(), { cwd: root });
+    assert.notEqual(existing.exitCode, 0, entrypoint.label);
+    assert.match(existing.stderr, /state\.init_exists/u, entrypoint.label);
     const residue = (await fs.readdir(path.join(root, ".agents", "abe"))).filter((entry) => entry.includes(".tmp"));
     assert.deepEqual(residue, []);
-  });
+    });
+  }
 });
 
 test("runtime-library exported API reports the same T003 reason codes as the shared contracts", async () => {
