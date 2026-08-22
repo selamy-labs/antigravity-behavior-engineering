@@ -1,3 +1,4 @@
 packages:
   - "packages/contracts"
+  - "packages/evidence-cli"
   - "packages/plugin-tooling"

@@ -118,7 +118,7 @@ test("no kernel rule body is shipped, copied, locked, or compensated for elsewhe
 
   assert.equal(await exists(rulePath), false);
   assert.equal(analysis.decisionOutput.decision, "not_selected");
-  assert.equal(lock.sourceRevision, "3cb8f4e9720f75c3c0018fe4fd4b0e2543535ccc");
+  assert.equal(lock.sourceRevision, "461505ddcb59d60c48b5d6cbbdba048be540c500");
   assert.deepEqual(
     lock.components.filter((component) => component.name === "engineering-evidence-kernel"),
     [],

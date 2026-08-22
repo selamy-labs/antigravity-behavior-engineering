@@ -180,15 +180,16 @@ test("formative matrix selects repeatable ambiguity gaps and negative controls f
   });
 });
 
-test("behavior lock selects only the framing skill as a local component and covers every plugin file", async () => {
+test("behavior lock keeps framing skill and shipped runtime script locked while covering every plugin file", async () => {
   const lock = await readJson(lockPath);
   const skillDigest = await fileDigest(skillPath);
+  const runtimeScriptDigest = await fileDigest(path.join(pluginRoot, "scripts", "runtime-lib.mjs"));
   const pluginFiles = (await collectFiles(pluginRoot))
     .map((file) => path.relative(pluginRoot, file).split(path.sep).join("/"))
     .filter((relativePath) => relativePath !== "behavior-lock.json")
     .sort();
 
-  assert.equal(lock.sourceRevision, T022_MERGE_COMMIT);
+  assert.equal(lock.sourceRevision, "461505ddcb59d60c48b5d6cbbdba048be540c500");
   assert.deepEqual(lock.components, [
     {
       schemaVersion: 1,
@@ -198,6 +199,15 @@ test("behavior lock selects only the framing skill as a local component and cove
       claimId: "T023.evidence-first-framing.material-ambiguity-before-edit",
       defaultEnabled: true,
       digest: skillDigest,
+    },
+    {
+      schemaVersion: 1,
+      kind: "script",
+      name: "abe-evidence-runtime",
+      path: "scripts/runtime-lib.mjs",
+      claimId: "T024.durable-evidence-cli.safe-task-state-mechanics",
+      defaultEnabled: true,
+      digest: runtimeScriptDigest,
     },
   ]);
   assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
