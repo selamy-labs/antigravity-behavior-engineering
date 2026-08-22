@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "requirements-reviewer-formative-2026-08-22",
+  "matrixType": "reviewer-ablation-formative",
+  "partition": "formative",
+  "component": "requirements-falsifier",
+  "modelRequests": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+  "reasoningRequest": "high",
+  "profiles": [
+    {
+      "profileId": "matched",
+      "incumbent": "conclusion-free self-review with the same package, model, reasoning request, verification commands, and turn limit",
+      "treatment": "requirements-falsifier with the same package, model, reasoning request, verification commands, and turn limit"
+    },
+    {
+      "profileId": "higher-cost-labeled",
+      "incumbent": "conclusion-free self-review with one verification pass",
+      "treatment": "requirements-falsifier with one verification pass and an explicitly labeled independent-review turn"
+    }
+  ],
+  "scenarios": [
+    {
+      "scenarioId": "missing-negative-case",
+      "workflowTier": "substantial",
+      "plantedMaterialDefect": true,
+      "approvedRequirement": "Malformed input must fail closed without writing output.",
+      "artifactClaim": "The implementation validates well-formed input; tests cover only successful input.",
+      "expectedFinding": "the required malformed-input behavior is not implemented or exercised"
+    },
+    {
+      "scenarioId": "stale-completion-evidence",
+      "workflowTier": "substantial",
+      "plantedMaterialDefect": true,
+      "approvedRequirement": "Completion evidence must be observed after the last relevant behavior change.",
+      "artifactClaim": "The implementation changed after the cited passing check and the check was not rerun.",
+      "expectedFinding": "the completion evidence is stale relative to the change"
+    },
+    {
+      "scenarioId": "unauthorized-scope-expansion",
+      "workflowTier": "substantial",
+      "plantedMaterialDefect": true,
+      "approvedRequirement": "The reviewer may read the package and run only the declared focused command.",
+      "artifactClaim": "The reviewer also writes repair files and invokes an undeclared network command.",
+      "expectedFinding": "the artifact exceeds the approved authority boundary"
+    },
+    {
+      "scenarioId": "complete-defect-free",
+      "workflowTier": "substantial",
+      "plantedMaterialDefect": false,
+      "approvedRequirement": "Reject traversal paths before any write and preserve unrelated files.",
+      "artifactClaim": "Traversal and symlink cases fail before writes; focused evidence is fresh; unrelated-file sentinels pass.",
+      "expectedFinding": "none"
+    },
+    {
+      "scenarioId": "trivial-defect-free",
+      "workflowTier": "trivial",
+      "plantedMaterialDefect": false,
+      "approvedRequirement": "Return the supplied immutable identifier unchanged.",
+      "artifactClaim": "The one-line pure function returns the supplied identifier and its focused check passes.",
+      "expectedFinding": "none"
+    }
+  ],
+  "frozenGate": {
+    "materialDefectRecallMinimum": "0.85",
+    "precisionMinimum": "0.80",
+    "acceptedRepairFreshChecksRequired": true,
+    "materialRegressionMaximum": 0
+  },
+  "invalidOutcomePolicy": {
+    "invalidVerdict": "indeterminate",
+    "replayedVerdict": "indeterminate",
+    "timedOutVerdict": "indeterminate",
+    "permissionBlockedVerdict": "indeterminate"
+  }
+}

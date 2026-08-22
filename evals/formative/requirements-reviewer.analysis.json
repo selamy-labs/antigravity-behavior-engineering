@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "analysisType": "reviewer-ablation-formative-analysis",
+  "analysisId": "requirements-reviewer-formative-2026-08-22",
+  "component": "requirements-falsifier",
+  "matrixPath": "evals/formative/requirements-reviewer.matrix.json",
+  "matrixDigest": "sha256:bf45a38fd0d2a18b27c4d5e6aa670540663ba55c436f5681c2d0e3f13eeb2bdc",
+  "incumbentReplay": {
+    "attemptedBeforeCandidateBody": true,
+    "candidateDefinitionPresentDuringReplay": false,
+    "models": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+    "profiles": ["matched", "higher-cost-labeled"],
+    "invocations": 4,
+    "scenarioJudgments": 20,
+    "truePositives": 12,
+    "falseNegatives": 0,
+    "falsePositives": 0,
+    "trueNegatives": 8,
+    "materialDefectRecall": "1.00",
+    "precision": "1.00",
+    "observations": [
+      {"model": "gemini-3.1-pro-high", "profileId": "matched", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "18.796", "totalTokens": 23635},
+      {"model": "gemini-3.1-pro-high", "profileId": "higher-cost-labeled", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "22.315", "totalTokens": 32318},
+      {"model": "gemini-3.7-flash-high", "profileId": "matched", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "6.686", "totalTokens": 31357},
+      {"model": "gemini-3.7-flash-high", "profileId": "higher-cost-labeled", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "7.228", "totalTokens": 31518}
+    ]
+  },
+  "frozenGate": {
+    "materialDefectRecallMinimum": "0.85",
+    "precisionMinimum": "0.80",
+    "acceptedRepairFreshChecksRequired": true,
+    "materialRegressionMaximum": 0
+  },
+  "candidateBodyCreated": false,
+  "treatmentReplay": {
+    "status": "not_run",
+    "reason": "The pre-treatment incumbent exceeded both frozen effectiveness thresholds without false positives, so the repository requires not_selected and forbids creating a treatment body."
+  },
+  "decisionOutput": {
+    "component": "requirements-falsifier",
+    "decision": "not_selected",
+    "reason": "The observed incumbent gap disappeared before treatment creation: recall and precision were both 1.00 across both requested models, both profiles, all planted defects, and both defect-free controls."
+  },
+  "invalidVerdictsBecomePass": false,
+  "replayedVerdictsBecomePass": false,
+  "timedOutVerdictsBecomePass": false,
+  "permissionBlockedVerdictsBecomePass": false,
+  "packageInfrastructureRetained": true,
+  "retained": false,
+  "limitations": [
+    "The formative cases are conclusion-free claim-level probes rather than repository-sized diffs.",
+    "No treatment comparison exists because the incumbent saturated the frozen selection metrics before a candidate body was permitted.",
+    "The package builder is retained as role-neutral infrastructure required by the downstream paired-review contract; no requirements reviewer agent is packaged."
+  ]
+}
