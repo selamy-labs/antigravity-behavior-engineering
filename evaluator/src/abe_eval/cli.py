@@ -22,6 +22,8 @@ from abe_eval.qualify import command_qualify, command_run_matrix
 from abe_eval.redact import redact_run
 from abe_eval.runner import RunAttemptInputs, run_attempt
 from abe_eval.schedule import build_schedule
+from abe_eval.skill_ablation import ANALYSIS_TYPE as SKILL_ABLATION_ANALYSIS_TYPE
+from abe_eval.skill_ablation import grade_skill_ablation, report_skill_ablation
 
 
 _BASE_ENVIRONMENT: dict[str, object] = {
@@ -391,6 +393,9 @@ def _cmd_grade(args: argparse.Namespace) -> int:
     if raw_analysis.get("analysisType") == PAIRED_INCUMBENT_ANALYSIS_TYPE:
         _emit(grade_paired_incumbent_baseline(Path(args.analysis), raw_root))
         return 0
+    if raw_analysis.get("analysisType") == SKILL_ABLATION_ANALYSIS_TYPE:
+        _emit(grade_skill_ablation(Path(args.analysis), raw_root))
+        return 0
     analysis = _analysis(Path(args.analysis))
     created: list[str] = []
     skipped: list[str] = []
@@ -504,6 +509,10 @@ def _redact_runs(
 def _cmd_report(args: argparse.Namespace) -> int:
     raw_root = Path(args.raw_root)
     output = Path(args.output)
+    raw_analysis = _load_json(Path(args.analysis))
+    if raw_analysis.get("analysisType") == SKILL_ABLATION_ANALYSIS_TYPE:
+        _emit(report_skill_ablation(Path(args.analysis), raw_root, output))
+        return 0
     analysis = _analysis(Path(args.analysis))
     runs = _run_records(raw_root)
     scorecard = analyze_attempts(analysis, _views(raw_root, runs))

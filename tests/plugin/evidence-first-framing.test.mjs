@@ -183,13 +183,14 @@ test("formative matrix selects repeatable ambiguity gaps and negative controls f
 test("behavior lock keeps framing skill and shipped runtime script locked while covering every plugin file", async () => {
   const lock = await readJson(lockPath);
   const skillDigest = await fileDigest(skillPath);
+  const proofSkillDigest = await fileDigest(path.join(pluginRoot, "skills", "proof-obligation-contract", "SKILL.md"));
   const runtimeScriptDigest = await fileDigest(path.join(pluginRoot, "scripts", "runtime-lib.mjs"));
   const pluginFiles = (await collectFiles(pluginRoot))
     .map((file) => path.relative(pluginRoot, file).split(path.sep).join("/"))
     .filter((relativePath) => relativePath !== "behavior-lock.json")
     .sort();
 
-  assert.equal(lock.sourceRevision, "1683c238a8d8dc38cea7768c0fb8643a7d93b3f2");
+  assert.equal(lock.sourceRevision, "d1194145f9e5a0f38d594c938d930931a80723b0");
   assert.deepEqual(lock.components, [
     {
       schemaVersion: 1,
@@ -199,6 +200,15 @@ test("behavior lock keeps framing skill and shipped runtime script locked while 
       claimId: "T023.evidence-first-framing.material-ambiguity-before-edit",
       defaultEnabled: true,
       digest: skillDigest,
+    },
+    {
+      schemaVersion: 1,
+      kind: "skill",
+      name: "proof-obligation-contract",
+      path: "skills/proof-obligation-contract/SKILL.md",
+      claimId: "T025.proof-obligation-contract.workspace-request-bound-obligations",
+      defaultEnabled: true,
+      digest: proofSkillDigest,
     },
     {
       schemaVersion: 1,
