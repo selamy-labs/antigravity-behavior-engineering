@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T022",
+  "taskTitle": "Decide the compact kernel rule with a no-rule outcome",
+  "taskEntryDigest": "sha256:68b7516dd089391f67927bb8124600e2a36b754d63ba2002e600e1419fd5ceaf",
+  "baseCommit": "8cb3623ded8220970b9dc86d937b7130f68a4d67",
+  "implementationCommit": "431a74cfa3829c27cec0a54ccf9a620a1004a348",
+  "treeDigest": "sha256:bb898aea4223ecd9606b7ac5a0daf0e1c0ea198eb5348c7aa557a9a13cedc530",
+  "outcome": "not_selected",
+  "files": {
+    "evals/formative/kernel-rule.analysis.json": "sha256:7e8866f3ebd7407c160fc4d485b9217220d43f271358fb962c64f0bb627a3c74",
+    "evals/formative/kernel-rule.matrix.json": "sha256:9902d23db6b92cd5342d8391592b2ee7aa5fbfec8a0791f2cdcec632f8c785be",
+    "plugin/behavior-lock.json": "sha256:f4f0d3570a846b1281075e106f2b9675ea03438370458da2a995595d50860337",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:9a7cbfa8cda0cf4aa690907226ae69d0da981504ae53fdbf9808c8840db425ec"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/kernel-rule.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:b2546f40bf6e776b91e2f58bbecd38d8393c31c2d6413bda30ebeb20464c29c1"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/kernel-rule.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:2defa9d37706f6678ef58acbd832c8ca70391f88cd8e0fe6a32b35bac762bf8b"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "node",
+        "--test",
+        "tests/lifecycle/customization-conformance.test.mjs",
+        "tests/lifecycle/customization-content-conformance.test.mjs",
+        "tests/plugin/kernel-rule.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9d43c8bdf18cdd273a858d9ebc7e9c35f1d0f2a2961b07563265cdbf88c44ec2"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-clean-checkout",
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:d0807d16dfab96c33d3305a0f1fd4d5fd34fea2025a5bc9fac50fad4de0f7d74"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "8cb3623ded8220970b9dc86d937b7130f68a4d67"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t022-public-boundary-scan",
+        "431a74cfa3829c27cec0a54ccf9a620a1004a348"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:644f8950cd6cef2547be1ca8c4b8b95d1dd5dbb1ce76a1da1fb53e0600ed9582"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:d1de53de92ca8d9b1d62299ef5dd183ac09b12cb047b5b98b03f711d8ed0e44b",
+      "verdictDigest": "sha256:61bbb6c130eff50d37d7a09aae50c425ed5248fd20967916fdaa82b4eba73191",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:d1de53de92ca8d9b1d62299ef5dd183ac09b12cb047b5b98b03f711d8ed0e44b",
+      "verdictDigest": "sha256:03a2c2f013b851c1fd9f8d5ad3226844a6075bb31e8e5d19f81817946f388277",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:644f8950cd6cef2547be1ca8c4b8b95d1dd5dbb1ce76a1da1fb53e0600ed9582",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T022 branch; after merge, open a T022-linked revert PR without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T11:15:17Z"
+}
