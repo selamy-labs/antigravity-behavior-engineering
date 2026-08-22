@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T028",
+  "taskTitle": "Earn the quality reviewer and paired-review topology",
+  "taskEntryDigest": "sha256:e416c9bf779b2e43d2cbe59899be89e5b8e84f870268fb65a000cb7bc6f3b9a0",
+  "baseCommit": "746c8bd9374c9a828c993832cc797110f22cb0f4",
+  "implementationCommit": "f7d1ee02af78efb2177271c3a06855f764f6912a",
+  "treeDigest": "sha256:5a36b902c39b9010d84befea945b8b9d6990a92c84a1fb76ba358b3b8687d83f",
+  "outcome": "not_selected",
+  "files": {
+    "evals/formative/reviewer-topology.analysis.json": "sha256:6d8343027b34a14e21a1085addbdb0d047ed0255f967e203039d86f38552168d",
+    "evals/formative/reviewer-topology.matrix.json": "sha256:d3ab87c241eb26586b8608be1f7600d3e522462d319cb2eabc6b16f6cab8782a",
+    "plugin/behavior-lock.json": "sha256:1abd0a7acd2d2043782e495b8ae17f06bb0bd55cfc6b8cfb203791da7272da46",
+    "plugin/scripts/reviewer-join.mjs": "sha256:c3ca9269a123ecde7be9c45108b02751b1e99e01203426c35d06033b587d4e76",
+    "plugin/scripts/reviewer-package.mjs": "sha256:623e4d8cc878c3d5ce008716fc8e7e620d643220c9900a74c844824c23095aa6",
+    "tests/plugin/audited-iteration.test.mjs": "sha256:5bc367ab221d235ed41737d4b93879a17c5951bea46f4a92d6564293fa322939",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:e9c67e7097626d94f5a3a61471bc8524f7f04ff6b1f8b8517e85f1b35b7e9a38",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:e05875e2a61c225fad1c789c36d36421aca6f86536893e145d210856c67ead3a",
+    "tests/plugin/quality-falsifier.test.mjs": "sha256:3382672f76e9d82eb03b5e372a52f108f2f7f40084811643b9895af962f2aa96",
+    "tests/plugin/reviewer-agents.test.mjs": "sha256:a20c4bf2e91e2f3f048b0a395879a490cb0bc035c50a0c33c4f9f43db7f10ce1"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/plugin/quality-falsifier.test.mjs", "tests/plugin/reviewer-agents.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:6947fe22ae7e5de3e3e33f1f56cf2d94e2ca24391320f17b0b782396ed80dd8d"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "tests/plugin/quality-falsifier.test.mjs", "tests/plugin/reviewer-agents.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:05ab60b46be1f50c018b14b189812960f194441a137ebcfdbfa6ed98e32c16e0"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["node", "--test", "tests/plugin/quality-falsifier.test.mjs", "tests/plugin/reviewer-agents.test.mjs", "tests/plugin/requirements-falsifier.test.mjs", "tests/plugin/audited-iteration.test.mjs", "tests/plugin/evidence-first-framing.test.mjs", "tests/plugin/kernel-rule.test.mjs", "packages/contracts/test/runtime-contracts.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c4f11c6932a9407038ce903c215ec74d14f7090184170d6a6e35bb4f179489f7"
+    },
+    {
+      "phase": "gate",
+      "argv": ["corepack", "pnpm", "verify:offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:7f60e50e5f5db4eba97b07ae58fbdae86c9511bf35b618689f2c1818f216eb7f"
+    },
+    {
+      "phase": "gate",
+      "argv": ["agy", "plugin", "validate", "plugin"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:d9f4e8d71941136afc6f6f891b061fddbbd11a8aee6467c06cfb69bdc7dfa267"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["shasum", "-a", "256", "-c", "handoff/artifact-manifest.sha256"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9e4b914991cd7d475c6a9c1c470a303fa74bc31fe215340df5c378a9dfcabc80"
+    },
+    {
+      "phase": "gate",
+      "argv": ["git", "diff", "--check"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": ["scanPublicTree", "T028-changed-public-files"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:d8f9814fc3da5fc7a20f9c3a99a6ae09128c9eb76f1e3b671e97a81e74acee18"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:4e23306337cf0a4c0a851211f4d56bf2d64d53b40801a620b4e18506190bb0f2",
+      "verdictDigest": "sha256:da91e9468ae96575e4da93ec2789ac9f8e65a72f070674ada574eca1e283837e",
+      "verdict": "fail",
+      "openMaterialFindings": 1
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:4e23306337cf0a4c0a851211f4d56bf2d64d53b40801a620b4e18506190bb0f2",
+      "verdictDigest": "sha256:a20de0d4f551bdaee2e51f23e717dabb41473b15b7858bb3f4f1ade3bdb4d210",
+      "verdict": "fail",
+      "openMaterialFindings": 1
+    },
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:e9259c26f1a1001ae5888a403ccc823ab68a6075dc171a70afeba8c14467de46",
+      "verdictDigest": "sha256:a3a1a7aa8ef6cf82dbdd6be4aef8a89f29d1fdd94a1cfdabda8dbf18bbd9a637",
+      "verdict": "fail",
+      "openMaterialFindings": 1
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:e9259c26f1a1001ae5888a403ccc823ab68a6075dc171a70afeba8c14467de46",
+      "verdictDigest": "sha256:1c212de1fc659cebb74ca5d61f0d3efeb9b73946c276ef2a42c011e4229b5c49",
+      "verdict": "fail",
+      "openMaterialFindings": 1
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:d8f9814fc3da5fc7a20f9c3a99a6ae09128c9eb76f1e3b671e97a81e74acee18",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T028 branch without changing main. After merge, open a T028-linked revert PR that removes the reviewer-topology analysis and mechanical joiner, restores the T027 package builder and behavior lock, and refreshes the three lock sentinels without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T22:58:16Z"
+}
