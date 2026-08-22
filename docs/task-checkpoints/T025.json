@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T025",
+  "taskTitle": "Earn the `proof-obligation-contract` skill",
+  "taskEntryDigest": "sha256:c4458012f7f773bdaf67623d5f89286ba220bbacfa01a8c3a6877903eabc00c8",
+  "baseCommit": "59c922b03358321397c97a6793865d6626c18891",
+  "implementationCommit": "36408d20642dda4b875266eadd10e34c1d37f9fc",
+  "treeDigest": "sha256:79f2e208fc16721c59927b0faad3a26133fa27d85215a56e87f852903a0a9c2d",
+  "outcome": "implemented",
+  "files": {
+    "evals/formative/proof-obligation-contract.analysis.json": "sha256:c540c238b2a655cfd2c23653b2d19a5696549240b828d26bcc4e60f42b982977",
+    "evals/formative/proof-obligation-contract.matrix.json": "sha256:6aed9052b13a84ede2b52075cf0254f04e58e90bc0c4a6f298bc711482bbc689",
+    "evaluator/src/abe_eval/cli.py": "sha256:0248ed156ba4179e5c47ca6f65d3aa0025abea733b4c9caec88cb0e2abdd05e5",
+    "evaluator/src/abe_eval/qualify.py": "sha256:798a97dae23b85b6b1df12727812541ea239eeafc66727aa052a9670e2da7c12",
+    "evaluator/src/abe_eval/skill_ablation.py": "sha256:7af9c2d4a0c87785f28e9bad31a858fdb2292484a2bd2fc2d431454ef1079406",
+    "evaluator/tests/test_skill_ablation_formative.py": "sha256:7a4d8c0a97a5f823775ec01611c77493e9b5f72fa087d2717fad06d1065242af",
+    "plugin/behavior-lock.json": "sha256:07ae91c72031cc6ea6a6517b8d6bf21a37d160fcd22263a5adbbdf13369659f9",
+    "plugin/skills/proof-obligation-contract/SKILL.md": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379",
+    "tests/lifecycle/inert-plugin.test.mjs": "sha256:b9c3a65807f545aef59d2e7c81c036c697a1c53bd54f2ed6d99003b154856b73",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:2ee2864c23d7f40b0422bd4943fd460dea46cedb89498e1b039a5cdf6afc7235",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:f242023182b0bccec8f7520afde1f09cde6bf0d6720b3927fd215168568ce5bf",
+    "tests/plugin/proof-obligation-contract.test.mjs": "sha256:cc0e44f6770d3ff20ba6bc8c4f60335997358daa6595cc285d81c073710cfd69"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "local-tdd-red",
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests/test_skill_ablation_formative.py",
+        "-q"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:cd013d7bc1e0f27bf9940195d58edfcf38495a73019c12f9c05098af7b834dbd"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "jump-bundle-36408d2",
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests/test_skill_ablation_formative.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:270228255989546527efa79d590653f4542fdade08110acdedefc1d42a2168ec"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "jump-bundle-36408d2",
+        "node",
+        "--test",
+        "tests/plugin/proof-obligation-contract.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:6040224833577e775cd6539eff39d208e9ee779f9a8c54270465c5ca76cbaef9"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "jump-bundle-36408d2",
+        "node",
+        "--test",
+        "tests/plugin/evidence-first-framing.test.mjs",
+        "tests/plugin/kernel-rule.test.mjs",
+        "tests/lifecycle/inert-plugin.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:889aa7e1586f724a105812a1d8dd4304357dff45fded6dc354fdffab414f365f"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "jump-bundle-36408d2",
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests/test_paired_incumbent_baseline.py",
+        "evaluator/tests/test_fake_matrix_cli.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:d9eb79f87f5a3ce68dd4ce20215f29c263c9c3ad26f61420f14f80713f17afb9"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "jump-bundle-36408d2",
+        "abe-eval",
+        "run-matrix/grade/report",
+        "proof-obligation-contract",
+        "incumbent-before"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:7ce4c5408229dd4b6d915d697c2004f5ee56dedd857ad4a2ecf4f8429cdbdfbf"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "jump-bundle-36408d2",
+        "abe-eval",
+        "run-matrix/grade/report",
+        "proof-obligation-contract",
+        "incumbent-minus",
+        "incumbent-plus"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e69dd79c7ccca33165e2b3e4cfa3af6b2eadf17e441bc477fb6a0d40c6aa8bb7"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-bundle-36408d2",
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:648f74f114303f714b57bc7ba46e0dd76b0a27dccf7fd9ecfaddafdab93727c6"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-bundle-36408d2",
+        "git",
+        "diff",
+        "--check"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-bundle-36408d2",
+        "corepack",
+        "pnpm",
+        "install",
+        "--offline",
+        "--frozen-lockfile"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:6972bdbe508efcc1d8f3c10e513d385e99b0a68072e53f98e21b19a4cf5df76a"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-bundle-36408d2",
+        "uv",
+        "lock",
+        "--check",
+        "--offline",
+        "--project",
+        "evaluator"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:bbba2f910718a6a5e9e3f8f6e998f3f93d8147077b23833124d196fe39a70b54"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-bundle-36408d2",
+        "uv",
+        "sync",
+        "--locked",
+        "--offline",
+        "--project",
+        "evaluator"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:1b301b50192a14092fc5c17cc7b47a14d18a87aebecc7176468f0143159bac7c"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t025-changed-files-public-boundary-scan",
+        "36408d20642dda4b875266eadd10e34c1d37f9fc"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:ed66308a1aaffd981e705ad2d0b1670b84586ff8f2b64a1486c60bf0b71dfab7",
+      "verdictDigest": "sha256:c42d22a695e6d2d70d25fe505518567537d3b72617652467750c4ff9fe46dd16",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:ed66308a1aaffd981e705ad2d0b1670b84586ff8f2b64a1486c60bf0b71dfab7",
+      "verdictDigest": "sha256:eeb6cbc9acd920a136365f581f981057c5f2504e0c95339d852239b5ef983265",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T025 branch; after merge, open a T025-linked revert PR without rewriting public history. The proof-obligation skill selection is isolated in the T025 branch, with evaluator replay support isolated in commits d8c0f6d054f7925d0fae0e4c7e5b5e65937af842, 300fe9216ff5dac630842eb4929476d082f6e1b5, 4b972a6fc9cc18786bf01b8fd81c5fcca4f0b81e, and 36408d20642dda4b875266eadd10e34c1d37f9fc for targeted revert if needed.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T14:00:25Z"
+}
