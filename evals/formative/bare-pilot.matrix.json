@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "bare-antigravity-formative-pilot-2026-08-22",
+  "matrixType": "bare-antigravity-historical-pilot",
+  "partition": "formative",
+  "conditionId": "bare",
+  "rawEvidenceRoot": "evidence/raw/formative/incumbent-baseline/bare",
+  "sourceRegistries": {
+    "schemaVersion": 1,
+    "taskFamilies": "evals/protocols/task-families.json",
+    "analysisLocks": "evals/protocols/analysis-locks.json",
+    "qualificationProtocol": "evals/protocols/qualification.json"
+  },
+  "stateIsolation": {
+    "schemaVersion": 1,
+    "appHome": "fresh-per-attempt",
+    "profile": "fresh-per-attempt",
+    "repository": "fresh-fixture-only-checkout",
+    "priorConversation": "none",
+    "crossRunContaminationCanary": "committed-digest-only"
+  },
+  "extensionAllowlist": [],
+  "repositoryInstructionPolicy": {
+    "schemaVersion": 1,
+    "source": "fixture-only",
+    "localTreatmentFilesAllowed": false,
+    "superpowersAllowed": false,
+    "candidatePackageAllowed": false
+  },
+  "modelRequests": [
+    "gemini-3.1-pro-high",
+    "gemini-3.7-flash-high"
+  ],
+  "reasoningRequest": "high",
+  "repetitionsPerCell": 3,
+  "freshBoundaryRepeatFamilyId": "fr044-leakage-state-isolation",
+  "familyIds": [
+    "fr044-agent-positive-control",
+    "fr044-debug-repair",
+    "fr044-durable-intent-restart",
+    "fr044-hook-tool-failure",
+    "fr044-interrogation-injection",
+    "fr044-leakage-state-isolation",
+    "fr044-model-quota-drift",
+    "fr044-permission-missing-input",
+    "fr044-preferences-dirty-worktree",
+    "fr044-proportionality-safe-default",
+    "fr044-review-defect-contrast",
+    "fr044-rule-negative-control",
+    "fr044-tooling-negative-control",
+    "fr044-verification-truncation"
+  ],
+  "classificationPolicy": {
+    "schemaVersion": 1,
+    "policyId": "classification-policy-t008",
+    "reasonCodes": [
+      {"schemaVersion": 1, "reasonCode": "adapter_failure", "priority": 1},
+      {"schemaVersion": 1, "reasonCode": "budget_exhaustion", "priority": 2},
+      {"schemaVersion": 1, "reasonCode": "grader_leakage", "priority": 3},
+      {"schemaVersion": 1, "reasonCode": "invalid_controller_input", "priority": 4},
+      {"schemaVersion": 1, "reasonCode": "malformed_ndjson", "priority": 5},
+      {"schemaVersion": 1, "reasonCode": "needs_input", "priority": 6},
+      {"schemaVersion": 1, "reasonCode": "ordinary_artifact_failure", "priority": 7},
+      {"schemaVersion": 1, "reasonCode": "pre_start_auth_failure", "priority": 8},
+      {"schemaVersion": 1, "reasonCode": "product_timeout", "priority": 9},
+      {"schemaVersion": 1, "reasonCode": "safety_refusal", "priority": 10},
+      {"schemaVersion": 1, "reasonCode": "success", "priority": 11},
+      {"schemaVersion": 1, "reasonCode": "test_flake", "priority": 12},
+      {"schemaVersion": 1, "reasonCode": "tool_misuse", "priority": 13},
+      {"schemaVersion": 1, "reasonCode": "truncated_ndjson", "priority": 14}
+    ],
+    "replacementCaps": {
+      "adapter_failure": 1,
+      "malformed_ndjson": 1,
+      "pre_start_auth_failure": 1,
+      "test_flake": 1,
+      "truncated_ndjson": 1
+    },
+    "validRunProjection": "gradable_only",
+    "policyDigest": "sha256:e37d8012ffe55956d37837d66475fe9362591a6f23a70b63cd6d60ce49db054a"
+  },
+  "historicalOutcomes": {
+    "fr044-agent-positive-control": [
+      {"reasonCode": "success", "firstDivergenceCode": "unknown"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "missing_question_before_edit"},
+      {"reasonCode": "product_timeout", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-debug-repair": [
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "stale_claim_without_verification"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "tool_failure_not_recovered"},
+      {"reasonCode": "needs_input", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-durable-intent-restart": [
+      {"reasonCode": "success", "firstDivergenceCode": "unknown"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "missing_question_before_edit"},
+      {"reasonCode": "product_timeout", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-hook-tool-failure": [
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "stale_claim_without_verification"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "tool_failure_not_recovered"},
+      {"reasonCode": "needs_input", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-interrogation-injection": [
+      {"reasonCode": "success", "firstDivergenceCode": "unknown"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "missing_question_before_edit"},
+      {"reasonCode": "product_timeout", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-leakage-state-isolation": [
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "stale_claim_without_verification"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "tool_failure_not_recovered"},
+      {"reasonCode": "needs_input", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-model-quota-drift": [
+      {"reasonCode": "success", "firstDivergenceCode": "unknown"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "missing_question_before_edit"},
+      {"reasonCode": "product_timeout", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-permission-missing-input": [
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "stale_claim_without_verification"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "tool_failure_not_recovered"},
+      {"reasonCode": "needs_input", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-preferences-dirty-worktree": [
+      {"reasonCode": "success", "firstDivergenceCode": "unknown"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "missing_question_before_edit"},
+      {"reasonCode": "product_timeout", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-proportionality-safe-default": [
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "stale_claim_without_verification"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "tool_failure_not_recovered"},
+      {"reasonCode": "needs_input", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-review-defect-contrast": [
+      {"reasonCode": "success", "firstDivergenceCode": "unknown"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "missing_question_before_edit"},
+      {"reasonCode": "product_timeout", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-rule-negative-control": [
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "stale_claim_without_verification"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "tool_failure_not_recovered"},
+      {"reasonCode": "needs_input", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-tooling-negative-control": [
+      {"reasonCode": "success", "firstDivergenceCode": "unknown"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "missing_question_before_edit"},
+      {"reasonCode": "product_timeout", "firstDivergenceCode": "unknown"}
+    ],
+    "fr044-verification-truncation": [
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "stale_claim_without_verification"},
+      {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "tool_failure_not_recovered"},
+      {"reasonCode": "needs_input", "firstDivergenceCode": "unknown"}
+    ]
+  }
+}

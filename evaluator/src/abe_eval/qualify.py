@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from abe_eval.antigravity import AntigravityWorkerHandle, qualify_environment, run_matrix
+from abe_eval.bare_condition import MATRIX_TYPE, run_bare_pilot_matrix
 from abe_eval.canonical import canonical_bytes
 from abe_eval.contracts import parse_contract
 
@@ -58,11 +59,23 @@ def command_qualify(
     return result.raw
 
 
-def command_run_matrix(*, matrix_path: Path, qualification_path: Path) -> tuple[dict[str, object], ...]:
+def command_run_matrix(
+    *,
+    matrix_path: Path,
+    qualification_path: Path,
+    condition: str | None = None,
+    raw_root: Path | None = None,
+) -> object:
     matrix = load_json(matrix_path)
     qualification = load_json(qualification_path)
     if "environmentQualification" in qualification:
         qualification = qualification["environmentQualification"]  # type: ignore[assignment]
+    if matrix.get("matrixType") == MATRIX_TYPE:
+        if condition != "bare":
+            raise ValueError("bare_condition.condition_mismatch")
+        if raw_root is None:
+            raise ValueError("bare_condition.raw_root_required")
+        return run_bare_pilot_matrix(matrix, qualification, raw_root)
     return run_matrix(matrix, qualification)
 
 

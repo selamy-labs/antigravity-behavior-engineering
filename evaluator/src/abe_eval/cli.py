@@ -539,8 +539,16 @@ def _cmd_qualify(args: argparse.Namespace) -> int:
 
 
 def _cmd_run_matrix(args: argparse.Namespace) -> int:
-    runs = command_run_matrix(matrix_path=Path(args.matrix), qualification_path=Path(args.qualification))
-    _emit({"schemaVersion": 1, "command": "run-matrix", "runs": len(runs)})
+    result = command_run_matrix(
+        matrix_path=Path(args.matrix),
+        qualification_path=Path(args.qualification),
+        condition=getattr(args, "condition", None),
+        raw_root=Path(args.raw_root) if getattr(args, "raw_root", None) else None,
+    )
+    if isinstance(result, dict):
+        _emit(result)
+        return 0
+    _emit({"schemaVersion": 1, "command": "run-matrix", "runs": len(result)})
     return 0
 
 
@@ -573,7 +581,9 @@ def _parser() -> argparse.ArgumentParser:
 
     run_matrix_parser = subcommands.add_parser("run-matrix")
     run_matrix_parser.add_argument("--matrix", required=True)
+    run_matrix_parser.add_argument("--condition")
     run_matrix_parser.add_argument("--qualification", required=True)
+    run_matrix_parser.add_argument("--raw-root")
     run_matrix_parser.set_defaults(func=_cmd_run_matrix)
     return parser
 
