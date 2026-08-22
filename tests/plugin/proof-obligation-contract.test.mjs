@@ -448,4 +448,13 @@ test("behavior lock registers the proof obligation skill and covers every plugin
   for (const relativePath of pluginFiles) {
     assert.equal(lock.files[relativePath], await fileDigest(path.join(pluginRoot, relativePath)));
   }
+
+  const recovered = spawnSync(
+    "git",
+    ["show", `${lock.sourceRevision}:plugin/skills/proof-obligation-contract/SKILL.md`],
+    { cwd: repoRoot, shell: false },
+  );
+  assert.equal(recovered.error, undefined);
+  assert.equal(recovered.status, 0, recovered.stderr.toString("utf8"));
+  assert.equal(digestBytes(recovered.stdout), proofSkillDigest);
 });
