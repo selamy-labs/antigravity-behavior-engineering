@@ -731,6 +731,14 @@ def _model_key(model: str, effort: str) -> str:
     return model + "/" + effort
 
 
+def _selected_model_override_present(log_text: str, *, model: str, expected_label: str) -> bool:
+    return (
+        bool(expected_label)
+        and f"Resolving model {model}" in log_text
+        and f'Propagating selected model override to backend: label="{expected_label}"' in log_text
+    )
+
+
 def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> QualificationResult:
     """Qualify an exact CLI artifact and target model/effort set."""
 
@@ -770,6 +778,20 @@ def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> Qu
             cwd=worker.cwd,
         )
         stream_summary = run.get("streamSummary", {})
+        process_record = run["process"] if isinstance(run.get("process"), dict) else {}
+        log_findings = process_record.get("logFindings", [])
+        log_text = str(run["stagedFiles"].get("agy.log", "")) if isinstance(run.get("stagedFiles"), dict) else ""
+        expected_label = str(catalog_models.get(model, "")) if isinstance(catalog_models, dict) else ""
+        model_resolution = {
+            "schemaVersion": 1,
+            "modelResolvedViaDefault": "model_resolved_via_default" in log_findings,
+            "selectedModelOverridePropagated": _selected_model_override_present(
+                log_text,
+                model=model,
+                expected_label=expected_label,
+            ),
+            "expectedLabel": expected_label,
+        }
         raw_record = {
             "schemaVersion": 1,
             "model": model,
@@ -777,6 +799,7 @@ def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> Qu
             "terminalKind": run["terminalKind"],
             "infrastructureValidity": run["infrastructureValidity"],
             "observedModel": run["observedModel"],
+            "modelResolution": model_resolution,
             "stream": {
                 "events": stream_summary.get("events", []) if isinstance(stream_summary, dict) else [],
                 "rawStream": run["stagedFiles"]["raw-stream.ndjson"],
@@ -812,8 +835,15 @@ def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> Qu
         env_qual_seed,
     )
     attempt_qualification = preflight_attempt(worker, representative)
+    unverified_model_default = any(
+        isinstance(record.get("modelResolution"), dict)
+        and record["modelResolution"]["modelResolvedViaDefault"]
+        and not record["modelResolution"]["selectedModelOverridePropagated"]
+        for record in raw_model_runs.values()
+    )
     support_qualified = (
         not missing_models
+        and not unverified_model_default
         and
         all(record["terminalKind"] == "agent_finished" and record["infrastructureValidity"] == "valid" for record in raw_model_runs.values())
         and all(result["result"] == "pass" for result in fallback_results.values())

@@ -123,6 +123,7 @@ def _fake_agy(tmp_path: Path) -> Path:
                 ("gemini-3.7-flash-high", "Gemini 3.7 Flash (High)"),
                 ("gemini-3.1-pro-high", "Gemini 3.1 Pro (High)"),
             ]
+            TARGET_LABELS = dict(TARGETS)
 
             def arg(name, default=""):
                 if name not in sys.argv:
@@ -162,6 +163,13 @@ def _fake_agy(tmp_path: Path) -> Path:
             if log_file:
                 with open(log_file, "w", encoding="utf-8") as stream:
                     stream.write(f"fake log model={model} effort={effort} mode={mode}\\n")
+                    if mode in {"default_model", "default_model_with_override"}:
+                        stream.write(f"Model ID {model} not in local config, defaulting to CCPA\\n")
+                        stream.write("Model resolved via default\\n")
+                    if mode == "default_model_with_override":
+                        label = TARGET_LABELS.get(model, "unknown")
+                        stream.write(f"Resolving model {model}\\n")
+                        stream.write(f"Propagating selected model override to backend: label=\\"{label}\\"\\n")
 
             if mode == "init_then_malformed_failure":
                 emit({"event":"init","conversation_id":"fake-conversation","init":{"model":model,"cwd":os.getcwd(),"tools":["finish"],"permission_mode":"always-proceed"}})
@@ -466,6 +474,48 @@ def test_qualify_environment_rejects_protocol_model_missing_from_live_catalog(tm
 
     assert qualification.environment["supportDecision"] == "rejected"
     assert qualification.raw["catalog"]["missingModelRequests"] == ["gemini-3.1-pro-high"]
+
+
+def test_qualify_environment_rejects_successful_stream_with_model_default_log(tmp_path):
+    fake = _fake_agy(tmp_path)
+    cli_digest = sha256_digest(fake.read_bytes())
+    protocol = _protocol(cli_digest=cli_digest)
+    handle = AntigravityWorkerHandle(
+        cli_path=fake,
+        request_path=_request(tmp_path),
+        output_root=tmp_path / "qualification-output",
+        cwd=tmp_path,
+        env={"ABE_FAKE_AGY_MODE": "default_model"},
+    )
+
+    qualification = qualify_environment(handle, protocol)
+
+    assert qualification.environment["supportDecision"] == "rejected"
+    for run in qualification.raw["modelRuns"].values():
+        assert run["terminalKind"] == "agent_finished"
+        assert run["infrastructureValidity"] == "valid"
+        assert "model_resolved_via_default" in run["process"]["logFindings"]
+
+
+def test_qualify_environment_accepts_provider_default_with_exact_selected_model_override(tmp_path):
+    fake = _fake_agy(tmp_path)
+    cli_digest = sha256_digest(fake.read_bytes())
+    protocol = _protocol(cli_digest=cli_digest)
+    handle = AntigravityWorkerHandle(
+        cli_path=fake,
+        request_path=_request(tmp_path),
+        output_root=tmp_path / "qualification-output",
+        cwd=tmp_path,
+        env={"ABE_FAKE_AGY_MODE": "default_model_with_override"},
+    )
+
+    qualification = qualify_environment(handle, protocol)
+
+    assert qualification.environment["supportDecision"] == "qualified"
+    for run in qualification.raw["modelRuns"].values():
+        assert run["modelResolution"]["modelResolvedViaDefault"] is True
+        assert run["modelResolution"]["selectedModelOverridePropagated"] is True
+        assert run["modelResolution"]["expectedLabel"].startswith("Gemini ")
 
 
 def test_qualify_cli_writes_protected_raw_output_with_fake_cli(tmp_path):
