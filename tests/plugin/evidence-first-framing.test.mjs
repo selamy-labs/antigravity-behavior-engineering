@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -17,6 +18,7 @@ const superpowersAnalysisPath = path.join(repoRoot, "evals", "formative", "super
 const superpowersMatrixPath = path.join(repoRoot, "evals", "formative", "superpowers-pilot.matrix.json");
 
 const T022_MERGE_COMMIT = "3cb8f4e9720f75c3c0018fe4fd4b0e2543535ccc";
+const T026_BASE_COMMIT = "add91af5b2451d4a93881cc7036b10698ee0e7a5";
 
 const readJson = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
 const digestBytes = (bytes) => "sha256:" + createHash("sha256").update(bytes).digest("hex");
@@ -95,7 +97,15 @@ test("formative matrix selects repeatable ambiguity gaps and negative controls f
   const superpowersMatrix = await readJson(superpowersMatrixPath);
   const matrix = await readJson(matrixPath);
   const analysis = await readJson(analysisPath);
-  const skillDigest = await fileDigest(skillPath);
+  const selectedSkill = spawnSync(
+    "git",
+    ["show", `${T026_BASE_COMMIT}:plugin/skills/evidence-first-framing/SKILL.md`],
+    { cwd: repoRoot, shell: false },
+  );
+  assert.equal(selectedSkill.error, undefined);
+  assert.equal(selectedSkill.status, 0, selectedSkill.stderr.toString("utf8"));
+  const selectedSkillDigest = digestBytes(selectedSkill.stdout);
+  assert.notEqual(await fileDigest(skillPath), selectedSkillDigest);
   const matrixDigest = sha256Digest(canonicalBytes(matrix));
 
   for (const report of Object.values(bare.modelReports)) {
@@ -161,10 +171,10 @@ test("formative matrix selects repeatable ambiguity gaps and negative controls f
 
   assert.equal(analysis.schemaVersion, 1);
   assert.equal(analysis.matrixDigest, matrixDigest);
-  assert.equal(analysis.skillDigest, skillDigest);
+  assert.equal(analysis.skillDigest, selectedSkillDigest);
   assert.equal(analysis.decisionOutput.component, "evidence-first-framing");
   assert.equal(analysis.decisionOutput.decision, "selected");
-  assert.equal(analysis.decisionOutput.evidenceDigest, await expectedEvidenceDigest(matrixDigest, skillDigest));
+  assert.equal(analysis.decisionOutput.evidenceDigest, await expectedEvidenceDigest(matrixDigest, selectedSkillDigest));
   assert.deepEqual(analysis.metrics, {
     preEditAmbiguityRecall: "1.0",
     preEditAmbiguityPrecision: "1.0",
@@ -190,7 +200,7 @@ test("behavior lock keeps framing skill and shipped runtime script locked while 
     .filter((relativePath) => relativePath !== "behavior-lock.json")
     .sort();
 
-  assert.equal(lock.sourceRevision, "72651577666fca7f56849ec952dad641a31a43ea");
+  assert.equal(lock.sourceRevision, "ddc4160c3d7666730ec76004e0157590212bebe7");
   assert.deepEqual(lock.components, [
     {
       schemaVersion: 1,

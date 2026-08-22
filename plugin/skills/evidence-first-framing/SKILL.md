@@ -60,8 +60,8 @@ visible behavior, or acceptance checks and no safe default exists.
 - Superpowers owns generic TDD, debugging, and collaboration habits; this skill only frames material ambiguity before edits.
 - The proof-obligation component owns durable verification obligations after
   framing; do not duplicate its ledger.
-- The audited-iteration component owns long-running repair/review loops; do not
-  start reviewer fan-out from this skill.
+- Long-running repair/review loops remain outside this skill; do not start
+  reviewer fan-out from this skill.
 - The disqualified kernel rule is not replaced here; do not add broad authority,
   proportionality, or evidence policy language to compensate for it.
 

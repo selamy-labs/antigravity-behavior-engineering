@@ -345,6 +345,33 @@ def _assert_string_list(value: object, path: str) -> list[str]:
     return result
 
 
+def _assert_recorded_replay_binding(
+    analysis: Mapping[str, object],
+    index: Mapping[str, object],
+    run_digests: list[str],
+) -> None:
+    if "formativeReplay" not in analysis:
+        return
+    replay = _assert_mapping(analysis["formativeReplay"], "$.formativeReplay")
+    phase = _assert_string(index.get("phase"), "$.runIndex.phase")
+    key = "incumbentBefore" if phase == "incumbent-before" else "matchedAfter"
+    path = "$.formativeReplay." + key
+    recorded = _assert_mapping(replay.get(key), path)
+    if recorded.get("runIndexDigest") != sha256_digest(canonical_bytes(dict(index))):
+        _fail("skill_ablation.replay_binding_mismatch", path + ".runIndexDigest")
+    if recorded.get("runSetDigest") != sha256_digest(canonical_bytes(run_digests)):
+        _fail("skill_ablation.replay_binding_mismatch", path + ".runSetDigest")
+    if recorded.get("runsCreated") != len(run_digests):
+        _fail("skill_ablation.replay_binding_mismatch", path + ".runsCreated")
+    conditions = _assert_string_list(index.get("conditions"), "$.runIndex.conditions")
+    if recorded.get("conditions") != conditions:
+        _fail("skill_ablation.replay_binding_mismatch", path + ".conditions")
+    if recorded.get("conditionDigest") != sha256_digest(canonical_bytes(conditions)):
+        _fail("skill_ablation.replay_binding_mismatch", path + ".conditionDigest")
+    if recorded.get("qualificationDigest") != index.get("qualificationDigest"):
+        _fail("skill_ablation.replay_binding_mismatch", path + ".qualificationDigest")
+
+
 def _build_report(analysis: Mapping[str, object], raw_root: Path) -> dict[str, object]:
     runs = _read_runs(raw_root)
     index = _read_index(raw_root)
@@ -367,6 +394,7 @@ def _build_report(analysis: Mapping[str, object], raw_root: Path) -> dict[str, o
         _fail("skill_ablation.matrix_digest_mismatch", "$.runs.matrixDigest")
     if {str(run.get("component")) for run in runs} != {str(analysis["component"])}:
         _fail("skill_ablation.component_mismatch", "$.component")
+    _assert_recorded_replay_binding(analysis, index, run_digests)
     metrics = _metrics_from_runs(runs)
     return {
         "schemaVersion": 1,

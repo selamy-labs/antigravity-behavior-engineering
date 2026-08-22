@@ -1313,6 +1313,26 @@ SC-013; Plan Phase 5C
 - Create: `evals/formative/audited-iteration.analysis.json`
 - Test: `tests/plugin/audited-iteration.test.mjs`
 - Modify: `plugin/behavior-lock.json`
+- Modify (project-owner-authorized repair): `evaluator/src/abe_eval/skill_ablation.py`
+- Modify (project-owner-authorized repair): `plugin/skills/evidence-first-framing/SKILL.md`
+- Modify (authorized transitive sentinel repair): `tests/plugin/evidence-first-framing.test.mjs`
+- Modify (authorized transitive sentinel repair): `tests/plugin/kernel-rule.test.mjs`
+- Modify (project-owner-authorized recovery repair): `handoff/execution-state.schema.json`
+- Modify (authorized transitive validator repair): `handoff/validate_handoff.py`
+- Modify (generated integrity binding): `handoff/artifact-manifest.sha256`
+
+**Scope amendment approval**: On 2026-08-22 the project owner authorized T026
+to make the evaluator fail closed on recorded replay bindings, remove the
+rejected `audited-iteration` ownership reference from the framing skill, and
+update the existing focused test and behavior lock accordingly. Exact transitive
+sentinels may bind the new lock while preserving the historical T023 analysis
+digest; they may not relabel prior evidence onto the repaired bytes. This
+amendment authorizes no other product, metric, threshold, or release change.
+
+**Recovery repair approval**: On 2026-08-22 the project owner authorized T026
+to define the missing execution-state commit reference, prove a ready state
+with a non-null approved commit validates, and refresh only the mechanically
+affected task scope, validator path cap, and handoff integrity bindings.
 
 **Skill boundary**:
 

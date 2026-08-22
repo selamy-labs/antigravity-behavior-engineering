@@ -1,0 +1,495 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import test from "node:test";
+
+import { canonicalBytes, sha256Digest } from "../../packages/contracts/src/canonical-json.mjs";
+
+const repoRoot = path.resolve(new URL("../..", import.meta.url).pathname);
+const t026BaseRevision = "add91af5b2451d4a93881cc7036b10698ee0e7a5";
+const pluginRoot = path.join(repoRoot, "plugin");
+const skillPath = path.join(pluginRoot, "skills", "audited-iteration", "SKILL.md");
+const matrixPath = path.join(repoRoot, "evals", "formative", "audited-iteration.matrix.json");
+const analysisPath = path.join(repoRoot, "evals", "formative", "audited-iteration.analysis.json");
+const evaluatorPath = path.join(repoRoot, "evaluator", "src", "abe_eval", "skill_ablation.py");
+const runtimePath = path.join(pluginRoot, "scripts", "runtime-lib.mjs");
+const lockPath = path.join(pluginRoot, "behavior-lock.json");
+const framingSkillPath = path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md");
+const contractFixturesPath = path.join(repoRoot, "tests", "contract", "fixtures", "evaluation-contracts.json");
+const executionStateExamplePath = path.join(repoRoot, "handoff", "execution-state.example.json");
+const executionStateSchemaPath = path.join(repoRoot, "handoff", "execution-state.schema.json");
+
+const rejectionReasons = [
+  "formative_replay_copies_preprogrammed_outcomes",
+  "no_observed_long_task_ablation",
+  "review_closure_unexecutable_through_t024_cli",
+  "resource_envelope_unmeasured",
+];
+
+const readJson = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
+const digestBytes = (bytes) => "sha256:" + createHash("sha256").update(bytes).digest("hex");
+const fileDigest = async (file) => digestBytes(await fs.readFile(file));
+
+const exists = async (file) => {
+  try {
+    await fs.access(file);
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+};
+
+const collectFiles = async (directory) => {
+  const entries = await fs.readdir(directory, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...await collectFiles(entryPath));
+    } else if (entry.isFile()) {
+      files.push(entryPath);
+    }
+  }
+
+  return files.sort();
+};
+
+const expectedEvidenceDigest = ({ evaluatorDigest, formativeReplay, limitations, liveActivationEvidence, matrixDigest, measurementBasis, metricsInterpretation, resourceEnvelope, runtimeDigest, selectionGate }) => sha256Digest(canonicalBytes({
+  component: "audited-iteration",
+  decision: "not_selected",
+  evaluatorDigest,
+  formativeReplay,
+  limitations,
+  liveActivationEvidence,
+  matrixDigest,
+  measurementBasis,
+  metricsInterpretation,
+  rejectionReasons,
+  resourceEnvelope,
+  runtimeDigest,
+  selectionGate,
+}));
+
+const runEvaluator = (...args) => spawnSync(
+  "uv",
+  ["run", "--project", "evaluator", "--locked", "--offline", "abe-eval", ...args],
+  { cwd: repoRoot, encoding: "utf8", shell: false },
+);
+
+const assertEvaluatorSuccess = (result) => {
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  return JSON.parse(result.stdout);
+};
+
+const assertEvaluatorFailure = (result, command, error, errorPath) => {
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 2, result.stdout + result.stderr);
+  assert.deepEqual(JSON.parse(result.stderr), {
+    schemaVersion: 1,
+    command,
+    error,
+    message: `${error} at ${errorPath}`,
+  });
+};
+
+const readyExecutionState = async () => {
+  const example = await readJson(executionStateExamplePath);
+  const commit = "a".repeat(40);
+  const digest = `sha256:${"b".repeat(64)}`;
+  const taskState = {
+    status: "not_started",
+    branch: null,
+    prUrl: null,
+    headCommit: null,
+    mergeCommit: null,
+    attemptCount: 0,
+    sameFailureCount: 0,
+    infrastructureRetryCount: 0,
+    reviewRepairCount: 0,
+    noProgressCount: 0,
+    lastEvidenceDigest: null,
+    blocker: null,
+  };
+  const state = {
+    ...example,
+    runId: "abe-execution-state-schema-regression",
+    initializationStatus: "ready",
+    baseCommit: commit,
+    taskSetDigest: digest,
+    humanGates: {
+      ...example.humanGates,
+      taskSet: {
+        status: "approved",
+        recordDigest: digest,
+        approvedCommit: commit,
+        approvedTaskSetDigest: digest,
+      },
+    },
+    tasks: Object.fromEntries(
+      Array.from({ length: 46 }, (_, index) => [
+        `T${String(index + 1).padStart(3, "0")}`,
+        taskState,
+      ]),
+    ),
+  };
+  return state;
+};
+
+const validateExecutionState = (schema, state) => spawnSync(
+    "uv",
+    [
+      "run",
+      "--project",
+      "evaluator",
+      "--locked",
+      "--offline",
+      "python",
+      "-c",
+      "import json, sys; from jsonschema import Draft202012Validator; payload = json.load(sys.stdin); Draft202012Validator(payload['schema']).validate(payload['state'])",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      input: JSON.stringify({ schema, state }),
+      shell: false,
+    },
+  );
+
+test("a ready execution state accepts a non-null task-set approved commit", async () => {
+  const schema = await readJson(executionStateSchemaPath);
+  const state = await readyExecutionState();
+  const validation = validateExecutionState(schema, state);
+
+  assert.equal(validation.error, undefined);
+  assert.equal(validation.status, 0, validation.stdout + validation.stderr);
+});
+
+test("a ready execution state rejects null task-set approval bindings", async () => {
+  const schema = await readJson(executionStateSchemaPath);
+
+  for (const field of ["approvedCommit", "approvedTaskSetDigest"]) {
+    const state = await readyExecutionState();
+    state.humanGates.taskSet[field] = null;
+    const validation = validateExecutionState(schema, state);
+
+    assert.equal(validation.error, undefined);
+    assert.equal(validation.status, 1, `${field}: ${validation.stdout}${validation.stderr}`);
+  }
+});
+
+test("audited-iteration is rejected when replay is synthetic and repair closure is not executable", async () => {
+  const matrix = await readJson(matrixPath);
+  const analysis = await readJson(analysisPath);
+  const evaluator = await fs.readFile(evaluatorPath, "utf8");
+  const runtime = await fs.readFile(runtimePath, "utf8");
+  const matrixDigest = sha256Digest(canonicalBytes(matrix));
+  const evaluatorDigest = await fileDigest(evaluatorPath);
+  const runtimeDigest = await fileDigest(runtimePath);
+
+  assert.equal(await exists(skillPath), false);
+  assert.equal(analysis.schemaVersion, 1);
+  assert.equal(analysis.analysisType, "skill-ablation-formative-analysis");
+  assert.equal(analysis.component, "audited-iteration");
+  assert.equal(analysis.matrixPath, "evals/formative/audited-iteration.matrix.json");
+  assert.equal(analysis.matrixDigest, matrixDigest);
+  assert.equal(analysis.evaluatorPath, "evaluator/src/abe_eval/skill_ablation.py");
+  assert.equal(analysis.evaluatorDigest, evaluatorDigest);
+  assert.equal(analysis.runtimePath, "plugin/scripts/runtime-lib.mjs");
+  assert.equal(analysis.runtimeDigest, runtimeDigest);
+  assert.deepEqual(analysis.rejectionReasons, rejectionReasons);
+  assert.deepEqual(analysis.selectionGate, {
+    behavioralIncumbentReplay: "not_observed",
+    matchedLongTaskAblation: "not_observed",
+    negativeActivationPrecision: "activation_smoke_only",
+    resourceEnvelope: "not_measured",
+    materialRegression: "not_measured",
+    reviewRepairClosure: "runtime_update_operation_missing",
+  });
+  assert.deepEqual(analysis.metricsInterpretation, {
+    evidenceClass: "deterministic_outcome_program_materialization",
+    supportsSelection: false,
+  });
+  assert.deepEqual(analysis.resourceEnvelope, {
+    status: "not_measured",
+    supportsSelection: false,
+    declaredCandidateLimits: {
+      maxPromptBodyCharacters: 12000,
+      additionalToolsRequired: ["abe-evidence"],
+      networkRequired: false,
+    },
+  });
+  assert.deepEqual(analysis.measurementBasis, {
+    mode: "rejected-synthetic-formative-replay-plus-live-activation-smoke",
+    liveAntigravityRunsAddedByT026: true,
+    liveBehavioralRunsBoundToDecision: false,
+    materializedEvaluatorRunsAddedByT026: true,
+    materializedReplayInvokesAntigravity: false,
+    rawEvidenceCommitted: false,
+  });
+  assert.deepEqual(analysis.limitations, [
+    "the evaluator materializes outcomeProgram declarations and does not execute Antigravity long-task scenarios",
+    "the live Antigravity records prove candidate import availability only and are not behavioral ablation evidence",
+    "the T024 runtime has no operation that updates an accepted finding to verified or a pending obligation to passing",
+    "cold recovery, repeated-work reduction, unrelated-change preservation, resource use, and material regression remain unmeasured",
+  ]);
+  assert.equal(analysis.retained, false);
+  assert.deepEqual(analysis.decisionOutput, {
+    component: "audited-iteration",
+    decision: "not_selected",
+    evidenceDigest: expectedEvidenceDigest({
+      evaluatorDigest,
+      formativeReplay: analysis.formativeReplay,
+      limitations: analysis.limitations,
+      liveActivationEvidence: analysis.liveActivationEvidence,
+      matrixDigest,
+      measurementBasis: analysis.measurementBasis,
+      metricsInterpretation: analysis.metricsInterpretation,
+      resourceEnvelope: analysis.resourceEnvelope,
+      runtimeDigest,
+      selectionGate: analysis.selectionGate,
+    }),
+    reason: "The candidate is not retained because T026 has no observed incumbent-versus-treatment long-task ablation, its deterministic replay copies authored outcomes, the T024 CLI cannot close accepted findings or pending obligations, and the required resource and regression gates are unmeasured.",
+  });
+
+  assert.match(evaluator, /outcome = _outcome_for\(matrix, condition_id, scenario_id\)/u);
+  assert.match(evaluator, /outcomes = _assert_mapping\(matrix\["outcomeProgram"\]/u);
+  assert.doesNotMatch(evaluator, /\bsubprocess\b|\bagy\b/u);
+  assert.match(runtime, /"appendObligation"/u);
+  assert.match(runtime, /"appendReviewFinding"/u);
+  assert.doesNotMatch(runtime, /"updateObligation"|"updateReviewFinding"/u);
+});
+
+test("the frozen intervention card remains expectations rather than observed evidence", async () => {
+  const matrix = await readJson(matrixPath);
+  const analysis = await readJson(analysisPath);
+
+  assert.equal(matrix.schemaVersion, 1);
+  assert.equal(matrix.matrixType, "skill-ablation-formative");
+  assert.equal(matrix.partition, "formative");
+  assert.equal(matrix.component, "audited-iteration");
+  assert.equal(matrix.incumbentCondition, "incumbent-before");
+  assert.deepEqual(matrix.conditionPair, ["incumbent-minus", "incumbent-plus"]);
+  assert.deepEqual(matrix.modelRequests, ["gemini-3.1-pro-high", "gemini-3.7-flash-high"]);
+  assert.deepEqual(matrix.scenarioCoverage.map((scenario) => scenario.scenarioId), [
+    "long_multistep_checkpointed",
+    "interruption_cold_restart",
+    "dirty_worktree_sentinel_retention",
+    "failed_checkpoint_recovery",
+    "repeated_work_reduced",
+    "review_finding_repair_closure",
+    "zero_progress_loop_bounded",
+    "trivial_non_activation",
+  ]);
+  assert.deepEqual(matrix.frozenGate, {
+    coldRecoveryMinimum: "0.90",
+    repeatedWorkReductionRequired: true,
+    unrelatedChangesPreserved: true,
+    zeroProgressCheckpointBound: 1,
+    oneCheckNonActivationMinimum: "0.95",
+    maxPromptBodyCharacters: 12000,
+    networkRequired: false,
+    additionalToolsRequired: ["abe-evidence"],
+  });
+  assert.equal(analysis.formativeReplay.evidenceClass, "deterministic_outcome_program_materialization");
+  assert.equal(analysis.formativeReplay.supportsSelection, false);
+  assert.equal(analysis.formativeReplay.incumbentBefore.attemptedBeforeCandidateBody, true);
+  assert.equal(analysis.formativeReplay.incumbentBefore.runsCreated, 16);
+  assert.equal(analysis.formativeReplay.matchedAfter.attemptedAfterCandidateBody, true);
+  assert.equal(analysis.formativeReplay.matchedAfter.runsCreated, 32);
+  assert.equal(analysis.liveActivationEvidence.status, "collected");
+  assert.equal(analysis.liveActivationEvidence.supportsSelection, false);
+  assert.deepEqual(analysis.liveActivationEvidence.models, ["gemini-3.1-pro-high", "gemini-3.7-flash-high"]);
+  assert.deepEqual(analysis.liveActivationEvidence.runDigests.map((record) => record.outputDigest), [
+    "sha256:72f559c5b55c4359d7ecab2c1d2dbb46c6e53645c2421ca8f995dd4ff0571049",
+    "sha256:2a8555a06af8f95a25d5c5acb8e162553089b50c988b435b64a00fd15479ff0a",
+    "sha256:c70f00ce7d7af547e16e02fe46f916ae19764f0cfa910e4eb38332a833f5698a",
+    "sha256:32da87a5bfee4a028a89ab91fe33ea2280b5a0a7634854aff86e38314cd25c45",
+  ]);
+});
+
+test("the rejection analysis validates and binds both deterministic replay indexes", async (context) => {
+  const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "abe-t026-replay-"));
+  context.after(() => fs.rm(temporaryRoot, { recursive: true, force: true }));
+
+  const fixtures = await readJson(contractFixturesPath);
+  const qualification = fixtures.validCases.find((item) => item.name === "EnvironmentQualificationRecord")?.value;
+  assert.ok(qualification);
+  const qualificationPath = path.join(temporaryRoot, "qualification.json");
+  await fs.writeFile(
+    qualificationPath,
+    Buffer.concat([
+      canonicalBytes({ schemaVersion: 1, environmentQualification: qualification }),
+      Buffer.from("\n"),
+    ]),
+  );
+
+  const analysis = await readJson(analysisPath);
+  const matrix = await readJson(matrixPath);
+  const evaluatorDigest = await fileDigest(evaluatorPath);
+  const incumbentLock = spawnSync(
+    "git",
+    ["show", `${t026BaseRevision}:plugin/behavior-lock.json`],
+    { cwd: repoRoot, shell: false },
+  );
+  assert.equal(incumbentLock.error, undefined);
+  assert.equal(incumbentLock.status, 0, incumbentLock.stderr.toString("utf8"));
+  const incumbentPackageDigest = digestBytes(incumbentLock.stdout);
+  const phases = [
+    {
+      key: "incumbentBefore",
+      conditions: ["incumbent-before"],
+      args: ["--condition", "incumbent-before"],
+      runsCreated: 16,
+    },
+    {
+      key: "matchedAfter",
+      conditions: ["incumbent-minus", "incumbent-plus"],
+      args: ["--condition-pair", "incumbent-minus", "incumbent-plus"],
+      runsCreated: 32,
+    },
+  ];
+  const replayIndexes = new Map();
+  const replayRoots = new Map();
+
+  for (const phase of phases) {
+    const rawRoot = path.join(temporaryRoot, phase.key, "raw");
+    const outputRoot = path.join(temporaryRoot, phase.key, "publishable");
+    replayRoots.set(phase.key, { outputRoot, rawRoot });
+    const runResult = assertEvaluatorSuccess(runEvaluator(
+      "run-matrix",
+      "--matrix",
+      matrixPath,
+      ...phase.args,
+      "--qualification",
+      qualificationPath,
+      "--raw-root",
+      rawRoot,
+    ));
+    assert.equal(runResult.runsCreated, phase.runsCreated);
+
+    const runIndex = await readJson(path.join(rawRoot, "run-index.json"));
+    replayIndexes.set(phase.key, runIndex);
+    const recorded = analysis.formativeReplay[phase.key];
+    assert.deepEqual(recorded.conditions, phase.conditions);
+    assert.equal(recorded.conditionDigest, sha256Digest(canonicalBytes(phase.conditions)));
+    assert.equal(recorded.qualificationDigest, runIndex.qualificationDigest);
+    assert.equal(recorded.runIndexDigest, sha256Digest(canonicalBytes(runIndex)));
+    assert.equal(recorded.runSetDigest, sha256Digest(canonicalBytes(runIndex.runDigests)));
+    assert.equal(recorded.runsCreated, phase.runsCreated);
+
+    const gradeResult = assertEvaluatorSuccess(runEvaluator(
+      "grade",
+      "--analysis",
+      analysisPath,
+      "--raw-root",
+      rawRoot,
+    ));
+    assert.equal(gradeResult.runsGraded, phase.runsCreated);
+
+    const reportResult = assertEvaluatorSuccess(runEvaluator(
+      "report",
+      "--analysis",
+      analysisPath,
+      "--raw-root",
+      rawRoot,
+      "--output",
+      outputRoot,
+    ));
+    const report = await readJson(reportResult.reportPath);
+    assert.deepEqual(report.decisionOutput, analysis.decisionOutput);
+    assert.deepEqual(report.resourceEnvelope, analysis.resourceEnvelope);
+  }
+
+  const protocol = {
+    schemaVersion: 1,
+    analysisCodeDigest: evaluatorDigest,
+    incumbentPackageDigest,
+    matrixDigest: sha256Digest(canonicalBytes(matrix)),
+    modelRequests: matrix.modelRequests,
+    phaseConditions: {
+      incumbentBefore: phases[0].conditions,
+      matchedAfter: phases[1].conditions,
+    },
+    qualificationDigest: replayIndexes.get("incumbentBefore").qualificationDigest,
+    reasoningRequest: matrix.reasoningRequest,
+    repetitionsPerScenario: matrix.repetitionsPerScenario,
+  };
+  assert.equal(replayIndexes.get("matchedAfter").qualificationDigest, protocol.qualificationDigest);
+  assert.deepEqual(analysis.formativeReplay.protocol, protocol);
+  assert.equal(analysis.formativeReplay.protocolDigest, sha256Digest(canonicalBytes(protocol)));
+
+  const { outputRoot, rawRoot } = replayRoots.get("matchedAfter");
+  const runsRoot = path.join(rawRoot, "runs");
+  let removedRunDigest;
+  for (const runDirectory of (await fs.readdir(runsRoot)).sort()) {
+    const runPath = path.join(runsRoot, runDirectory, "run.json");
+    const run = await readJson(runPath);
+    if (run.conditionId === "incumbent-minus") {
+      removedRunDigest = run.runDigest;
+      await fs.rm(path.dirname(runPath), { recursive: true, force: true });
+      break;
+    }
+  }
+  assert.ok(removedRunDigest);
+  const runIndexPath = path.join(rawRoot, "run-index.json");
+  const tamperedRunIndex = await readJson(runIndexPath);
+  tamperedRunIndex.runDigests = tamperedRunIndex.runDigests.filter((digest) => digest !== removedRunDigest);
+  await fs.writeFile(
+    runIndexPath,
+    Buffer.concat([canonicalBytes(tamperedRunIndex), Buffer.from("\n")]),
+  );
+
+  assertEvaluatorFailure(
+    runEvaluator("grade", "--analysis", analysisPath, "--raw-root", rawRoot),
+    "grade",
+    "skill_ablation.replay_binding_mismatch",
+    "$.formativeReplay.matchedAfter.runIndexDigest",
+  );
+  assertEvaluatorFailure(
+    runEvaluator("report", "--analysis", analysisPath, "--raw-root", rawRoot, "--output", outputRoot),
+    "report",
+    "skill_ablation.replay_binding_mismatch",
+    "$.formativeReplay.matchedAfter.runIndexDigest",
+  );
+});
+
+test("behavior lock omits the rejected skill and resolves every shipped file from its public revision", async () => {
+  const lock = await readJson(lockPath);
+  const framingSkill = await fs.readFile(framingSkillPath, "utf8");
+  const pluginFiles = (await collectFiles(pluginRoot))
+    .map((file) => path.relative(pluginRoot, file).split(path.sep).join("/"))
+    .filter((relativePath) => relativePath !== "behavior-lock.json")
+    .sort();
+
+  assert.equal(await exists(skillPath), false);
+  assert.doesNotMatch(framingSkill, /\baudited-iteration\b/u);
+  assert.match(framingSkill, /Long-running repair\/review loops remain outside this skill/u);
+  assert.equal(lock.sourceRevision, "ddc4160c3d7666730ec76004e0157590212bebe7");
+  assert.deepEqual(lock.components.filter((component) => component.name === "audited-iteration"), []);
+  assert.equal(Object.hasOwn(lock.files, "skills/audited-iteration/SKILL.md"), false);
+  assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
+
+  for (const component of lock.components) {
+    assert.equal(component.digest, lock.files[component.path]);
+  }
+
+  for (const relativePath of pluginFiles) {
+    assert.equal(lock.files[relativePath], await fileDigest(path.join(pluginRoot, relativePath)));
+    const recovered = spawnSync(
+      "git",
+      ["show", `${lock.sourceRevision}:plugin/${relativePath}`],
+      { cwd: repoRoot, shell: false },
+    );
+    assert.equal(recovered.error, undefined);
+    assert.equal(recovered.status, 0, recovered.stderr.toString("utf8"));
+    assert.equal(digestBytes(recovered.stdout), lock.files[relativePath]);
+  }
+});

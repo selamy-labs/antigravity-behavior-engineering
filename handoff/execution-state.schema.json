@@ -116,7 +116,9 @@
               "taskSet": {
                 "properties": {
                   "status": { "const": "approved" },
-                  "recordDigest": { "$ref": "#/$defs/sha256" }
+                  "recordDigest": { "$ref": "#/$defs/sha256" },
+                  "approvedCommit": { "$ref": "#/$defs/commit" },
+                  "approvedTaskSetDigest": { "$ref": "#/$defs/sha256" }
                 }
               }
             }
@@ -129,6 +131,7 @@
     }
   ],
   "$defs": {
+    "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "taskId": { "type": "string", "pattern": "^T0(0[1-9]|[1-3][0-9]|4[0-6])$" },
     "gate": {

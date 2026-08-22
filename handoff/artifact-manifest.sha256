@@ -37,14 +37,14 @@ b9a2a3c3d1e5f022d0369be7c83802a656c64e2d95306a7870a1f59b90c0e307  ./.specify/wor
 3785d5c7931739bf681e2c5fd1e9c51b3b866129a55114db37d6628fbbca8f0e  ./handoff/codex-execution-contract.md
 de1b6fb64d5e3a7e5122afe38c4925a617e35ed67b6ba267784c10ebb6e55920  ./handoff/current-state.md
 0cf5e905a1a11836a30d7eeaf7236286d198b14b8b4ee5b35d58783879aaf29a  ./handoff/execution-state.example.json
-6fc4133c5d6201df83e711004747c839258f0f00fe76566f0049868ad4fc1d42  ./handoff/execution-state.schema.json
+f1f7f1bc7ae56a535ae68edf4218bb161a44dfddeb5ceb3d61caee7827aaccf3  ./handoff/execution-state.schema.json
 f8096164f71fae0379be9a472d0c54db66274f0493493200c20421b49c2d7773  ./handoff/init-execution-state.py
 73aa58bcefbc196a99fd402e3da89ca3b706f62107498acca616fe31e43b4ff5  ./handoff/public-boundary-review.md
 64edf15bbda49170031df285b81bdd7b5cc2abd221078acd183c2afe6ee2310a  ./handoff/task-checkpoint.schema.json
 a6b2defa88b289fd693fd60ddbcd403920e65a4c2143c81f330130096a5d3158  ./handoff/task-set-approval.schema.json
 0d3c3c774ec2d57e08aeb83be37de549e6f7fff144b3c124a853369c0e839432  ./handoff/traceability.md
 787ea8258a53b3f7da05c20af8118c91f9874646f934d461bb3dfe855e9075c7  ./handoff/validate-handoff.sh
-3555a56fa8e610932d2ed89fb69a992acee472c00cad0a90ea7410d8f16e318a  ./handoff/validate_handoff.py
+1995946ad26fa26ce6c9fd0963931a7a8a08e4c87f54563c6cf29d3aeb73c303  ./handoff/validate_handoff.py
 ec15cd48670d173b3cae5585dd2313fa99bbd87471ee26ced027cf31cf80ff30  ./research/antigravity-extension-contract.md
 1711a81cfda83abcea582d5a15f809feb7277fa8dfdc536a21bf05e4058ed926  ./research/behavior-architecture-hypotheses.md
 aaf8a435c3b733fed62df44ac760c4a22fe35ae378bc69b2a6ac916fe489bd1c  ./research/behavior-portfolio-curation.md
@@ -71,4 +71,4 @@ de3b83780821788ad062e79259777257f85f7ddc7bdc05e42dde0ef81b110f8c  ./specs/001-im
 fa4a66be14fe8e90ae9c7b2125a1f93ea8378fe56a1e574facff1de78b62b336  ./specs/001-improve-antigravity-behavior/quickstart.md
 6a77f23f2530399ca83e6169a132a75912cd80600da2364fa2e41e3bae65ae69  ./specs/001-improve-antigravity-behavior/research.md
 658435485c53cd141d1d2d3ab36f133ff8f6d07029163f3f5fd7291ed52b47be  ./specs/001-improve-antigravity-behavior/spec.md
-42267974941f1587ac75c452416f2dfe5a5cc34e6157d172720334c71c8e2012  ./specs/001-improve-antigravity-behavior/tasks.md
+62284cf9091c9a238a64ea2e833c3f7c4c3d523507489074c73f29228a9c4c6a  ./specs/001-improve-antigravity-behavior/tasks.md

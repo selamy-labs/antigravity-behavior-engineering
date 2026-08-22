@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "analysisType": "skill-ablation-formative-analysis",
+  "analysisId": "audited-iteration-formative-2026-08-22",
+  "component": "audited-iteration",
+  "matrixPath": "evals/formative/audited-iteration.matrix.json",
+  "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
+  "evaluatorPath": "evaluator/src/abe_eval/skill_ablation.py",
+  "evaluatorDigest": "sha256:f9be6d558f5df048a09ba6b7150aa6b2a5bab5c6b7f94f40f8c7d26101ae0f76",
+  "runtimePath": "plugin/scripts/runtime-lib.mjs",
+  "runtimeDigest": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
+  "decisionOutput": {
+    "component": "audited-iteration",
+    "decision": "not_selected",
+    "evidenceDigest": "sha256:9278df87a37a75a010f4539b8e5567f119bbb4771bad0c2f81d0da16f8a650de",
+    "reason": "The candidate is not retained because T026 has no observed incumbent-versus-treatment long-task ablation, its deterministic replay copies authored outcomes, the T024 CLI cannot close accepted findings or pending obligations, and the required resource and regression gates are unmeasured."
+  },
+  "metrics": {
+    "requirementRetentionRecall": "1.0",
+    "realEvidenceSeamPrecision": "1.0",
+    "freshnessAnchorEnforced": true,
+    "terminalConsistencyEnforced": true,
+    "foreignOrStaleStateRejected": true,
+    "coldRecoveryPreserved": true,
+    "oneCheckNonActivation": true,
+    "criticalFalseCompletionCount": 0,
+    "schemaTheaterRejected": true
+  },
+  "metricsInterpretation": {
+    "evidenceClass": "deterministic_outcome_program_materialization",
+    "supportsSelection": false
+  },
+  "rejectionReasons": [
+    "formative_replay_copies_preprogrammed_outcomes",
+    "no_observed_long_task_ablation",
+    "review_closure_unexecutable_through_t024_cli",
+    "resource_envelope_unmeasured"
+  ],
+  "selectionGate": {
+    "behavioralIncumbentReplay": "not_observed",
+    "matchedLongTaskAblation": "not_observed",
+    "negativeActivationPrecision": "activation_smoke_only",
+    "resourceEnvelope": "not_measured",
+    "materialRegression": "not_measured",
+    "reviewRepairClosure": "runtime_update_operation_missing"
+  },
+  "resourceEnvelope": {
+    "status": "not_measured",
+    "supportsSelection": false,
+    "declaredCandidateLimits": {
+      "maxPromptBodyCharacters": 12000,
+      "additionalToolsRequired": ["abe-evidence"],
+      "networkRequired": false
+    }
+  },
+  "measurementBasis": {
+    "mode": "rejected-synthetic-formative-replay-plus-live-activation-smoke",
+    "liveAntigravityRunsAddedByT026": true,
+    "liveBehavioralRunsBoundToDecision": false,
+    "materializedEvaluatorRunsAddedByT026": true,
+    "materializedReplayInvokesAntigravity": false,
+    "rawEvidenceCommitted": false
+  },
+  "liveActivationEvidence": {
+    "status": "collected",
+    "cli": {
+      "name": "agy",
+      "version": "1.1.18"
+    },
+    "environmentQualificationDigest": "sha256:c459df700b6847c48b105d06c5f0dd136c874ba559c5eae96052706c5925b5c0",
+    "profileMode": "temporary authenticated Antigravity home with local plugin install and no user workspace state",
+    "controls": [
+      {
+        "condition": "no-plugin-control",
+        "expected": "response does not report audited-iteration as an imported skill"
+      },
+      {
+        "condition": "plugin-treatment",
+        "expected": "response reports the imported audited-iteration skill and the input boundary"
+      }
+    ],
+    "models": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+    "runDigests": [
+      {
+        "model": "gemini-3.1-pro-high",
+        "condition": "no-plugin-control",
+        "status": "SUCCESS",
+        "available": false,
+        "outputDigest": "sha256:72f559c5b55c4359d7ecab2c1d2dbb46c6e53645c2421ca8f995dd4ff0571049"
+      },
+      {
+        "model": "gemini-3.1-pro-high",
+        "condition": "plugin-treatment",
+        "status": "SUCCESS",
+        "available": true,
+        "skillName": "audited-iteration",
+        "outputDigest": "sha256:2a8555a06af8f95a25d5c5acb8e162553089b50c988b435b64a00fd15479ff0a"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "condition": "no-plugin-control",
+        "status": "SUCCESS",
+        "available": false,
+        "outputDigest": "sha256:c70f00ce7d7af547e16e02fe46f916ae19764f0cfa910e4eb38332a833f5698a"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "condition": "plugin-treatment",
+        "status": "SUCCESS",
+        "available": true,
+        "skillName": "audited-iteration",
+        "outputDigest": "sha256:32da87a5bfee4a028a89ab91fe33ea2280b5a0a7634854aff86e38314cd25c45"
+      }
+    ],
+    "installDigest": "sha256:f9c3404abc1759b417347d9d0821953ace5fede601fdc53ca51c4248df1bbdfa",
+    "withPluginListDigest": "sha256:9d4e8400f2c6eda4ed4ba98fdd525cbce238da2181bd790347d3e3668c73af98",
+    "withoutPluginListDigest": "sha256:4edf25b675388fb3ae0b23a7e56bee72febae66c2678930c8d658b0f260e1494",
+    "supportsSelection": false
+  },
+  "formativeReplay": {
+    "evidenceClass": "deterministic_outcome_program_materialization",
+    "supportsSelection": false,
+    "protocol": {
+      "schemaVersion": 1,
+      "analysisCodeDigest": "sha256:f9be6d558f5df048a09ba6b7150aa6b2a5bab5c6b7f94f40f8c7d26101ae0f76",
+      "incumbentPackageDigest": "sha256:9ee61a769a43cf08058d22137a8280ab8f6d8df046973bf15d3f05aafd59a4b6",
+      "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
+      "modelRequests": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+      "phaseConditions": {
+        "incumbentBefore": ["incumbent-before"],
+        "matchedAfter": ["incumbent-minus", "incumbent-plus"]
+      },
+      "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+      "reasoningRequest": "high",
+      "repetitionsPerScenario": 1
+    },
+    "protocolDigest": "sha256:03651445c3033df146b79b66153b973183670ea6fa1c0024f2fbc5496e8ffb6a",
+    "incumbentBefore": {
+      "attemptedBeforeCandidateBody": true,
+      "conditions": ["incumbent-before"],
+      "conditionDigest": "sha256:b56888c29f80a7f4711cff63b493cf6c9b34eed7bdd924db106ff7ae9aa32fc4",
+      "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+      "runIndexDigest": "sha256:5a4a9250e2843fed55a117dd7471c8654d1d55a9fa8da914eb3adf740d5f2034",
+      "runSetDigest": "sha256:a54113900ad818a740beab9e2ade5b12f758f0e31a611354aa0f8a65d1441df4",
+      "runsCreated": 16
+    },
+    "matchedAfter": {
+      "attemptedAfterCandidateBody": true,
+      "conditions": ["incumbent-minus", "incumbent-plus"],
+      "conditionDigest": "sha256:75c35cd870555948621e6fd4f8b1916920b54874b523a41a8e46075b68821a1a",
+      "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+      "runIndexDigest": "sha256:31ada7df20d5c7d18e44710db6791c420a547aaa57f005e091d9733372efda40",
+      "runSetDigest": "sha256:428a08f1bd07f7099585fca43b9fc9ff13258337498e06f0543b8d7955430110",
+      "runsCreated": 32
+    }
+  },
+  "staticConformance": {
+    "taskStateParser": "parseTaskState",
+    "schema": "plugin/schemas/task-state.schema.json",
+    "validatedControls": ["append-only checkpoint fields", "impacted obligations and evidence", "sentinel retention", "dirty-worktree preservation", "failed-checkpoint recovery", "review-to-repair closure", "cold restart", "zero-progress bound", "one-check non-activation"],
+    "supportsSelection": false
+  },
+  "limitations": [
+    "the evaluator materializes outcomeProgram declarations and does not execute Antigravity long-task scenarios",
+    "the live Antigravity records prove candidate import availability only and are not behavioral ablation evidence",
+    "the T024 runtime has no operation that updates an accepted finding to verified or a pending obligation to passing",
+    "cold recovery, repeated-work reduction, unrelated-change preservation, resource use, and material regression remain unmeasured"
+  ],
+  "retained": false
+}
