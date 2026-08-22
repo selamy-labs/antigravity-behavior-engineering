@@ -8,7 +8,7 @@
   "implementation": {
     "hooksDigest": "sha256:47045a810ed84db6143cf05822f7de9054a592d0ae2ad0f72a67394acf390b7d",
     "observerScriptDigest": "sha256:8b11bf8e9dd98b506e6def3ebbbaf94e7e475e0950bd84bed310aa2c67025319",
-    "runtimeDigest": "sha256:6a2dfaabc9ae544015a83cb23d9b3480a487215fa9311a1ee0c060b0f7be03ac",
+    "runtimeDigest": "sha256:4bde18eb73e24c6d1a87085665d457dab26f595fc0516fb07c3abf59a25d62d0",
     "networkCalls": 0,
     "shellCalls": 0,
     "semanticAuthority": false
@@ -104,7 +104,7 @@
     "incumbentP90Tokens": 40655,
     "treatmentP90Tokens": 40178,
     "directAppendSamples": 40,
-    "directAppendP95Milliseconds": "21.733",
+    "directAppendP95Milliseconds": "24.052",
     "directAppendP95LimitMilliseconds": 250,
     "configuredHardTimeoutSeconds": 10,
     "envelopeResult": "pass"
@@ -136,10 +136,51 @@
     "unknownFields": "redacted_digest_only",
     "secretAndPrivatePathRedaction": "pass",
     "symlinkEscape": "rejected_without_outside_write",
+    "taskDirectoryReplacement": "inode_anchored_without_outside_write",
     "missingTaskState": "fail_open_with_visible_diagnostic",
     "observerWriteFailure": "fail_open_with_visible_diagnostic",
     "ledgerGrowthLimitBytes": 4194304,
     "missingScript": "packaging_test_fails"
+  },
+  "correctiveRepairValidation": {
+    "acceptedFindingId": "Q-T029-001",
+    "repairCommit": "891f39d47881ca594d108cc135d8a75a1d86a249",
+    "repairRuntimeDigest": "sha256:4bde18eb73e24c6d1a87085665d457dab26f595fc0516fb07c3abf59a25d62d0",
+    "redTestDigest": "sha256:df48cad34d3a42b2151a6f2f6b06687fd46270a7aa42b6b21e36c11db45d7cb2",
+    "greenTestDigest": "sha256:4b0150b097bd5d89ebe870495c7bf089a9135874596a1dfd251d072a86cb0b54",
+    "repairMechanism": "The observer opens the validated task directory with no-follow directory flags, verifies its device and inode, and performs lock, state, and ledger operations through the retained descriptor path.",
+    "liveSmoke": [
+      {
+        "model": "gemini-3.1-pro-high",
+        "status": "SUCCESS",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "observerEvents": 3,
+        "ledgerDigest": "sha256:0e3cae85ac630738eefbdd44249a99295006ef08a0e4d588d351effe2dd6e25d",
+        "runRecordDigest": "sha256:b2a3a072dfd348b795a8a141a6913665b3daa348cdf1cae25ad9a8e4f5b0f475"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "status": "ERROR",
+        "classification": "product_failure_invalid_extra_tool_call_after_exact_artifact",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "observerEvents": 8,
+        "ledgerDigest": "sha256:55f95689d9f965d791c9eb85ced3c7506fe85e9fc42a2ec3995b717d8affc012",
+        "runRecordDigest": "sha256:43c25e4f3ec55b6e2931910740feb3e7a1882aa8e7bcd721c509375ebe6e76a0"
+      }
+    ],
+    "privacyReview": {
+      "liveEventCount": 11,
+      "liveLedgerBytes": 4516,
+      "maximumCanonicalEventBytes": 424,
+      "credentialPatternsFound": 0,
+      "absolutePrivatePathsFound": 0,
+      "transcriptContentFound": 0,
+      "rawArgumentsFound": 0,
+      "rawErrorsFound": 0
+    },
+    "evidenceDisposition": "The deterministic race repair and current-runtime hook dispatch replace invalidated mechanical evidence. The original matched ablation remains the frozen behavioral comparison because the hook's model-facing stdout and semantic policy did not change; the unscheduled smoke is disclosed but is not substituted into that comparison, and its product failure was not retried."
   },
   "privacyReview": {
     "liveEventCount": 8,
@@ -161,6 +202,7 @@
   "limitations": [
     "The matched live ablation is formative with one run per model and does not establish a release-scale latency distribution.",
     "CLI print mode supplied an empty workspacePaths array until the documented add-directory binding was used; the observer rejects that unqualified input rather than guessing a workspace.",
+    "A post-repair Flash smoke produced the exact artifact and eight observer events but ended ERROR after an invalid extra tool call; it is disclosed as a product failure and was not retried or substituted for the frozen matched ablation.",
     "EvidenceEvent records mechanical lifecycle facts only; correctness, obligation completion, and release readiness remain external judgments."
   ]
 }
