@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "analysisId": "evaluator-conformance",
+  "familyId": "evaluator-conformance",
+  "unitOfAnalysis": "scenario",
+  "clusterKey": "scenarioId",
+  "modelEffects": "separate",
+  "weights": {
+    "evaluator-conformance": "1.0"
+  },
+  "missingDataPolicy": {
+    "schemaVersion": 1,
+    "name": "complete-case",
+    "digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812"
+  },
+  "multiplicityPolicy": {
+    "schemaVersion": 1,
+    "name": "complete-case",
+    "digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812"
+  },
+  "confidenceLevel": "0.95",
+  "margins": {
+    "primary": "0.05"
+  },
+  "exclusions": [],
+  "stoppingRule": {
+    "schemaVersion": 1,
+    "name": "fixed-fake-matrix",
+    "digest": "sha256:823412d1eacb67956220e532959f0104603057c88704863ca38e7cd188fda812"
+  },
+  "resourceEnvelopeDigest": "sha256:5de95319f17467ed6dc58e4e0b16c1193a13b35d60dc48bcf06bf6b7beebbe6c",
+  "analysisCodeDigest": "sha256:59bb658eaa2d8da047e40438dd4405bd2d3d6cae8bfa9d5a71e7b7dff9604c4f",
+  "cohortDefinitions": {
+    "all": "all fake evaluator conformance attempts"
+  },
+  "variantReductionPolicyDigest": "not_applicable"
+}
