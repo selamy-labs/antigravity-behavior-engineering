@@ -108,6 +108,19 @@ test("audited-iteration is rejected when replay is synthetic and repair closure 
     materialRegression: "not_measured",
     reviewRepairClosure: "runtime_update_operation_missing",
   });
+  assert.deepEqual(analysis.metricsInterpretation, {
+    evidenceClass: "deterministic_outcome_program_materialization",
+    supportsSelection: false,
+  });
+  assert.deepEqual(analysis.resourceEnvelope, {
+    status: "not_measured",
+    supportsSelection: false,
+    declaredCandidateLimits: {
+      maxPromptBodyCharacters: 12000,
+      additionalToolsRequired: ["abe-evidence"],
+      networkRequired: false,
+    },
+  });
   assert.equal(analysis.retained, false);
   assert.deepEqual(analysis.decisionOutput, {
     component: "audited-iteration",
@@ -201,6 +214,9 @@ test("the rejection analysis validates and binds both deterministic replay index
   );
 
   const analysis = await readJson(analysisPath);
+  const matrix = await readJson(matrixPath);
+  const evaluatorDigest = await fileDigest(evaluatorPath);
+  const incumbentPackageDigest = await fileDigest(lockPath);
   const phases = [
     {
       key: "incumbentBefore",
@@ -215,6 +231,7 @@ test("the rejection analysis validates and binds both deterministic replay index
       runsCreated: 32,
     },
   ];
+  const replayIndexes = new Map();
 
   for (const phase of phases) {
     const rawRoot = path.join(temporaryRoot, phase.key, "raw");
@@ -232,6 +249,7 @@ test("the rejection analysis validates and binds both deterministic replay index
     assert.equal(runResult.runsCreated, phase.runsCreated);
 
     const runIndex = await readJson(path.join(rawRoot, "run-index.json"));
+    replayIndexes.set(phase.key, runIndex);
     const recorded = analysis.formativeReplay[phase.key];
     assert.deepEqual(recorded.conditions, phase.conditions);
     assert.equal(recorded.conditionDigest, sha256Digest(canonicalBytes(phase.conditions)));
@@ -262,6 +280,24 @@ test("the rejection analysis validates and binds both deterministic replay index
     assert.deepEqual(report.decisionOutput, analysis.decisionOutput);
     assert.deepEqual(report.resourceEnvelope, analysis.resourceEnvelope);
   }
+
+  const protocol = {
+    schemaVersion: 1,
+    analysisCodeDigest: evaluatorDigest,
+    incumbentPackageDigest,
+    matrixDigest: sha256Digest(canonicalBytes(matrix)),
+    modelRequests: matrix.modelRequests,
+    phaseConditions: {
+      incumbentBefore: phases[0].conditions,
+      matchedAfter: phases[1].conditions,
+    },
+    qualificationDigest: replayIndexes.get("incumbentBefore").qualificationDigest,
+    reasoningRequest: matrix.reasoningRequest,
+    repetitionsPerScenario: matrix.repetitionsPerScenario,
+  };
+  assert.equal(replayIndexes.get("matchedAfter").qualificationDigest, protocol.qualificationDigest);
+  assert.deepEqual(analysis.formativeReplay.protocol, protocol);
+  assert.equal(analysis.formativeReplay.protocolDigest, sha256Digest(canonicalBytes(protocol)));
 });
 
 test("behavior lock omits the rejected skill and resolves every shipped file from its public revision", async () => {
