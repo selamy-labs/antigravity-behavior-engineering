@@ -5,36 +5,41 @@
   "component": "audited-iteration",
   "matrixPath": "evals/formative/audited-iteration.matrix.json",
   "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
-  "skillPath": "plugin/skills/audited-iteration/SKILL.md",
-  "skillDigest": "sha256:096fd6dd23a47d0c6de2cde3818c6814fc8cf74e42e773578557c1a29478839e",
+  "evaluatorPath": "evaluator/src/abe_eval/skill_ablation.py",
+  "evaluatorDigest": "sha256:7af9c2d4a0c87785f28e9bad31a858fdb2292484a2bd2fc2d431454ef1079406",
   "runtimePath": "plugin/scripts/runtime-lib.mjs",
   "runtimeDigest": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
   "decisionOutput": {
     "component": "audited-iteration",
-    "decision": "selected",
-    "evidenceDigest": "sha256:f13b4d9821a98747956ca0ab2e775d6aeae26c3e2ec3d52057c4b7b98bb6a14d",
-    "reason": "T025 establishes durable obligations but public formative scenarios still need compact, append-only iteration behavior to retain sentinels, recover from actual state, close review repairs, and stop zero-progress loops without imposing a ledger on bounded work. T026 materializes public replay records for incumbent-before and matched-after conditions and records protected live Antigravity activation evidence for the shipped skill body."
+    "decision": "not_selected",
+    "evidenceDigest": "sha256:34abfcb8383e97d616a96e5aa9d537031077d2c020726babb6f49421efeb7bf5",
+    "reason": "The candidate is not retained because T026 has no observed incumbent-versus-treatment long-task ablation, its deterministic replay copies authored outcomes, the T024 CLI cannot close accepted findings or pending obligations, and the required resource and regression gates are unmeasured."
   },
-  "metrics": {
-    "requirementRetentionRecall": "1.0",
-    "realEvidenceSeamPrecision": "1.0",
-    "freshnessAnchorEnforced": true,
-    "terminalConsistencyEnforced": true,
-    "foreignOrStaleStateRejected": true,
-    "coldRecoveryPreserved": true,
-    "oneCheckNonActivation": true,
-    "criticalFalseCompletionCount": 0,
-    "schemaTheaterRejected": true
+  "rejectionReasons": [
+    "formative_replay_copies_preprogrammed_outcomes",
+    "no_observed_long_task_ablation",
+    "review_closure_unexecutable_through_t024_cli",
+    "resource_envelope_unmeasured"
+  ],
+  "selectionGate": {
+    "behavioralIncumbentReplay": "not_observed",
+    "matchedLongTaskAblation": "not_observed",
+    "negativeActivationPrecision": "activation_smoke_only",
+    "resourceEnvelope": "not_measured",
+    "materialRegression": "not_measured",
+    "reviewRepairClosure": "runtime_update_operation_missing"
   },
-  "resourceEnvelope": {
+  "declaredCandidateLimits": {
     "maxPromptBodyCharacters": 12000,
     "additionalToolsRequired": ["abe-evidence"],
     "networkRequired": false
   },
   "measurementBasis": {
-    "mode": "protected-live-antigravity-activation-plus-materialized-public-formative-replay",
+    "mode": "rejected-synthetic-formative-replay-plus-live-activation-smoke",
     "liveAntigravityRunsAddedByT026": true,
+    "liveBehavioralRunsBoundToDecision": false,
     "materializedEvaluatorRunsAddedByT026": true,
+    "materializedReplayInvokesAntigravity": false,
     "rawEvidenceCommitted": false
   },
   "liveActivationEvidence": {
@@ -90,43 +95,32 @@
     ],
     "installDigest": "sha256:f9c3404abc1759b417347d9d0821953ace5fede601fdc53ca51c4248df1bbdfa",
     "withPluginListDigest": "sha256:9d4e8400f2c6eda4ed4ba98fdd525cbce238da2181bd790347d3e3668c73af98",
-    "withoutPluginListDigest": "sha256:4edf25b675388fb3ae0b23a7e56bee72febae66c2678930c8d658b0f260e1494"
+    "withoutPluginListDigest": "sha256:4edf25b675388fb3ae0b23a7e56bee72febae66c2678930c8d658b0f260e1494",
+    "supportsSelection": false
   },
-  "sourceArtifacts": [
-    {"path": "plugin/skills/proof-obligation-contract/SKILL.md", "digest": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379", "usedFor": ["TaskState", "iteration checkpoints", "cold recovery"]},
-    {"path": "evals/formative/proof-obligation-contract.matrix.json", "digest": "sha256:6aed9052b13a84ede2b52075cf0254f04e58e90bc0c4a6f298bc711482bbc689", "usedFor": ["cold_process_recovery", "one_check_non_activation"]},
-    {"path": "evals/formative/proof-obligation-contract.analysis.json", "digest": "sha256:c540c238b2a655cfd2c23653b2d19a5696549240b828d26bcc4e60f42b982977", "usedFor": ["coldRecoveryPreserved", "oneCheckNonActivation"]},
-    {"path": "docs/task-checkpoints/T025.json", "digest": "sha256:c6df6bcb1c335fe6e86fc8fb3783e7fdbb2e4dbeef4f29d6ae6ab33b4b2ff55b", "usedFor": ["proof-obligation-contract"]},
-    {"path": "evals/protocols/task-families.json", "digest": "sha256:aa8df628e3d90f7902a3110b8e81d927861f9aa12fa8e6c1194e7823fffca2d5", "usedFor": ["cold_restart", "dirty_worktrees", "repair"]}
-  ],
-  "incumbentReplay": {
-    "condition": "incumbent-before",
-    "attemptedBeforeCandidateBody": true,
-    "command": "uv run --project evaluator abe-eval run-matrix --matrix evals/formative/audited-iteration.matrix.json --condition incumbent-before --qualification evidence/raw/qualification/local/qualification.json --raw-root evidence/raw/formative/audited-iteration/incumbent-before",
-    "exitCode": 0,
-    "runsCreated": 16,
-    "gradeCommand": "uv run --project evaluator abe-eval grade --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/incumbent-before",
-    "reportCommand": "uv run --project evaluator abe-eval report --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/incumbent-before --output evidence/publishable/formative/audited-iteration/incumbent-before"
-  },
-  "matchedAfterReplay": {
-    "conditionPair": "incumbent-minus/incumbent-plus",
-    "attemptedAfterCandidateBody": true,
-    "command": "uv run --project evaluator abe-eval run-matrix --matrix evals/formative/audited-iteration.matrix.json --condition-pair incumbent-minus incumbent-plus --qualification evidence/raw/qualification/local/qualification.json --raw-root evidence/raw/formative/audited-iteration/matched-after",
-    "exitCode": 0,
-    "runsCreated": 32,
-    "gradeCommand": "uv run --project evaluator abe-eval grade --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/matched-after",
-    "reportCommand": "uv run --project evaluator abe-eval report --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/matched-after --output evidence/publishable/formative/audited-iteration/matched-after"
+  "formativeReplay": {
+    "evidenceClass": "deterministic_outcome_program_materialization",
+    "supportsSelection": false,
+    "incumbentBefore": {
+      "attemptedBeforeCandidateBody": true,
+      "runsCreated": 16
+    },
+    "matchedAfter": {
+      "attemptedAfterCandidateBody": true,
+      "runsCreated": 32
+    }
   },
   "staticConformance": {
     "taskStateParser": "parseTaskState",
     "schema": "plugin/schemas/task-state.schema.json",
     "validatedControls": ["append-only checkpoint fields", "impacted obligations and evidence", "sentinel retention", "dirty-worktree preservation", "failed-checkpoint recovery", "review-to-repair closure", "cold restart", "zero-progress bound", "one-check non-activation"],
-    "parserOnlyRules": ["TaskState identity matches current task, workspace, and request", "passing evidence is fresh only when afterChangeDigest equals lastRelevantChangeDigest"]
+    "supportsSelection": false
   },
   "limitations": [
-    "does not commit raw live Antigravity transcripts; T026 commits publishable activation facts and keeps protected streams outside Git",
-    "uses T025 TaskState mechanics plus static skill conformance and live activation smoke evidence rather than claiming a release-grade causal estimate",
-    "does not replace generic TDD, debugging, review, or bounded-task workflows"
+    "the evaluator materializes outcomeProgram declarations and does not execute Antigravity long-task scenarios",
+    "the live Antigravity records prove candidate import availability only and are not behavioral ablation evidence",
+    "the T024 runtime has no operation that updates an accepted finding to verified or a pending obligation to passing",
+    "cold recovery, repeated-work reduction, unrelated-change preservation, resource use, and material regression remain unmeasured"
   ],
-  "retained": true
+  "retained": false
 }

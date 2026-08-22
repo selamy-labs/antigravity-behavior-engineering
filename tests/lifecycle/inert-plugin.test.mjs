@@ -192,7 +192,6 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
   const lock = await loadLock();
   const framingSkillDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md")));
   const proofSkillDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "skills", "proof-obligation-contract", "SKILL.md")));
-  const auditedSkillDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "skills", "audited-iteration", "SKILL.md")));
   const runtimeScriptDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs")));
 
   assert.deepEqual(Object.keys(manifest).sort(), ["name"]);
@@ -219,15 +218,6 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
       claimId: "T025.proof-obligation-contract.workspace-request-bound-obligations",
       defaultEnabled: true,
       digest: proofSkillDigest,
-    },
-    {
-      schemaVersion: 1,
-      kind: "skill",
-      name: "audited-iteration",
-      path: "skills/audited-iteration/SKILL.md",
-      claimId: "T026.audited-iteration.append-only-recoverable-long-work",
-      defaultEnabled: true,
-      digest: auditedSkillDigest,
     },
     {
       schemaVersion: 1,

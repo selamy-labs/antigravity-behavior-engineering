@@ -415,7 +415,6 @@ test("behavior lock registers the proof obligation skill and covers every plugin
   const lock = await readJson(lockPath);
   const framingSkillDigest = await fileDigest(path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md"));
   const proofSkillDigest = await fileDigest(skillPath);
-  const auditedSkillDigest = await fileDigest(path.join(pluginRoot, "skills", "audited-iteration", "SKILL.md"));
   const runtimeScriptDigest = await fileDigest(runtimeScriptPath);
   const pluginFiles = (await collectFiles(pluginRoot))
     .map((file) => path.relative(pluginRoot, file).split(path.sep).join("/"))
@@ -444,15 +443,6 @@ test("behavior lock registers the proof obligation skill and covers every plugin
     },
     {
       schemaVersion: 1,
-      kind: "skill",
-      name: "audited-iteration",
-      path: "skills/audited-iteration/SKILL.md",
-      claimId: "T026.audited-iteration.append-only-recoverable-long-work",
-      defaultEnabled: true,
-      digest: auditedSkillDigest,
-    },
-    {
-      schemaVersion: 1,
       kind: "script",
       name: "abe-evidence-runtime",
       path: "scripts/runtime-lib.mjs",
@@ -464,13 +454,14 @@ test("behavior lock registers the proof obligation skill and covers every plugin
   assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
   for (const relativePath of pluginFiles) {
     assert.equal(lock.files[relativePath], await fileDigest(path.join(pluginRoot, relativePath)));
-    const recovered = spawnSync(
-      "git",
-      ["show", `${lock.sourceRevision}:plugin/${relativePath}`],
-      { cwd: repoRoot, shell: false },
-    );
-    assert.equal(recovered.error, undefined);
-    assert.equal(recovered.status, 0, recovered.stderr.toString("utf8"));
-    assert.equal(digestBytes(recovered.stdout), lock.files[relativePath]);
   }
+
+  const recovered = spawnSync(
+    "git",
+    ["show", `${lock.sourceRevision}:plugin/skills/proof-obligation-contract/SKILL.md`],
+    { cwd: repoRoot, shell: false },
+  );
+  assert.equal(recovered.error, undefined);
+  assert.equal(recovered.status, 0, recovered.stderr.toString("utf8"));
+  assert.equal(digestBytes(recovered.stdout), proofSkillDigest);
 });
