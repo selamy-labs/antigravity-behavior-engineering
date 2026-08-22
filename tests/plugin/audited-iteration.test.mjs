@@ -472,7 +472,7 @@ test("behavior lock omits the rejected skill and resolves every shipped file fro
   assert.equal(await exists(skillPath), false);
   assert.doesNotMatch(framingSkill, /\baudited-iteration\b/u);
   assert.match(framingSkill, /Long-running repair\/review loops remain outside this skill/u);
-  assert.equal(lock.sourceRevision, "f314c7e6cc06d53a1667b13aa7154ed543ecb20e");
+  assert.equal(lock.sourceRevision, "71a9ec676ea64f23d166638ce97c5f093cd5baa3");
   assert.deepEqual(lock.components.filter((component) => component.name === "audited-iteration"), []);
   assert.equal(Object.hasOwn(lock.files, "skills/audited-iteration/SKILL.md"), false);
   assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
