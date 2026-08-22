@@ -6,14 +6,14 @@
   "matrixPath": "evals/formative/audited-iteration.matrix.json",
   "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
   "skillPath": "plugin/skills/audited-iteration/SKILL.md",
-  "skillDigest": "sha256:0c550f7002083c801132509a9d0b445b4e5af23fe5231b9c149462239b7575bd",
+  "skillDigest": "sha256:096fd6dd23a47d0c6de2cde3818c6814fc8cf74e42e773578557c1a29478839e",
   "runtimePath": "plugin/scripts/runtime-lib.mjs",
   "runtimeDigest": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
   "decisionOutput": {
     "component": "audited-iteration",
     "decision": "selected",
-    "evidenceDigest": "sha256:d3a8d49df78db7540809e41f350fcb8ce814e990a4d3a079c2a156fa05d516db",
-    "reason": "T025 establishes durable obligations but public formative scenarios still need compact, append-only iteration behavior to retain sentinels, recover from actual state, close review repairs, and stop zero-progress loops without imposing a ledger on bounded work. T026 materializes deterministic public replay records for incumbent-before and matched-after conditions."
+    "evidenceDigest": "sha256:f13b4d9821a98747956ca0ab2e775d6aeae26c3e2ec3d52057c4b7b98bb6a14d",
+    "reason": "T025 establishes durable obligations but public formative scenarios still need compact, append-only iteration behavior to retain sentinels, recover from actual state, close review repairs, and stop zero-progress loops without imposing a ledger on bounded work. T026 materializes public replay records for incumbent-before and matched-after conditions and records protected live Antigravity activation evidence for the shipped skill body."
   },
   "metrics": {
     "requirementRetentionRecall": "1.0",
@@ -32,10 +32,65 @@
     "networkRequired": false
   },
   "measurementBasis": {
-    "mode": "materialized-public-formative-replay-plus-static-iteration-conformance",
-    "liveAntigravityRunsAddedByT026": false,
+    "mode": "protected-live-antigravity-activation-plus-materialized-public-formative-replay",
+    "liveAntigravityRunsAddedByT026": true,
     "materializedEvaluatorRunsAddedByT026": true,
     "rawEvidenceCommitted": false
+  },
+  "liveActivationEvidence": {
+    "status": "collected",
+    "cli": {
+      "name": "agy",
+      "version": "1.1.18"
+    },
+    "environmentQualificationDigest": "sha256:c459df700b6847c48b105d06c5f0dd136c874ba559c5eae96052706c5925b5c0",
+    "profileMode": "temporary authenticated Antigravity home with local plugin install and no user workspace state",
+    "controls": [
+      {
+        "condition": "no-plugin-control",
+        "expected": "response does not report audited-iteration as an imported skill"
+      },
+      {
+        "condition": "plugin-treatment",
+        "expected": "response reports the imported audited-iteration skill and the input boundary"
+      }
+    ],
+    "models": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+    "runDigests": [
+      {
+        "model": "gemini-3.1-pro-high",
+        "condition": "no-plugin-control",
+        "status": "SUCCESS",
+        "available": false,
+        "outputDigest": "sha256:72f559c5b55c4359d7ecab2c1d2dbb46c6e53645c2421ca8f995dd4ff0571049"
+      },
+      {
+        "model": "gemini-3.1-pro-high",
+        "condition": "plugin-treatment",
+        "status": "SUCCESS",
+        "available": true,
+        "skillName": "audited-iteration",
+        "outputDigest": "sha256:2a8555a06af8f95a25d5c5acb8e162553089b50c988b435b64a00fd15479ff0a"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "condition": "no-plugin-control",
+        "status": "SUCCESS",
+        "available": false,
+        "outputDigest": "sha256:c70f00ce7d7af547e16e02fe46f916ae19764f0cfa910e4eb38332a833f5698a"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "condition": "plugin-treatment",
+        "status": "SUCCESS",
+        "available": true,
+        "skillName": "audited-iteration",
+        "outputDigest": "sha256:32da87a5bfee4a028a89ab91fe33ea2280b5a0a7634854aff86e38314cd25c45"
+      }
+    ],
+    "installDigest": "sha256:f9c3404abc1759b417347d9d0821953ace5fede601fdc53ca51c4248df1bbdfa",
+    "withPluginListDigest": "sha256:9d4e8400f2c6eda4ed4ba98fdd525cbce238da2181bd790347d3e3668c73af98",
+    "withoutPluginListDigest": "sha256:4edf25b675388fb3ae0b23a7e56bee72febae66c2678930c8d658b0f260e1494"
   },
   "sourceArtifacts": [
     {"path": "plugin/skills/proof-obligation-contract/SKILL.md", "digest": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379", "usedFor": ["TaskState", "iteration checkpoints", "cold recovery"]},
@@ -69,8 +124,8 @@
     "parserOnlyRules": ["TaskState identity matches current task, workspace, and request", "passing evidence is fresh only when afterChangeDigest equals lastRelevantChangeDigest"]
   },
   "limitations": [
-    "does not publish new raw live Antigravity traces; T026 uses deterministic public formative replay records materialized by the evaluator",
-    "uses T025 TaskState mechanics plus static skill conformance rather than claiming a release-grade live causal estimate",
+    "does not commit raw live Antigravity transcripts; T026 commits publishable activation facts and keeps protected streams outside Git",
+    "uses T025 TaskState mechanics plus static skill conformance and live activation smoke evidence rather than claiming a release-grade causal estimate",
     "does not replace generic TDD, debugging, review, or bounded-task workflows"
   ],
   "retained": true

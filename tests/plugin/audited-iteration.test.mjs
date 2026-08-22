@@ -77,7 +77,7 @@ test("audited-iteration is a narrow original skill for long-work checkpoints and
   const normalizedSkill = skill.replace(/\s+/gu, " ");
 
   for (const required of [
-    "Input: substantial long or interruption-prone task with active obligations",
+    "Input: substantial long/interruption-prone task with active obligations",
     "Output: append-only checkpoints, impacted evidence, sentinels, and exact next action",
     "Non-goal: fixed increment size, generic TDD/debugging/review, or bounded-task ledger",
     "Do not activate for bounded or one-check tasks.",
@@ -183,11 +183,42 @@ test("formative matrix selects iteration gaps and preserves a trivial-task contr
     networkRequired: false,
   });
   assert.deepEqual(analysis.measurementBasis, {
-    mode: "materialized-public-formative-replay-plus-static-iteration-conformance",
-    liveAntigravityRunsAddedByT026: false,
+    mode: "protected-live-antigravity-activation-plus-materialized-public-formative-replay",
+    liveAntigravityRunsAddedByT026: true,
     materializedEvaluatorRunsAddedByT026: true,
     rawEvidenceCommitted: false,
   });
+  assert.equal(analysis.liveActivationEvidence.status, "collected");
+  assert.deepEqual(analysis.liveActivationEvidence.cli, {
+    name: "agy",
+    version: "1.1.18",
+  });
+  assert.equal(
+    analysis.liveActivationEvidence.environmentQualificationDigest,
+    "sha256:c459df700b6847c48b105d06c5f0dd136c874ba559c5eae96052706c5925b5c0",
+  );
+  assert.deepEqual(analysis.liveActivationEvidence.models, ["gemini-3.1-pro-high", "gemini-3.7-flash-high"]);
+  assert.deepEqual(analysis.liveActivationEvidence.runDigests.map((record) => [
+    record.model,
+    record.condition,
+    record.status,
+    record.available,
+    record.skillName ?? null,
+  ]), [
+    ["gemini-3.1-pro-high", "no-plugin-control", "SUCCESS", false, null],
+    ["gemini-3.1-pro-high", "plugin-treatment", "SUCCESS", true, "audited-iteration"],
+    ["gemini-3.7-flash-high", "no-plugin-control", "SUCCESS", false, null],
+    ["gemini-3.7-flash-high", "plugin-treatment", "SUCCESS", true, "audited-iteration"],
+  ]);
+  assert.deepEqual(
+    analysis.liveActivationEvidence.runDigests.map((record) => record.outputDigest),
+    [
+      "sha256:72f559c5b55c4359d7ecab2c1d2dbb46c6e53645c2421ca8f995dd4ff0571049",
+      "sha256:2a8555a06af8f95a25d5c5acb8e162553089b50c988b435b64a00fd15479ff0a",
+      "sha256:c70f00ce7d7af547e16e02fe46f916ae19764f0cfa910e4eb38332a833f5698a",
+      "sha256:32da87a5bfee4a028a89ab91fe33ea2280b5a0a7634854aff86e38314cd25c45",
+    ],
+  );
   assert.equal(analysis.incumbentReplay.attemptedBeforeCandidateBody, true);
   assert.equal(analysis.incumbentReplay.runsCreated, 16);
   assert.equal(analysis.matchedAfterReplay.attemptedAfterCandidateBody, true);
