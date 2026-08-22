@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "analysisId": "kernel-rule-no-rule-decision-2026-08-22",
+  "matrixDigest": "sha256:4c5fd9ea1466612302084c3cac5588671e299ac9ee109587e83a1baf8685a318",
+  "sourceConformanceDigest": "sha256:b64c26dcccc0cfd807bb393014e453b7b237312844d1fdb52a0b5f5c331d02dd",
+  "decisionOutput": {
+    "component": "engineering-evidence-kernel",
+    "decision": "not_selected",
+    "evidenceDigest": "sha256:2d12b1a7d1410ef1bff55d020bc1fe57545a08940e6b2f7477efc1cdaf51746f"
+  },
+  "ruleFileCreated": false,
+  "noCompensatingInstructionBloat": true,
+  "selectedClauses": [],
+  "rejectionReasons": [
+    "rule_surface_disqualified_by_T015",
+    "body_level_selective_application_false",
+    "SC-007_non_applicable_body_load_risk"
+  ]
+}
