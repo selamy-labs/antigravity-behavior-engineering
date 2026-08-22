@@ -8,7 +8,7 @@ description: Use when a substantial, interruption-prone engineering task needs a
 Use this skill when substantial work will take several reviewable increments or
 may be interrupted between implementation, verification, and review.
 
-Input: substantial long or interruption-prone task with active obligations
+Input: substantial long/interruption-prone task with active obligations
 
 Output: append-only checkpoints, impacted evidence, sentinels, and exact next action
 
