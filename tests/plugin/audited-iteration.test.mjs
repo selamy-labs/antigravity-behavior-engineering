@@ -100,9 +100,8 @@ const assertEvaluatorFailure = (result, command, error, errorPath) => {
   });
 };
 
-test("a ready execution state accepts a non-null task-set approved commit", async () => {
+const readyExecutionState = async () => {
   const example = await readJson(executionStateExamplePath);
-  const schema = await readJson(executionStateSchemaPath);
   const commit = "a".repeat(40);
   const digest = `sha256:${"b".repeat(64)}`;
   const taskState = {
@@ -141,7 +140,10 @@ test("a ready execution state accepts a non-null task-set approved commit", asyn
       ]),
     ),
   };
-  const validation = spawnSync(
+  return state;
+};
+
+const validateExecutionState = (schema, state) => spawnSync(
     "uv",
     [
       "run",
@@ -161,8 +163,26 @@ test("a ready execution state accepts a non-null task-set approved commit", asyn
     },
   );
 
+test("a ready execution state accepts a non-null task-set approved commit", async () => {
+  const schema = await readJson(executionStateSchemaPath);
+  const state = await readyExecutionState();
+  const validation = validateExecutionState(schema, state);
+
   assert.equal(validation.error, undefined);
   assert.equal(validation.status, 0, validation.stdout + validation.stderr);
+});
+
+test("a ready execution state rejects null task-set approval bindings", async () => {
+  const schema = await readJson(executionStateSchemaPath);
+
+  for (const field of ["approvedCommit", "approvedTaskSetDigest"]) {
+    const state = await readyExecutionState();
+    state.humanGates.taskSet[field] = null;
+    const validation = validateExecutionState(schema, state);
+
+    assert.equal(validation.error, undefined);
+    assert.equal(validation.status, 1, `${field}: ${validation.stdout}${validation.stderr}`);
+  }
 });
 
 test("audited-iteration is rejected when replay is synthetic and repair closure is not executable", async () => {

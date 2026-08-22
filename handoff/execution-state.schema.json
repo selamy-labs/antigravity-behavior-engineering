@@ -116,7 +116,9 @@
               "taskSet": {
                 "properties": {
                   "status": { "const": "approved" },
-                  "recordDigest": { "$ref": "#/$defs/sha256" }
+                  "recordDigest": { "$ref": "#/$defs/sha256" },
+                  "approvedCommit": { "$ref": "#/$defs/commit" },
+                  "approvedTaskSetDigest": { "$ref": "#/$defs/sha256" }
                 }
               }
             }
