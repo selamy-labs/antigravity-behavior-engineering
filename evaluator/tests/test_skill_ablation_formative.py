@@ -240,3 +240,64 @@ def test_skill_ablation_formative_evaluator_is_component_and_scenario_count_gene
 
     assert run_result["runsCreated"] == 4
     assert report_result["reportPath"] == str(output / "audited-iteration-report.json")
+
+
+def test_skill_ablation_rejects_component_path_traversal_before_reporting(tmp_path: Path) -> None:
+    qualification_path = tmp_path / "qualification.json"
+    _qualification(qualification_path)
+    raw_root = tmp_path / "evidence" / "raw" / "formative" / "proof-obligation-contract" / "matched-after"
+    output = tmp_path / "safe-output"
+    escaped = tmp_path / "escaped-component-report.json"
+
+    _run_cli(
+        "run-matrix",
+        "--matrix",
+        str(MATRIX),
+        "--condition-pair",
+        "incumbent-minus",
+        "incumbent-plus",
+        "--qualification",
+        str(qualification_path),
+        "--raw-root",
+        str(raw_root),
+    )
+    _run_cli("grade", "--analysis", str(ANALYSIS), "--raw-root", str(raw_root))
+    analysis = _load(ANALYSIS)
+    analysis["component"] = "../escaped-component"
+    analysis_path = tmp_path / "path-traversal.analysis.json"
+    _write(analysis_path, analysis)
+
+    result = _run_cli_result("report", "--analysis", str(analysis_path), "--raw-root", str(raw_root), "--output", str(output))
+
+    assert result.returncode == 2
+    error = json.loads(result.stderr)
+    assert error["error"] == "skill_ablation.invalid_component"
+    assert not escaped.exists()
+
+
+def test_skill_ablation_grade_rejects_raw_runs_from_a_different_matrix_digest(tmp_path: Path) -> None:
+    qualification_path = tmp_path / "qualification.json"
+    _qualification(qualification_path)
+    matrix = _load(MATRIX)
+    matrix["matrixId"] = "proof-obligation-contract-tampered-matrix"
+    matrix_path = tmp_path / "different-matrix.json"
+    _write(matrix_path, matrix)
+    raw_root = tmp_path / "evidence" / "raw" / "formative" / "proof-obligation-contract" / "matched-after"
+
+    _run_cli(
+        "run-matrix",
+        "--matrix",
+        str(matrix_path),
+        "--condition-pair",
+        "incumbent-minus",
+        "incumbent-plus",
+        "--qualification",
+        str(qualification_path),
+        "--raw-root",
+        str(raw_root),
+    )
+    result = _run_cli_result("grade", "--analysis", str(ANALYSIS), "--raw-root", str(raw_root))
+
+    assert result.returncode == 2
+    error = json.loads(result.stderr)
+    assert error["error"] == "skill_ablation.matrix_digest_mismatch"

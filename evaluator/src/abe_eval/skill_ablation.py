@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping
@@ -20,6 +21,7 @@ INCUMBENT_BEFORE = "incumbent-before"
 INCUMBENT_MINUS = "incumbent-minus"
 INCUMBENT_PLUS = "incumbent-plus"
 MATCHED_PAIR = (INCUMBENT_MINUS, INCUMBENT_PLUS)
+_COMPONENT_RE = re.compile(r"^[a-z][a-z0-9-]*[a-z0-9]$")
 
 
 def _fail(reason_code: str, path: str = "$") -> None:
@@ -52,6 +54,13 @@ def _assert_string(value: object, path: str) -> str:
     if not isinstance(value, str) or not value:
         _fail("skill_ablation.invalid_field", path)
     return value
+
+
+def _assert_component(value: object, path: str) -> str:
+    component = _assert_string(value, path)
+    if _COMPONENT_RE.fullmatch(component) is None:
+        _fail("skill_ablation.invalid_component", path)
+    return component
 
 
 def _assert_mapping(value: object, path: str) -> dict[str, Any]:
@@ -91,7 +100,7 @@ def load_skill_ablation_matrix(path: Path | str | Mapping[str, object]) -> dict[
     if value.get("partition") != "formative":
         _fail("skill_ablation.invalid_partition", "$.partition")
     _assert_string(value.get("matrixId"), "$.matrixId")
-    _assert_string(value.get("component"), "$.component")
+    _assert_component(value.get("component"), "$.component")
     _assert_string(value.get("skillPath"), "$.skillPath")
     if tuple(_assert_list(value.get("conditionPair"), "$.conditionPair")) != MATCHED_PAIR:
         _fail("skill_ablation.condition_pair_mismatch", "$.conditionPair")
@@ -135,7 +144,7 @@ def _analysis_header(path: Path | str) -> dict[str, object]:
     if analysis.get("analysisType") != ANALYSIS_TYPE:
         _fail("skill_ablation.invalid_analysis_type", "$.analysisType")
     _assert_string(analysis.get("analysisId"), "$.analysisId")
-    _assert_string(analysis.get("component"), "$.component")
+    _assert_component(analysis.get("component"), "$.component")
     return analysis
 
 
@@ -325,12 +334,36 @@ def _metrics_from_runs(runs: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+def _assert_string_list(value: object, path: str) -> list[str]:
+    items = _assert_list(value, path)
+    result: list[str] = []
+    for index, item in enumerate(items):
+        result.append(_assert_string(item, path + "[" + str(index) + "]"))
+    return result
+
+
 def _build_report(analysis: Mapping[str, object], raw_root: Path) -> dict[str, object]:
     runs = _read_runs(raw_root)
     index = _read_index(raw_root)
     run_digests = sorted(str(run["runDigest"]) for run in runs)
     if index.get("runDigests") != run_digests:
         _fail("skill_ablation.run_index_mismatch", "$.runIndex.runDigests")
+    if index.get("matrixDigest") != analysis.get("matrixDigest"):
+        _fail("skill_ablation.matrix_digest_mismatch", "$.matrixDigest")
+    conditions = tuple(_assert_string_list(index.get("conditions"), "$.runIndex.conditions"))
+    if _phase_from_conditions(conditions) != index.get("phase"):
+        _fail("skill_ablation.run_index_mismatch", "$.runIndex.phase")
+    run_conditions = {str(run.get("conditionId")) for run in runs}
+    if run_conditions != set(conditions):
+        _fail("skill_ablation.run_index_mismatch", "$.runIndex.conditions")
+    run_qualification_digests = {str(run.get("qualificationDigest")) for run in runs}
+    if run_qualification_digests != {str(index.get("qualificationDigest"))}:
+        _fail("skill_ablation.qualification_digest_mismatch", "$.qualificationDigest")
+    run_matrix_digests = {str(run.get("matrixDigest")) for run in runs}
+    if run_matrix_digests != {str(index.get("matrixDigest"))}:
+        _fail("skill_ablation.matrix_digest_mismatch", "$.runs.matrixDigest")
+    if {str(run.get("component")) for run in runs} != {str(analysis["component"])}:
+        _fail("skill_ablation.component_mismatch", "$.component")
     metrics = _metrics_from_runs(runs)
     return {
         "schemaVersion": 1,
@@ -392,7 +425,7 @@ def report_skill_ablation(analysis_path: Path | str, raw_root: Path | str, outpu
     if report["phase"] == "matched-after" and report["metrics"] != analysis["metrics"]:
         _fail("skill_ablation.analysis_mismatch", "$.metrics")
     output_path = Path(output)
-    report_path = output_path / (_assert_string(analysis["component"], "$.component") + "-report.json")
+    report_path = output_path / (_assert_component(analysis["component"], "$.component") + "-report.json")
     report_digest = _write_json(report_path, report, overwrite=True)
     return {
         "schemaVersion": 1,
