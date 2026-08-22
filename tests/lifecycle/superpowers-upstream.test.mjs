@@ -245,7 +245,8 @@ test("behavior lock pins Superpowers as an upstream research dependency and prov
 
 test("plugin tree does not copy upstream Superpowers skill bodies or context bodies", async () => {
   const files = await collectPluginFiles(pluginRoot);
-  assert.equal(files.some((file) => file.startsWith("skills/")), false);
+  assert.equal(files.includes("skills/evidence-first-framing/SKILL.md"), true);
+  assert.equal(files.some((file) => file.includes("using-superpowers")), false);
   assert.equal(files.some((file) => file === "GEMINI.md" || file === "gemini-extension.json"), false);
   assert.equal(files.some((file) => file.includes("session-start")), false);
 
