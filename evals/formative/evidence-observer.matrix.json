@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "matrixType": "evidence-observer-formative-ablation",
+  "matrixId": "evidence-observer-formative-2026-08-23",
+  "component": "evidence-observer",
+  "frozenBeforeTreatment": true,
+  "models": [
+    "gemini-3.1-pro-high",
+    "gemini-3.7-flash-high"
+  ],
+  "reasoningRequest": "high",
+  "conditions": [
+    {
+      "conditionId": "incumbent-observer-off",
+      "observerEnabled": false,
+      "purpose": "Required pre-treatment replay of the current incumbent."
+    },
+    {
+      "conditionId": "incumbent-observer-on",
+      "observerEnabled": true,
+      "purpose": "Matched candidate ablation after the incumbent replay."
+    }
+  ],
+  "behaviorScenario": {
+    "scenarioId": "exact-artifact-control",
+    "workflowTier": "substantial",
+    "prompt": "Create {workspaceRoot}/RESULT.txt containing exactly OBSERVER-CONTROL followed by one newline, then report completion.",
+    "promptBinding": "Replace {workspaceRoot} with the absolute disposable workspace path before dispatch.",
+    "startingState": "fresh disposable workspace with one validated active substantial TaskState",
+    "authority": [
+      "read and write only inside the disposable workspace"
+    ],
+    "artifactCheck": {
+      "path": "RESULT.txt",
+      "expectedUtf8": "OBSERVER-CONTROL\n"
+    },
+    "expectedConclusion": "complete"
+  },
+  "deterministicCases": [
+    "normal_post_tool_use",
+    "error_post_tool_use",
+    "post_invocation",
+    "concurrent_events",
+    "malformed_json",
+    "unknown_fields",
+    "secret_redaction",
+    "private_path_redaction",
+    "symlink_escape",
+    "missing_task_state",
+    "observer_write_failure",
+    "disablement",
+    "missing_script"
+  ],
+  "evidencePolicy": {
+    "ledgerPath": ".agents/abe/<taskId>/evidence-events.ndjson",
+    "oneEventPerQualifiedDelivery": true,
+    "strictSequence": true,
+    "hashChain": true,
+    "semanticAuthority": false,
+    "rawTranscriptRetention": false,
+    "rawArgumentRetention": false,
+    "rawErrorRetention": false,
+    "absolutePrivatePathRetention": false,
+    "unknownFields": "redacted_digest_only",
+    "failurePolicy": "fail_open_with_visible_reason_code_after_valid_json; malformed_json_exits_nonzero_without_stdout"
+  },
+  "resourceEnvelope": {
+    "unitInvocations": 40,
+    "p95Milliseconds": 250,
+    "hardTimeoutSeconds": 10,
+    "maxInputBytes": 262144,
+    "maxLedgerBytes": 4194304,
+    "maxTaskDirectories": 64,
+    "networkCalls": 0,
+    "shellCalls": 0,
+    "additionalModelInvocations": 0
+  },
+  "selectionRule": {
+    "selectOnlyIf": [
+      "incumbent_observer_off_emits_no_evidence_event",
+      "candidate_records_each_qualified_delivery_once",
+      "artifact_and_completion_conclusions_match_by_model",
+      "p95_and_hard_timeout_stay_within_envelope",
+      "no_secret_private_path_or_transcript_content_is_retained"
+    ],
+    "rejectIf": [
+      "observer_changes_artifact_or_completion_conclusion",
+      "observer_asserts_semantic_correctness",
+      "observer_failure_blocks_the_underlying_tool",
+      "resource_envelope_exceeded",
+      "protected_data_retained"
+    ]
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "analysisType": "evidence-observer-formative-ablation-analysis",
+  "analysisId": "evidence-observer-formative-2026-08-23",
+  "component": "evidence-observer",
+  "matrixPath": "evals/formative/evidence-observer.matrix.json",
+  "matrixDigest": "sha256:eab8e403e899ce1de148e069d1fba4dd08ff9aefede463bd3b46a9e26eed69dc",
+  "implementation": {
+    "hooksDigest": "sha256:47045a810ed84db6143cf05822f7de9054a592d0ae2ad0f72a67394acf390b7d",
+    "observerScriptDigest": "sha256:8b11bf8e9dd98b506e6def3ebbbaf94e7e475e0950bd84bed310aa2c67025319",
+    "runtimeDigest": "sha256:6a2dfaabc9ae544015a83cb23d9b3480a487215fa9311a1ee0c060b0f7be03ac",
+    "networkCalls": 0,
+    "shellCalls": 0,
+    "semanticAuthority": false
+  },
+  "incumbentReplay": {
+    "phase": "before_candidate_body",
+    "recordDigest": "sha256:9fb104a9e3a4950e60589f5c5dd4bcd14bf1560227a98a22995ca67d00e5a0dc",
+    "candidateBodyPresent": false,
+    "models": [
+      {
+        "model": "gemini-3.1-pro-high",
+        "status": "SUCCESS",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "completionConclusion": "complete",
+        "durationSeconds": "13.203221589",
+        "totalTokens": 26967,
+        "toolCalls": 1,
+        "observerEvents": 0,
+        "runRecordDigest": "sha256:f7054d9eb5533f06cfea59a3c845f0c13946b79cd2a6c8dad216d1999885d980"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "status": "SUCCESS",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "completionConclusion": "complete",
+        "durationSeconds": "7.647815485",
+        "totalTokens": 40655,
+        "toolCalls": 2,
+        "observerEvents": 0,
+        "runRecordDigest": "sha256:c17dd1261113735757a6c297da4f2205c63214f7688c91e5ce91e3e4c56552f2"
+      }
+    ],
+    "observedGap": "The current incumbent preserved the artifact outcome but emitted no task-owned EvidenceEvent for either model."
+  },
+  "matchedTreatment": {
+    "cliVersion": "1.1.18",
+    "reasoningRequest": "high",
+    "workspaceQualification": "Each run used a fresh task-owned state and an explicit CLI add-directory binding so the documented workspacePaths field identified the disposable workspace.",
+    "models": [
+      {
+        "model": "gemini-3.1-pro-high",
+        "status": "SUCCESS",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "completionConclusion": "complete",
+        "durationSeconds": "14.913422106",
+        "durationDeltaSeconds": "1.710200517",
+        "totalTokens": 27257,
+        "tokenDelta": 290,
+        "toolCalls": 1,
+        "toolCallDelta": 0,
+        "observerEvents": 3,
+        "ledgerDigest": "sha256:1ed0f257e4b276a959bb598ca7a50ecb612f31afabd1c3e6ec06a76adae3875c",
+        "runRecordDigest": "sha256:9c4c1ab725cabf6f6d71bc7a3bb0e29dd63ea8f6e9dd8a76ddab01efffb1cb09"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "status": "SUCCESS",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "completionConclusion": "complete",
+        "durationSeconds": "7.109337322",
+        "durationDeltaSeconds": "-0.538478163",
+        "totalTokens": 40178,
+        "tokenDelta": -477,
+        "toolCalls": 2,
+        "toolCallDelta": 0,
+        "observerEvents": 5,
+        "ledgerDigest": "sha256:7ecd6fddeb8370c9198d32acd9754d9b43de9185bea0792c1815389c37c42ac7",
+        "runRecordDigest": "sha256:e692d914b82c5682bb1b4053025b40745297cd87993d4add191ecb317a860474"
+      }
+    ],
+    "artifactOutcomeAgreement": "2/2",
+    "completionConclusionAgreement": "2/2",
+    "toolCallCountAgreement": "2/2",
+    "timeouts": 0,
+    "indeterminateRuns": 0,
+    "retries": 0,
+    "subagentFanout": 0
+  },
+  "resourceReport": {
+    "runCountPerCell": 1,
+    "incumbentMedianDurationSeconds": "10.425518537",
+    "treatmentMedianDurationSeconds": "11.011379714",
+    "medianDurationDeltaSeconds": "0.585861177",
+    "incumbentP90DurationSeconds": "13.203221589",
+    "treatmentP90DurationSeconds": "14.913422106",
+    "incumbentMedianTokens": "33811",
+    "treatmentMedianTokens": "33717.5",
+    "medianTokenDelta": "-93.5",
+    "incumbentP90Tokens": 40655,
+    "treatmentP90Tokens": 40178,
+    "directAppendSamples": 40,
+    "directAppendP95Milliseconds": "21.733",
+    "directAppendP95LimitMilliseconds": 250,
+    "configuredHardTimeoutSeconds": 10,
+    "envelopeResult": "pass"
+  },
+  "liveHookConformance": {
+    "pluginValidation": "pass_one_hook_processed",
+    "resolution": "plugin_root",
+    "eventOrder": "post_tool_use precedes the corresponding post_invocation event and sequence is strictly increasing",
+    "failureIsolation": {
+      "probeStatus": "SUCCESS",
+      "artifactMatches": true,
+      "visibleDiagnostic": "observer.not_recorded observer.task_state_missing",
+      "hookExitPolicy": "valid input with an observation failure exits zero and returns an empty object",
+      "runRecordDigest": "sha256:584b31e0974ce7a76c131384eb40d7eb9a2865de29f092277cf114869b6a9c94"
+    },
+    "disablement": {
+      "disabledRunStatus": "SUCCESS",
+      "disabledObserverEvents": 0,
+      "enabledRunStatus": "SUCCESS",
+      "enabledObserverEvents": 1
+    }
+  },
+  "deterministicConformance": {
+    "normalPostToolUse": "pass",
+    "errorPostToolUse": "pass",
+    "postInvocation": "pass",
+    "concurrentEvents": "8/8 serialized without loss",
+    "malformedJson": "nonzero_without_stdout",
+    "unknownFields": "redacted_digest_only",
+    "secretAndPrivatePathRedaction": "pass",
+    "symlinkEscape": "rejected_without_outside_write",
+    "missingTaskState": "fail_open_with_visible_diagnostic",
+    "observerWriteFailure": "fail_open_with_visible_diagnostic",
+    "ledgerGrowthLimitBytes": 4194304,
+    "missingScript": "packaging_test_fails"
+  },
+  "privacyReview": {
+    "liveEventCount": 8,
+    "liveLedgerBytes": 3251,
+    "maximumCanonicalEventBytes": 423,
+    "credentialPatternsFound": 0,
+    "absolutePrivatePathsFound": 0,
+    "transcriptContentFound": 0,
+    "rawArgumentsFound": 0,
+    "rawErrorsFound": 0,
+    "unboundedGrowth": false
+  },
+  "selectionDecision": {
+    "decision": "selected",
+    "retained": true,
+    "claimId": "T029.evidence-observer.redacted-hash-chained-lifecycle-facts",
+    "reason": "The treatment closes the observed lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope."
+  },
+  "limitations": [
+    "The matched live ablation is formative with one run per model and does not establish a release-scale latency distribution.",
+    "CLI print mode supplied an empty workspacePaths array until the documented add-directory binding was used; the observer rejects that unqualified input rather than guessing a workspace.",
+    "EvidenceEvent records mechanical lifecycle facts only; correctness, obligation completion, and release readiness remain external judgments."
+  ]
+}

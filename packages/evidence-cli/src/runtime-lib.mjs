@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHash, randomUUID } from "node:crypto";
+import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -10,6 +11,17 @@ const RFC3339_PATTERN = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d
 const INIT_TIME = "1970-01-01T00:00:00Z";
 const INITIAL_FROZEN_BOUND = 1;
 const UNSUPPORTED_DIRECTORY_SYNC_CODES = new Set(["EISDIR", "EINVAL", "ENOSYS", "ENOTSUP", "EPERM"]);
+const OBSERVER_VERSION = "1";
+const OBSERVER_LIMITS = Object.freeze({
+  maxInputBytes: 256 * 1024,
+  maxLedgerBytes: 4 * 1024 * 1024,
+  maxStateBytes: 1024 * 1024,
+  maxTaskDirectories: 64,
+  maxWorkspacePaths: 16,
+  maxSourceDepth: 32,
+  maxSourceNodes: 4096,
+  lockWaitMilliseconds: 9000,
+});
 
 export const ReasonCodes = Object.freeze({
   NOT_OBJECT: "contract.not_object",
@@ -529,6 +541,39 @@ export const parseCompletionGateEvent = (value, context = {}) => {
   return value;
 };
 
+export const parseEvidenceEvent = (value, context = {}) => {
+  value = cloneJson(value);
+  versioned(
+    value,
+    ["eventId", "taskId", "sequence", "eventKind", "toolName", "resultClass", "redactedPayloadDigest", "previousEventDigest", "occurredAt"],
+    "$",
+  );
+  string(value.eventId, "$.eventId");
+  string(value.taskId, "$.taskId");
+  integer(value.sequence, "$.sequence");
+  oneOf(value.eventKind, ["post_tool_use", "post_invocation"], "$.eventKind");
+  if (value.eventKind === "post_tool_use" && value.toolName === "not_applicable") {
+    fail(ReasonCodes.INVALID_FIELD, "$.toolName");
+  }
+  if (value.eventKind === "post_invocation" && value.toolName !== "not_applicable") {
+    fail(ReasonCodes.INVALID_FIELD, "$.toolName");
+  }
+  if (value.toolName !== "not_applicable") {
+    string(value.toolName, "$.toolName");
+  }
+  oneOf(value.resultClass, ["success", "error", "indeterminate"], "$.resultClass");
+  digest(value.redactedPayloadDigest, "$.redactedPayloadDigest");
+  if (value.previousEventDigest !== "genesis") {
+    digest(value.previousEventDigest, "$.previousEventDigest");
+  }
+  timestamp(value.occurredAt, "$.occurredAt");
+  context = validateContext(context, ["taskId"], "$context");
+  if (context.taskId !== undefined && value.taskId !== context.taskId) {
+    fail(ReasonCodes.FOREIGN_IDENTITY, "$context.taskId");
+  }
+  return value;
+};
+
 const validateTaskId = (taskId) => {
   if (
     typeof taskId !== "string"
@@ -803,6 +848,390 @@ const readJsonFile = async (file, reasonCode) => {
   } catch {
     fail(reasonCode, "$.json");
   }
+};
+
+const observerFail = (reasonCode, fieldPath = "$") => fail(reasonCode, fieldPath);
+
+const validateObserverSourceTree = (root) => {
+  const stack = [{ value: root, depth: 0 }];
+  let nodes = 0;
+  while (stack.length > 0) {
+    const { value, depth } = stack.pop();
+    nodes += 1;
+    if (nodes > OBSERVER_LIMITS.maxSourceNodes || depth > OBSERVER_LIMITS.maxSourceDepth) {
+      observerFail("observer.input_limit");
+    }
+    if (value === null || typeof value === "boolean") {
+      continue;
+    }
+    if (typeof value === "string") {
+      string(value, "$.input", { nonempty: false });
+      continue;
+    }
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) {
+        observerFail("observer.invalid_input");
+      }
+      continue;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        stack.push({ value: item, depth: depth + 1 });
+      }
+      continue;
+    }
+    if (isPlainObject(value)) {
+      for (const [key, item] of Object.entries(value)) {
+        string(key, "$.input.key");
+        stack.push({ value: item, depth: depth + 1 });
+      }
+      continue;
+    }
+    observerFail("observer.invalid_input");
+  }
+};
+
+const observerString = (value, fieldPath) => {
+  string(value, fieldPath);
+  if (value.length > 65536) {
+    observerFail("observer.input_limit", fieldPath);
+  }
+};
+
+const observerInteger = (value, fieldPath) => integer(value, fieldPath);
+
+export const parseEvidenceObserverInput = (input) => {
+  if (!isPlainObject(input)) {
+    observerFail("observer.invalid_input");
+  }
+  validateObserverSourceTree(input);
+  for (const field of ["conversationId", "workspacePaths", "transcriptPath", "artifactDirectoryPath", "modelName"]) {
+    if (!Object.hasOwn(input, field)) {
+      observerFail("observer.invalid_input", "$." + field);
+    }
+  }
+  observerString(input.conversationId, "$.conversationId");
+  observerString(input.transcriptPath, "$.transcriptPath");
+  observerString(input.artifactDirectoryPath, "$.artifactDirectoryPath");
+  observerString(input.modelName, "$.modelName");
+  array(input.workspacePaths, "$.workspacePaths", { nonempty: true });
+  if (input.workspacePaths.length > OBSERVER_LIMITS.maxWorkspacePaths) {
+    observerFail("observer.input_limit", "$.workspacePaths");
+  }
+  for (const [index, workspacePath] of input.workspacePaths.entries()) {
+    observerString(workspacePath, "$.workspacePaths[" + index + "]");
+    if (!path.isAbsolute(workspacePath)) {
+      observerFail("observer.invalid_input", "$.workspacePaths[" + index + "]");
+    }
+  }
+
+  const hasToolFields = Object.hasOwn(input, "toolCall") || Object.hasOwn(input, "stepIdx") || Object.hasOwn(input, "error");
+  const hasInvocationFields = Object.hasOwn(input, "invocationNum") || Object.hasOwn(input, "initialNumSteps");
+  if (hasToolFields === hasInvocationFields) {
+    observerFail("observer.invalid_input");
+  }
+  if (hasToolFields) {
+    if (!isPlainObject(input.toolCall) || !Object.hasOwn(input.toolCall, "name") || !Object.hasOwn(input.toolCall, "args")) {
+      observerFail("observer.invalid_input", "$.toolCall");
+    }
+    observerString(input.toolCall.name, "$.toolCall.name");
+    if (!isPlainObject(input.toolCall.args)) {
+      observerFail("observer.invalid_input", "$.toolCall.args");
+    }
+    observerInteger(input.stepIdx, "$.stepIdx");
+    if (Object.hasOwn(input, "error") && input.error !== null) {
+      string(input.error, "$.error", { nonempty: false });
+    }
+    return { eventKind: "post_tool_use", input };
+  }
+  observerInteger(input.invocationNum, "$.invocationNum");
+  observerInteger(input.initialNumSteps, "$.initialNumSteps");
+  return { eventKind: "post_invocation", input };
+};
+
+const SENSITIVE_KEY_PATTERN = /(?:authorization|cookie|credential|password|passwd|secret|token|api[_-]?key|private[_-]?key)/iu;
+const SENSITIVE_VALUE_PATTERN = /(?:bearer\s+|token[-_: =]|api[_-]?key|private[_-]?key|-----BEGIN [A-Z ]+PRIVATE KEY-----)/iu;
+const PATH_BEARING_TEXT_PATTERN = /(?:^|[\s"'=])(?:\/(?:home|Users|private|tmp|var|workspace)\/|[A-Za-z]:[\\/])/u;
+const SAFE_TOOL_NAME_PATTERN = /^[A-Za-z0-9_.:-]{1,128}$/u;
+
+const redactObserverValue = (value, key = "") => {
+  if (typeof value === "string") {
+    if (SENSITIVE_KEY_PATTERN.test(key) || SENSITIVE_VALUE_PATTERN.test(value)) {
+      return "<redacted-secret>";
+    }
+    if (path.isAbsolute(value) || value.startsWith("~/") || PATH_BEARING_TEXT_PATTERN.test(value)) {
+      return "<redacted-private-path>";
+    }
+    return value.length > 256 ? "<redacted-content>" : value;
+  }
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) ? value : "<redacted-number>";
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactObserverValue(item));
+  }
+  if (isPlainObject(value)) {
+    return Object.fromEntries(Object.entries(value).map(([childKey, item]) => [
+      childKey,
+      redactObserverValue(item, childKey),
+    ]));
+  }
+  return value;
+};
+
+const digestRedacted = (value) => sha256Digest(canonicalBytes(redactObserverValue(value)));
+
+const normalizedToolName = (value) => SAFE_TOOL_NAME_PATTERN.test(value) && !SENSITIVE_VALUE_PATTERN.test(value)
+  ? value
+  : "unrecognized_tool";
+
+const classifyLocator = (locator, workspaceRoots) => {
+  if (!path.isAbsolute(locator)) {
+    return "private_locator";
+  }
+  const resolved = path.resolve(locator);
+  return workspaceRoots.some((root) => resolved === root || resolved.startsWith(root + path.sep))
+    ? "workspace_locator"
+    : "private_locator";
+};
+
+const observerPayload = ({ eventKind, input }, workspaceRoots) => {
+  const commonFields = new Set(["conversationId", "workspacePaths", "transcriptPath", "artifactDirectoryPath", "modelName"]);
+  const eventFields = eventKind === "post_tool_use"
+    ? new Set(["toolCall", "stepIdx", "error"])
+    : new Set(["invocationNum", "initialNumSteps"]);
+  const unknown = Object.fromEntries(Object.entries(input).filter(([key]) => !commonFields.has(key) && !eventFields.has(key)));
+  const common = {
+    observerVersion: OBSERVER_VERSION,
+    conversationDigest: digestRedacted(input.conversationId),
+    workspaceCount: workspaceRoots.length,
+    workspaceLocatorClasses: workspaceRoots.map(() => "workspace_root"),
+    transcriptLocatorClass: classifyLocator(input.transcriptPath, workspaceRoots),
+    artifactLocatorClass: classifyLocator(input.artifactDirectoryPath, workspaceRoots),
+    modelDigest: digestRedacted(input.modelName),
+    unknownFieldDigest: digestRedacted(unknown),
+  };
+  if (eventKind === "post_tool_use") {
+    const errorPresent = typeof input.error === "string" && input.error.length > 0;
+    return {
+      ...common,
+      stepIdx: input.stepIdx,
+      argumentDigest: digestRedacted(input.toolCall.args),
+      errorPresent,
+      errorDigest: errorPresent ? digestRedacted(input.error) : "none",
+    };
+  }
+  return {
+    ...common,
+    invocationNum: input.invocationNum,
+    initialNumSteps: input.initialNumSteps,
+  };
+};
+
+const discoverObserverTask = async (workspacePaths) => {
+  const roots = [];
+  for (const workspacePath of workspacePaths) {
+    let canonicalRoot;
+    try {
+      canonicalRoot = await fs.realpath(workspacePath);
+      if (!(await fs.stat(canonicalRoot)).isDirectory()) {
+        observerFail("observer.workspace_invalid");
+      }
+    } catch (error) {
+      if (error instanceof EvidenceCliError) {
+        throw error;
+      }
+      observerFail("observer.workspace_invalid");
+    }
+    if (!roots.includes(canonicalRoot)) {
+      roots.push(canonicalRoot);
+    }
+  }
+
+  const candidates = [];
+  for (const root of roots) {
+    const abeRoot = path.join(root, ".agents", "abe");
+    let status;
+    try {
+      status = await fs.lstat(abeRoot);
+    } catch (error) {
+      if (error?.code === "ENOENT") {
+        continue;
+      }
+      throw error;
+    }
+    if (status.isSymbolicLink() || !status.isDirectory()) {
+      observerFail("state.path_escape", "$.stateRoot");
+    }
+    const entries = await fs.readdir(abeRoot, { withFileTypes: true });
+    if (entries.length > OBSERVER_LIMITS.maxTaskDirectories) {
+      observerFail("observer.task_limit");
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith(".")) {
+        continue;
+      }
+      validateTaskId(entry.name);
+      const relativeState = ".agents/abe/" + entry.name + "/state.json";
+      const stateFile = await resolveWorkspaceFile(root, relativeState, "$.stateFile");
+      let stateStatus;
+      try {
+        stateStatus = await fs.stat(stateFile);
+      } catch (error) {
+        if (error?.code === "ENOENT") {
+          observerFail("observer.task_state_invalid");
+        }
+        throw error;
+      }
+      if (!stateStatus.isFile() || stateStatus.size > OBSERVER_LIMITS.maxStateBytes) {
+        observerFail("observer.task_state_invalid");
+      }
+      const state = await readJsonFile(stateFile, "observer.task_state_invalid");
+      parseTaskState(state, { taskId: entry.name });
+      if (state.workflowTier === "substantial" && state.terminalState.activeWork === true) {
+        candidates.push({ root, taskId: entry.name, taskDirectory: path.dirname(stateFile) });
+      }
+    }
+  }
+  if (candidates.length === 0) {
+    observerFail("observer.task_state_missing");
+  }
+  if (candidates.length !== 1) {
+    observerFail("observer.task_state_ambiguous");
+  }
+  return { ...candidates[0], workspaceRoots: roots };
+};
+
+const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const withObserverLock = async (taskDirectory, fn) => {
+  const lockFile = path.join(taskDirectory, ".evidence-observer.lock");
+  const deadline = Date.now() + OBSERVER_LIMITS.lockWaitMilliseconds;
+  let handle;
+  while (!handle) {
+    try {
+      handle = await fs.open(
+        lockFile,
+        fsConstants.O_CREAT | fsConstants.O_EXCL | fsConstants.O_WRONLY | fsConstants.O_NOFOLLOW,
+        0o600,
+      );
+    } catch (error) {
+      if (error?.code !== "EEXIST") {
+        throw error;
+      }
+      if (Date.now() >= deadline) {
+        observerFail("observer.lock_timeout");
+      }
+      await delay(2);
+    }
+  }
+  try {
+    return await fn();
+  } finally {
+    await handle.close();
+    await fs.rm(lockFile, { force: true }).catch(() => {});
+  }
+};
+
+const readObserverLedger = async (ledgerFile, taskId) => {
+  let status;
+  try {
+    status = await fs.lstat(ledgerFile);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      return { bytes: Buffer.alloc(0), events: [] };
+    }
+    throw error;
+  }
+  if (status.isSymbolicLink() || !status.isFile()) {
+    observerFail("state.path_escape", "$.ledgerFile");
+  }
+  if (status.size > OBSERVER_LIMITS.maxLedgerBytes) {
+    observerFail("observer.ledger_limit");
+  }
+  const bytes = await fs.readFile(ledgerFile);
+  if (bytes.length === 0) {
+    return { bytes, events: [] };
+  }
+  if (bytes.at(-1) !== 0x0a) {
+    observerFail("observer.invalid_ledger");
+  }
+  let events;
+  try {
+    events = bytes.toString("utf8").trimEnd().split("\n").map(JSON.parse);
+  } catch {
+    observerFail("observer.invalid_ledger");
+  }
+  for (const [index, event] of events.entries()) {
+    try {
+      parseEvidenceEvent(event, { taskId });
+    } catch {
+      observerFail("observer.invalid_ledger");
+    }
+    const expectedPrevious = index === 0 ? "genesis" : sha256Digest(canonicalBytes(events[index - 1]));
+    if (event.sequence !== index || event.previousEventDigest !== expectedPrevious) {
+      observerFail("observer.invalid_ledger");
+    }
+  }
+  return { bytes, events };
+};
+
+const appendObserverEvent = async (taskDirectory, event, ledgerBytes) => {
+  const ledgerFile = path.join(taskDirectory, "evidence-events.ndjson");
+  const line = Buffer.from(canonicalLine(event), "utf8");
+  if (ledgerBytes.length + line.length > OBSERVER_LIMITS.maxLedgerBytes) {
+    observerFail("observer.ledger_limit");
+  }
+  await writeAtomicBytes(ledgerFile, Buffer.concat([ledgerBytes, line]));
+};
+
+export const EVIDENCE_OBSERVER_LIMITS = OBSERVER_LIMITS;
+
+export const appendEvidenceObservation = async ({ input, occurredAt = new Date().toISOString() } = {}) => {
+  const parsed = parseEvidenceObserverInput(input);
+  timestamp(occurredAt, "$.occurredAt");
+  const task = await discoverObserverTask(parsed.input.workspacePaths);
+  return withObserverLock(task.taskDirectory, async () => {
+    const relativeState = ".agents/abe/" + task.taskId + "/state.json";
+    const stateFile = await resolveWorkspaceFile(task.root, relativeState, "$.stateFile");
+    const state = await readJsonFile(stateFile, "observer.task_state_invalid");
+    parseTaskState(state, { taskId: task.taskId });
+    if (state.workflowTier !== "substantial" || state.terminalState.activeWork !== true) {
+      observerFail("observer.task_state_stale");
+    }
+    const ledgerFile = path.join(task.taskDirectory, "evidence-events.ndjson");
+    const { bytes: ledgerBytes, events } = await readObserverLedger(ledgerFile, task.taskId);
+    const previousEventDigest = events.length === 0
+      ? "genesis"
+      : sha256Digest(canonicalBytes(events.at(-1)));
+    const payload = observerPayload(parsed, task.workspaceRoots);
+    const sequence = events.length;
+    const redactedPayloadDigest = sha256Digest(canonicalBytes(payload));
+    const eventIdentity = sha256Digest(canonicalBytes({
+      taskId: task.taskId,
+      sequence,
+      eventKind: parsed.eventKind,
+      redactedPayloadDigest,
+      previousEventDigest,
+    })).slice("sha256:".length, "sha256:".length + 32);
+    const event = {
+      schemaVersion: 1,
+      eventId: "observer:" + eventIdentity,
+      taskId: task.taskId,
+      sequence,
+      eventKind: parsed.eventKind,
+      toolName: parsed.eventKind === "post_tool_use" ? normalizedToolName(parsed.input.toolCall.name) : "not_applicable",
+      resultClass: parsed.eventKind === "post_tool_use" && typeof parsed.input.error === "string" && parsed.input.error.length > 0
+        ? "error"
+        : "success",
+      redactedPayloadDigest,
+      previousEventDigest,
+      occurredAt,
+    };
+    parseEvidenceEvent(event, { taskId: task.taskId });
+    await appendObserverEvent(task.taskDirectory, event, ledgerBytes);
+    return event;
+  });
 };
 
 const contextFromStatePath = (relativeStateFile, explicit = {}) => {

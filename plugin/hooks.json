@@ -1,0 +1,24 @@
+{
+  "evidence-observer": {
+    "enabled": true,
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/evidence-observer.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostInvocation": [
+      {
+        "type": "command",
+        "command": "node scripts/evidence-observer.mjs",
+        "timeout": 10
+      }
+    ]
+  }
+}
