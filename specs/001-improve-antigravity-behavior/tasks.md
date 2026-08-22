@@ -1313,6 +1313,16 @@ SC-013; Plan Phase 5C
 - Create: `evals/formative/audited-iteration.analysis.json`
 - Test: `tests/plugin/audited-iteration.test.mjs`
 - Modify: `plugin/behavior-lock.json`
+- Modify (project-owner-authorized repair): `evaluator/src/abe_eval/skill_ablation.py`
+- Modify (project-owner-authorized repair): `plugin/skills/evidence-first-framing/SKILL.md`
+- Modify (scope-amendment record only): `specs/001-improve-antigravity-behavior/tasks.md`
+- Modify (regenerated task-spec checksum only): `handoff/artifact-manifest.sha256`
+
+**Scope amendment approval**: On 2026-08-22 the project owner authorized T026
+to make the evaluator fail closed on recorded replay bindings, remove the
+rejected `audited-iteration` ownership reference from the framing skill, and
+update the existing focused test and behavior lock accordingly. This amendment
+authorizes no other product, metric, threshold, or release change.
 
 **Skill boundary**:
 
