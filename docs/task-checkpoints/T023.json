@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T023",
+  "taskTitle": "Earn the evidence-first-framing skill",
+  "taskEntryDigest": "sha256:f3f575181d00013785f0c4d9d98c19813215203afd6180ddc35a8caea677ba13",
+  "baseCommit": "3cb8f4e9720f75c3c0018fe4fd4b0e2543535ccc",
+  "implementationCommit": "cf76114f43c01c1ed0575a56958e710de6d399c2",
+  "treeDigest": "sha256:c387484cc46872e5dfdd5f1f9f503dd0890c68072ea2e9baf4127a9fd09af349",
+  "outcome": "implemented",
+  "files": {
+    "evals/formative/evidence-first-framing.analysis.json": "sha256:00db773d2e00a5de421be7acf7a48c753d803b8bf18fa7cb7e707e051c8a4772",
+    "evals/formative/evidence-first-framing.matrix.json": "sha256:1b28f484a2021936c0dad0e1543b3ad858acbd400270b37abbf7963c35d58344",
+    "plugin/behavior-lock.json": "sha256:93cf0c0c6ce0095fbe940c58b974dd62d02d09fa5e460726dad7b1db52205317",
+    "plugin/skills/evidence-first-framing/SKILL.md": "sha256:bab5451879ea026621dd8227cf302887b0be0b8583736ccb28c73e7c484a8441",
+    "tests/lifecycle/inert-plugin.test.mjs": "sha256:a57b5c9386ecd821effce1615ae46a1588e9628f1109d53ded39616e3f886b14",
+    "tests/lifecycle/superpowers-upstream.test.mjs": "sha256:26c6764a8678550f99abf86e8df0ac1bb28f226ad059fca5f808e8e193ae6f1e",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:f24ddc94acdc35d7dd87ba94ee37519e5e2c5b9d653accf55a942cd6b2fbd709",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:92a7214851d0a1ca094d5a5997924ec2703a20867d0fb51756aeb55948d0858a"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/evidence-first-framing.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:a819b3c376a86fceb9cbbe75bebd5c2d375bde9804af882c0d40fb628860e7e1"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/evidence-first-framing.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:6ab138cb7de8ffe2fb3c054e606187c852b2a5eb26b8c207a0985063e31ba390"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/evidence-first-framing.test.mjs",
+        "tests/plugin/kernel-rule.test.mjs",
+        "tests/lifecycle/inert-plugin.test.mjs",
+        "tests/lifecycle/superpowers-upstream.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:8ee2978746df47bf8bfa673419c3be6da2b10ef2ade9f80de786a79f3f798c57"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-clean-checkout",
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c1e149b64ad4fa2119a2b97e76d2ba927b35caf0c36fba05e522e1f3cdcd3868"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "3cb8f4e9720f75c3c0018fe4fd4b0e2543535ccc"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t023-public-boundary-scan",
+        "cf76114f43c01c1ed0575a56958e710de6d399c2"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:d903fb6b1e55b3066ea8342f54b7a9dda47e157d0672bbd5aa5acbc4a3ebf4c7"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:bf3524faef042d01eb5931dbce9d8391bb45cc3433433205f4924a9ce209446c",
+      "verdictDigest": "sha256:75dfac8edeb1377246e2bb1cab2f4525bbc5bc66d724ef4eac53933cc6c2c5a5",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:bf3524faef042d01eb5931dbce9d8391bb45cc3433433205f4924a9ce209446c",
+      "verdictDigest": "sha256:0d2bfc4d05fd17ef1b556418b29a784a8d07b82bee53e622df1fca84c72b89ab",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:d903fb6b1e55b3066ea8342f54b7a9dda47e157d0672bbd5aa5acbc4a3ebf4c7",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T023 branch; after merge, open a T023-linked revert PR without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T11:35:03Z"
+}

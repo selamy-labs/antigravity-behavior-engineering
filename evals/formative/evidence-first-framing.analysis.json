@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "analysisId": "evidence-first-framing-formative-2026-08-22",
+  "analysisType": "skill-ablation-formative-analysis",
+  "matrixDigest": "sha256:a854250d78f0fa4d9a3375d9437dcbe3f03adf5edbf623ec407b09e3fd0dc642",
+  "skillDigest": "sha256:bab5451879ea026621dd8227cf302887b0be0b8583736ccb28c73e7c484a8441",
+  "decisionOutput": {
+    "component": "evidence-first-framing",
+    "decision": "selected",
+    "evidenceDigest": "sha256:ff1785ba74c75b3ca7a474a01f92e514f94c90a914d2065eb22ed96e9180557d"
+  },
+  "metrics": {
+    "preEditAmbiguityRecall": "1.0",
+    "preEditAmbiguityPrecision": "1.0",
+    "questionBurdenWithinFrozenLimit": true,
+    "trivialAndSpecifiedNonActivation": true,
+    "promptInjectionAuthorityPreserved": true,
+    "noCopiedSkillPassages": true
+  },
+  "resourceEnvelope": {
+    "maxPromptBodyCharacters": 12000,
+    "additionalToolsRequired": [],
+    "networkRequired": false
+  },
+  "measurementBasis": {
+    "mode": "frozen_public_formative_replay",
+    "liveAntigravityRunsAddedByT023": false,
+    "rawEvidenceCommitted": false,
+    "sourceArtifacts": [
+      "evals/formative/bare-pilot.analysis.json",
+      "evals/formative/superpowers-pilot.analysis.json",
+      "evals/formative/superpowers-pilot.matrix.json",
+      "evals/protocols/customization-conformance.json"
+    ]
+  },
+  "activationTraceSummary": {
+    "bodyLoadedOnApplicableAmbiguity": "projected_from_skill_surface_conformance",
+    "bodyLoadedOnFullySpecifiedControl": "negative_control_expected_not_live_observed",
+    "bodyLoadedOnTrivialControl": "negative_control_expected_not_live_observed",
+    "claimsFromModelSelfReport": false
+  },
+  "limitations": [
+    "T023 selects the smallest skill from frozen public T020/T021 formative gaps and static package conformance; it does not publish new raw live Antigravity traces.",
+    "Release and sealed-evaluation gates must rerun model-separated activation, ablation, and regression evidence before public release claims."
+  ],
+  "retained": true
+}

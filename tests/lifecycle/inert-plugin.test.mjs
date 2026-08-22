@@ -190,6 +190,7 @@ const loadLock = async () => readJson(lockPath);
 test("inert manifest is the minimal CLI-accepted package and behavior lock covers every package file", async () => {
   const manifest = await readJson(manifestPath);
   const lock = await loadLock();
+  const framingSkillDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md")));
 
   assert.deepEqual(Object.keys(manifest).sort(), ["name"]);
   assert.equal(manifest.name, "antigravity-behavior-engineering");
@@ -197,7 +198,17 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
   assert.equal(lock.packageName, manifest.name);
   assert.equal(lock.packageVersion, "0.0.0");
   assert.equal(lock.minimumCliVersion, "1.1.18");
-  assert.deepEqual(lock.components, []);
+  assert.deepEqual(lock.components, [
+    {
+      schemaVersion: 1,
+      kind: "skill",
+      name: "evidence-first-framing",
+      path: "skills/evidence-first-framing/SKILL.md",
+      claimId: "T023.evidence-first-framing.material-ambiguity-before-edit",
+      defaultEnabled: true,
+      digest: framingSkillDigest,
+    },
+  ]);
   assert.deepEqual(lock.dependencies, [
     {
       schemaVersion: 1,
@@ -273,7 +284,7 @@ test("inspectInstall reports installed, enabled, disabled, and missing-plugin st
     assert.equal(disabled.installed, true);
     assert.equal(disabled.enabled, false);
     assert.equal(disabled.discovery.imported, true);
-    assert.deepEqual(disabled.components, []);
+    assert.deepEqual(disabled.components, lock.components);
     assert.equal(disabled.packageFiles.every((file) => file.digest === lock.files[file.packagePath]), true);
     assert.equal(disabled.manifestDigest, lock.files["plugin.json"]);
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "antigravity-behavior-engineering",
   "packageVersion": "0.0.0",
-  "sourceRevision": "8cb3623ded8220970b9dc86d937b7130f68a4d67",
+  "sourceRevision": "3cb8f4e9720f75c3c0018fe4fd4b0e2543535ccc",
   "minimumCliVersion": "1.1.18",
   "supportedPlatforms": [
     {
@@ -12,7 +12,17 @@
       "nodeRange": ">=22 <25"
     }
   ],
-  "components": [],
+  "components": [
+    {
+      "schemaVersion": 1,
+      "kind": "skill",
+      "name": "evidence-first-framing",
+      "path": "skills/evidence-first-framing/SKILL.md",
+      "claimId": "T023.evidence-first-framing.material-ambiguity-before-edit",
+      "defaultEnabled": true,
+      "digest": "sha256:bab5451879ea026621dd8227cf302887b0be0b8583736ccb28c73e7c484a8441"
+    }
+  ],
   "dependencies": [
     {
       "schemaVersion": 1,
@@ -34,6 +44,7 @@
     "schemas/review-request.schema.json": "sha256:d0f2d3014b2945cabe38181bc4cb6b4ff8db48d295d86d7bd5bac83f6ac52c5d",
     "schemas/reviewer-join.schema.json": "sha256:05b4a7ce1c6700656505c40f66c6a2ad58ce887593b80c37081e8f3a3513a0ea",
     "schemas/reviewer-verdict.schema.json": "sha256:79b848fa598bd631918022c0f890d16d689568bd04e2220176f2972b44ce77db",
+    "skills/evidence-first-framing/SKILL.md": "sha256:bab5451879ea026621dd8227cf302887b0be0b8583736ccb28c73e7c484a8441",
     "schemas/task-state.schema.json": "sha256:8d62a0a890d16f2087ff21dfad3df8a886049bddf39cd6d6c8476931b2e59b2a"
   },
   "lifecycle": {
