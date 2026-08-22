@@ -301,3 +301,34 @@ def test_skill_ablation_grade_rejects_raw_runs_from_a_different_matrix_digest(tm
     assert result.returncode == 2
     error = json.loads(result.stderr)
     assert error["error"] == "skill_ablation.matrix_digest_mismatch"
+
+
+def test_skill_ablation_report_rejects_stale_decision_output_component(tmp_path: Path) -> None:
+    qualification_path = tmp_path / "qualification.json"
+    _qualification(qualification_path)
+    raw_root = tmp_path / "evidence" / "raw" / "formative" / "proof-obligation-contract" / "matched-after"
+    output = tmp_path / "evidence" / "publishable" / "formative" / "proof-obligation-contract" / "matched-after"
+
+    _run_cli(
+        "run-matrix",
+        "--matrix",
+        str(MATRIX),
+        "--condition-pair",
+        "incumbent-minus",
+        "incumbent-plus",
+        "--qualification",
+        str(qualification_path),
+        "--raw-root",
+        str(raw_root),
+    )
+    _run_cli("grade", "--analysis", str(ANALYSIS), "--raw-root", str(raw_root))
+    analysis = _load(ANALYSIS)
+    analysis["decisionOutput"]["component"] = "audited-iteration"
+    analysis_path = tmp_path / "stale-decision-output.analysis.json"
+    _write(analysis_path, analysis)
+
+    result = _run_cli_result("report", "--analysis", str(analysis_path), "--raw-root", str(raw_root), "--output", str(output))
+
+    assert result.returncode == 2
+    error = json.loads(result.stderr)
+    assert error["error"] == "skill_ablation.decision_output_mismatch"

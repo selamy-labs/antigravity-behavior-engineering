@@ -144,7 +144,10 @@ def _analysis_header(path: Path | str) -> dict[str, object]:
     if analysis.get("analysisType") != ANALYSIS_TYPE:
         _fail("skill_ablation.invalid_analysis_type", "$.analysisType")
     _assert_string(analysis.get("analysisId"), "$.analysisId")
-    _assert_component(analysis.get("component"), "$.component")
+    component = _assert_component(analysis.get("component"), "$.component")
+    decision_output = _assert_mapping(analysis.get("decisionOutput"), "$.decisionOutput")
+    if _assert_component(decision_output.get("component"), "$.decisionOutput.component") != component:
+        _fail("skill_ablation.decision_output_mismatch", "$.decisionOutput.component")
     return analysis
 
 
