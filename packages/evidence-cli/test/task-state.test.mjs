@@ -18,6 +18,7 @@ const packageRoot = path.join(repoRoot, "packages", "evidence-cli");
 const packageJsonPath = path.join(packageRoot, "package.json");
 const packageBin = path.join(packageRoot, "bin", "abe-evidence.mjs");
 const pluginRuntime = path.join(repoRoot, "plugin", "scripts", "runtime-lib.mjs");
+const behaviorLockPath = path.join(repoRoot, "plugin", "behavior-lock.json");
 
 const TASK_ID = "task-0001";
 const WORKSPACE_DIGEST = "sha256:" + "0".repeat(64);
@@ -50,6 +51,25 @@ const runNode = (entrypoint, args, { cwd, env = {} } = {}) => new Promise((resol
     resolve({
       exitCode,
       stdout: Buffer.concat(stdout).toString("utf8"),
+      stderr: Buffer.concat(stderr).toString("utf8"),
+    });
+  });
+});
+
+const runCommand = (command, args, { cwd = repoRoot, env = {} } = {}) => new Promise((resolve) => {
+  const child = spawn(command, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const stdout = [];
+  const stderr = [];
+  child.stdout.on("data", (chunk) => stdout.push(chunk));
+  child.stderr.on("data", (chunk) => stderr.push(chunk));
+  child.on("close", (exitCode) => {
+    resolve({
+      exitCode,
+      stdout: Buffer.concat(stdout),
       stderr: Buffer.concat(stderr).toString("utf8"),
     });
   });
@@ -182,6 +202,15 @@ test("runtime library and package binary share deterministic help output", async
     assert.match(pluginHelp.stdout, /abe-evidence init --task-id <id> --workspace-digest <sha256> --request-digest <sha256>/u);
     assert.match(pluginHelp.stdout, /No semantic correctness authority/u);
   });
+});
+
+test("behavior lock source revision recovers the locked runtime script bytes", async () => {
+  const lock = await readJson(behaviorLockPath);
+  const component = lock.components.find((item) => item.kind === "script" && item.path === "scripts/runtime-lib.mjs");
+  assert.ok(component, "runtime script component must be locked");
+  const recovered = await runCommand("git", ["show", lock.sourceRevision + ":plugin/scripts/runtime-lib.mjs"]);
+  assert.equal(recovered.exitCode, 0, recovered.stderr);
+  assert.equal(sha256Digest(recovered.stdout), component.digest);
 });
 
 test("init atomically creates a valid TaskState and ordinal-zero completion ledger", async () => {
