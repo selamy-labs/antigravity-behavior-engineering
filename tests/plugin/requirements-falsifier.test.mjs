@@ -54,7 +54,7 @@ const verificationInterface = {
 const authorityManifest = {
   schemaVersion: 1,
   manifestId: "review-read-only",
-  allowedActions: ["execute_verification", "read"],
+  allowedActions: ["execute_verification", "read", "write_verdict"],
   allowedResources: ["src", "test"],
   networkPolicyDigest: digest("f"),
   credentialGrantDigests: [],
@@ -191,6 +191,15 @@ test("review packages bind the shared subject without circular or competing-revi
     () => validateReviewerVerdict(request, { status: "permission_blocked" }),
     /(?:missing_field|unknown_field)/u,
   );
+  const linkedArtifact = path.join(temporaryRoot, "linked-artifact.patch");
+  const packagedArtifact = path.join(packageRoot, "artifact-or-diff.patch");
+  await fs.writeFile(linkedArtifact, await fs.readFile(packagedArtifact));
+  await fs.unlink(packagedArtifact);
+  await fs.symlink(linkedArtifact, packagedArtifact);
+  await assert.rejects(
+    () => buildReviewPackage(envelope, "requirements", temporaryRoot),
+    /symlink/u,
+  );
 });
 
 test("review package output rejects symlink roots and role replay", async (context) => {
@@ -208,6 +217,18 @@ test("review package output rejects symlink roots and role replay", async (conte
 
   await assert.rejects(() => buildReviewPackage(envelope, "requirements", linkedRoot), /symlink/u);
   await assert.rejects(() => buildReviewPackage(envelope, "unknown", realRoot), /invalid_role/u);
+
+  for (const authorityManifest of [
+    { ...input.authorityManifest, allowedActions: ["read"] },
+    { ...input.authorityManifest, expiresAt: "2020-01-01T00:00:00Z" },
+  ]) {
+    const unauthorized = {
+      ...input,
+      authorityManifest,
+      authorityDigest: sha256Digest(canonicalBytes(authorityManifest)),
+    };
+    assert.throws(() => buildReviewPairEnvelope(unauthorized), /invalid_field/u);
+  }
 });
 
 test("formative reviewer evidence freezes mixed controls, profiles, and selection gates", async () => {

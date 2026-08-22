@@ -13,6 +13,7 @@ import {
 } from "../../packages/contracts/src/runtime-contracts.mjs";
 
 const REVIEW_ROLES = new Set(["requirements", "quality"]);
+const REQUIRED_REVIEW_ACTIONS = ["execute_verification", "read", "write_verdict"];
 const packageInputs = new Map();
 
 const jsonBytes = (value) => Buffer.concat([canonicalBytes(value), Buffer.from("\n")]);
@@ -107,6 +108,57 @@ const openOutputRoot = async (root) => {
   }
 };
 
+const validateAuthority = (input) => {
+  if (!REQUIRED_REVIEW_ACTIONS.every(
+    (action) => input.authorityManifest.allowedActions.includes(action),
+  )) {
+    throw new ContractValidationError(
+      ReasonCodes.INVALID_FIELD,
+      "$.authorityManifest.allowedActions",
+    );
+  }
+  if (input.authorityManifest.expiresAt !== "not_applicable"
+    && Date.parse(input.authorityManifest.expiresAt) <= Date.now()) {
+    throw new ContractValidationError(ReasonCodes.INVALID_FIELD, "$.authorityManifest.expiresAt");
+  }
+};
+
+const validatePublishedPackage = async (finalPath, files) => {
+  const stat = await fs.lstat(finalPath);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) {
+    throw new TypeError(`symlink package directory is not allowed: ${finalPath}`);
+  }
+  const packageHandle = await fs.open(
+    finalPath,
+    constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
+  );
+  try {
+    const anchoredPath = `/proc/self/fd/${packageHandle.fd}`;
+    const actualNames = (await fs.readdir(anchoredPath)).sort();
+    const expectedNames = Object.keys(files).sort();
+    if (actualNames.length !== expectedNames.length
+      || actualNames.some((name, index) => name !== expectedNames[index])) {
+      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+    }
+    for (const [name, bytes] of Object.entries(files)) {
+      const entryPath = path.join(anchoredPath, name);
+      if ((await fs.lstat(entryPath)).isSymbolicLink()) {
+        throw new TypeError(`symlink package entry is not allowed: ${name}`);
+      }
+      const entryHandle = await fs.open(entryPath, constants.O_RDONLY | constants.O_NOFOLLOW);
+      try {
+        if (!(await entryHandle.stat()).isFile() || !(await entryHandle.readFile()).equals(bytes)) {
+          throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+        }
+      } finally {
+        await entryHandle.close();
+      }
+    }
+  } finally {
+    await packageHandle.close();
+  }
+};
+
 const publishPackage = async (root, directoryName, files) => {
   const { handle, anchoredPath } = await openOutputRoot(root);
   const finalPath = path.join(anchoredPath, directoryName);
@@ -127,21 +179,7 @@ const publishPackage = async (root, directoryName, files) => {
     }
     await fs.rm(stagingPath, { recursive: true, force: true });
     stagingPath = undefined;
-    const stat = await fs.lstat(finalPath);
-    if (!stat.isDirectory() || stat.isSymbolicLink()) {
-      throw new ContractValidationError(ReasonCodes.INVALID_PATH, "$.root");
-    }
-    const actualNames = (await fs.readdir(finalPath)).sort();
-    const expectedNames = Object.keys(files).sort();
-    if (actualNames.length !== expectedNames.length
-      || actualNames.some((name, index) => name !== expectedNames[index])) {
-      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
-    }
-    for (const [name, bytes] of Object.entries(files)) {
-      if (!(await fs.readFile(path.join(finalPath, name))).equals(bytes)) {
-        throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
-      }
-    }
+    await validatePublishedPackage(finalPath, files);
   } finally {
     if (stagingPath !== undefined) {
       await fs.rm(stagingPath, { recursive: true, force: true }).catch(() => {});
@@ -152,6 +190,7 @@ const publishPackage = async (root, directoryName, files) => {
 
 export const buildReviewPairEnvelope = (value) => {
   const input = parseReviewPackageInput(value);
+  validateAuthority(input);
   const sharedPackageManifest = {
     "approved-obligations.json": sha256Digest(jsonBytes(input.obligations)),
     "artifact-or-diff.patch": input.artifactDigest,
@@ -184,6 +223,7 @@ export const buildReviewPackage = async (value, role, root) => {
   if (!input) {
     throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.reviewPairEnvelopeDigest");
   }
+  validateAuthority(input);
   const artifactBytes = await readArtifact(input.artifactRoot, input.artifactDigest);
   const common = commonFiles(input, artifactBytes);
   const actualSharedDigest = sha256Digest(canonicalBytes(fileManifest(common)));
