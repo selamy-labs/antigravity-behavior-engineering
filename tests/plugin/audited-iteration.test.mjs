@@ -9,6 +9,7 @@ import test from "node:test";
 import { canonicalBytes, sha256Digest } from "../../packages/contracts/src/canonical-json.mjs";
 
 const repoRoot = path.resolve(new URL("../..", import.meta.url).pathname);
+const t026BaseRevision = "add91af5b2451d4a93881cc7036b10698ee0e7a5";
 const pluginRoot = path.join(repoRoot, "plugin");
 const skillPath = path.join(pluginRoot, "skills", "audited-iteration", "SKILL.md");
 const matrixPath = path.join(repoRoot, "evals", "formative", "audited-iteration.matrix.json");
@@ -246,7 +247,14 @@ test("the rejection analysis validates and binds both deterministic replay index
   const analysis = await readJson(analysisPath);
   const matrix = await readJson(matrixPath);
   const evaluatorDigest = await fileDigest(evaluatorPath);
-  const incumbentPackageDigest = await fileDigest(lockPath);
+  const incumbentLock = spawnSync(
+    "git",
+    ["show", `${t026BaseRevision}:plugin/behavior-lock.json`],
+    { cwd: repoRoot, shell: false },
+  );
+  assert.equal(incumbentLock.error, undefined);
+  assert.equal(incumbentLock.status, 0, incumbentLock.stderr.toString("utf8"));
+  const incumbentPackageDigest = digestBytes(incumbentLock.stdout);
   const phases = [
     {
       key: "incumbentBefore",
@@ -377,7 +385,7 @@ test("behavior lock omits the rejected skill and resolves every shipped file fro
   assert.equal(await exists(skillPath), false);
   assert.doesNotMatch(framingSkill, /\baudited-iteration\b/u);
   assert.match(framingSkill, /Long-running repair\/review loops remain outside this skill/u);
-  assert.equal(lock.sourceRevision, "72651577666fca7f56849ec952dad641a31a43ea");
+  assert.equal(lock.sourceRevision, "ddc4160c3d7666730ec76004e0157590212bebe7");
   assert.deepEqual(lock.components.filter((component) => component.name === "audited-iteration"), []);
   assert.equal(Object.hasOwn(lock.files, "skills/audited-iteration/SKILL.md"), false);
   assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
