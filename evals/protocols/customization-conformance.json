@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "customization-content-conformance-2026-08-22",
+  "cliVersionConstraint": "1.1.18",
+  "probePluginName": "abe-content-discovery-probe",
+  "probeManifestDigest": "sha256:1beed94273793fbb4bc7fb3237693a3f349f2faae7d7fc5663d028abc95fc807",
+  "probeComponentsDigest": "sha256:6ff921eab6908523bc32e99a174a6cf1c79bdf71214f4926726dac5babdd9f0d",
+  "proposedSupportedProfiles": [
+    {
+      "schemaVersion": 1,
+      "cliVersion": "1.1.18",
+      "os": "linux",
+      "architecture": "x64",
+      "nodeRange": ">=22 <25",
+      "status": "supported"
+    }
+  ],
+  "classificationPolicy": {
+    "schemaVersion": 1,
+    "scopePrecedence": [
+      "global",
+      "workspace",
+      "plugin"
+    ],
+    "collisionPolicy": "fail_before_content_treatment",
+    "unknownIsPass": false,
+    "skillPassRequires": [
+      "first_applicable_task_without_activation_phrase",
+      "body_marker_observed_without_prompt_disclosure"
+    ],
+    "rulePassRequires": [
+      "applicable_task_body_observed",
+      "non_applicable_task_body_withheld",
+      "model_decision_trace_observable"
+    ],
+    "ruleFalseOrUnobservableDecision": "disqualified"
+  },
+  "frozenTraceProjection": {
+    "schemaVersion": 1,
+    "cliVersion": "1.1.18",
+    "platform": {
+      "schemaVersion": 1,
+      "os": "linux",
+      "architecture": "x64"
+    },
+    "probeRun": {
+      "schemaVersion": 1,
+      "executedAt": "2026-08-22T09:10:59Z",
+      "modelRequest": "gemini-3.7-flash-high",
+      "reasoningRequest": "high",
+      "promptContainedSkillBodyMarker": false
+    },
+    "profileIsolation": {
+      "schemaVersion": 1,
+      "xdgConfigHomeHonoredForPluginState": false,
+      "observedPluginPath": "/home/dev/.gemini/config/plugins/abe-content-discovery-probe/skills/abe-t015-content-skill/SKILL.md",
+      "cleanupRequired": true
+    },
+    "lifecycleDiscovery": {
+      "schemaVersion": 1,
+      "validateExitCode": 0,
+      "installExitCode": 0,
+      "skillsProcessed": 1,
+      "ruleFilePresent": true,
+      "reportedComponents": [
+        "skills"
+      ],
+      "rulesReportedAsComponent": false
+    },
+    "skillActivation": {
+      "schemaVersion": 1,
+      "bodyMarkerObserved": true,
+      "bodyMarker": "ABE_T015_SKILL_BODY_CANARY_7f1e2a",
+      "bodyAccessTrace": "view_file:/home/dev/.gemini/config/plugins/abe-content-discovery-probe/skills/abe-t015-content-skill/SKILL.md",
+      "agentResponse": "ABE_T015_SKILL_BODY_CANARY_7f1e2a",
+      "firstApplicableTaskWithoutActivationPhrase": true
+    },
+    "ruleModelDecision": {
+      "schemaVersion": 1,
+      "ruleFilePresent": true,
+      "modelDecisionObservable": false,
+      "applicableBodyObserved": "unknown",
+      "nonApplicableBodyObserved": "unknown",
+      "bodySelectiveObservation": "unobservable",
+      "decision": "disqualified"
+    },
+    "cleanup": {
+      "schemaVersion": 1,
+      "command": "agy plugin uninstall abe-content-discovery-probe",
+      "pluginDirectoryRemoved": true,
+      "importManifestEntryRemoved": true,
+      "configEntryRemoved": true
+    },
+    "limitations": [
+      "Antigravity CLI 1.1.18 ignored XDG_CONFIG_HOME for plugin state and used the HOME-relative .gemini/config/plugins path.",
+      "The live proof installed the committed probe plugin name into the authenticated jump-box profile and then removed that exact plugin.",
+      "The rules/AGENTS.md canary was present in the package but was not reported as a plugin component by validate, install, or list; T015 freezes the rule surface as disqualified for v1."
+    ]
+  },
+  "probeResult": {
+    "schemaVersion": 1,
+    "supportDecision": "disqualified",
+    "skillBodyObservable": true,
+    "ruleBodySelective": false,
+    "rule": "disqualified",
+    "evidenceDigest": "sha256:895d2648c8687eb8e38bb54e745debddf1cd75cdc2bfc2deac3801dc557c9753"
+  },
+  "protocolDigest": "sha256:0eec0a464ed782258c73d22edab484fedda572f4a57b8c0a22f6bbc6ecc19eb9"
+}

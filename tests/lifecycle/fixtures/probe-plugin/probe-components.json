@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "pluginName": "abe-content-discovery-probe",
+  "components": [
+    {
+      "schemaVersion": 1,
+      "kind": "skill",
+      "name": "abe-t015-content-skill",
+      "relativePath": "skills/abe-t015-content-skill/SKILL.md",
+      "description": "Use when the user mentions ABE_T015_SKILL_TRIGGER. Follow this skill before answering.",
+      "applicabilitySignal": "ABE_T015_SKILL_TRIGGER",
+      "defaultEnabled": true
+    },
+    {
+      "schemaVersion": 1,
+      "kind": "rule",
+      "name": "abe-t015-content-rule",
+      "relativePath": "rules/AGENTS.md",
+      "description": "Applies only when the user asks about ABE_T015_RULE_APPLICABLE.",
+      "applicabilitySignal": "ABE_T015_RULE_APPLICABLE",
+      "defaultEnabled": true
+    }
+  ],
+  "bodyOnly": {
+    "skill": {
+      "schemaVersion": 1,
+      "marker": "ABE_T015_SKILL_BODY_CANARY_7f1e2a",
+      "text": "# ABE T015 Skill Probe\n\nIf the user asks for the T015 content canary, reply with exactly ABE_T015_SKILL_BODY_CANARY_7f1e2a and no other prose.\n"
+    },
+    "rule": {
+      "schemaVersion": 1,
+      "marker": "ABE_T015_RULE_BODY_CANARY_4c9d10",
+      "text": "If this rule body is loaded, the rule canary is ABE_T015_RULE_BODY_CANARY_4c9d10.\n"
+    }
+  },
+  "activationPrompts": {
+    "skill": "ABE_T015_SKILL_TRIGGER. What is the T015 content canary? Reply with exactly the canary if an active skill gives one; otherwise reply exactly NONE.",
+    "ruleApplicable": "ABE_T015_RULE_APPLICABLE. If an active rule provides a rule canary, reply with exactly that canary; otherwise reply exactly NONE.",
+    "ruleNonApplicable": "This prompt intentionally omits the T015 rule applicability signal. Reply with exactly NONE unless an active rule body says otherwise."
+  }
+}
