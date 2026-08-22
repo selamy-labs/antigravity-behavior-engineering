@@ -363,6 +363,16 @@ test("formative matrix selects obligation-contract gaps and rejects one-check ac
     liveAntigravityRunsAddedByT025: false,
     rawEvidenceCommitted: false,
   });
+  assert.deepEqual(analysis.incumbentReplay.failure, {
+    error: "contract.unknown_field",
+    message: "contract.unknown_field at $",
+  });
+  assert.equal(analysis.incumbentReplay.attemptedBeforeCandidateBody, true);
+  assert.deepEqual(analysis.matchedAfterReplay.failure, {
+    error: "contract.unknown_field",
+    message: "contract.unknown_field at $",
+  });
+  assert.equal(analysis.matchedAfterReplay.attemptedAfterCandidateBody, true);
   assert.equal(analysis.retained, true);
   assert.ok(analysis.limitations.some((item) => /does not publish new raw live Antigravity traces/u.test(item)));
 });

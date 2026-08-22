@@ -90,6 +90,16 @@
       "message": "contract.unknown_field at $"
     }
   },
+  "matchedAfterReplay": {
+    "conditionPair": "incumbent-minus/incumbent-plus",
+    "attemptedAfterCandidateBody": true,
+    "command": "uv run --project evaluator abe-eval run-matrix --matrix evals/formative/proof-obligation-contract.matrix.json --condition-pair incumbent-minus incumbent-plus --qualification evidence/raw/qualification/local/qualification.json --raw-root evidence/raw/formative/proof-obligation-contract/matched-after",
+    "exitCode": 2,
+    "failure": {
+      "error": "contract.unknown_field",
+      "message": "contract.unknown_field at $"
+    }
+  },
   "staticConformance": {
     "taskStateParser": "parseTaskState",
     "schema": "plugin/schemas/task-state.schema.json",
