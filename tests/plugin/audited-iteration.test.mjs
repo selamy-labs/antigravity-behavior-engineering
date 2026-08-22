@@ -57,13 +57,15 @@ const collectFiles = async (directory) => {
   return files.sort();
 };
 
-const expectedEvidenceDigest = ({ evaluatorDigest, formativeReplay, liveActivationEvidence, matrixDigest, metricsInterpretation, resourceEnvelope, runtimeDigest, selectionGate }) => sha256Digest(canonicalBytes({
+const expectedEvidenceDigest = ({ evaluatorDigest, formativeReplay, limitations, liveActivationEvidence, matrixDigest, measurementBasis, metricsInterpretation, resourceEnvelope, runtimeDigest, selectionGate }) => sha256Digest(canonicalBytes({
   component: "audited-iteration",
   decision: "not_selected",
   evaluatorDigest,
   formativeReplay,
+  limitations,
   liveActivationEvidence,
   matrixDigest,
+  measurementBasis,
   metricsInterpretation,
   rejectionReasons,
   resourceEnvelope,
@@ -124,6 +126,20 @@ test("audited-iteration is rejected when replay is synthetic and repair closure 
       networkRequired: false,
     },
   });
+  assert.deepEqual(analysis.measurementBasis, {
+    mode: "rejected-synthetic-formative-replay-plus-live-activation-smoke",
+    liveAntigravityRunsAddedByT026: true,
+    liveBehavioralRunsBoundToDecision: false,
+    materializedEvaluatorRunsAddedByT026: true,
+    materializedReplayInvokesAntigravity: false,
+    rawEvidenceCommitted: false,
+  });
+  assert.deepEqual(analysis.limitations, [
+    "the evaluator materializes outcomeProgram declarations and does not execute Antigravity long-task scenarios",
+    "the live Antigravity records prove candidate import availability only and are not behavioral ablation evidence",
+    "the T024 runtime has no operation that updates an accepted finding to verified or a pending obligation to passing",
+    "cold recovery, repeated-work reduction, unrelated-change preservation, resource use, and material regression remain unmeasured",
+  ]);
   assert.equal(analysis.retained, false);
   assert.deepEqual(analysis.decisionOutput, {
     component: "audited-iteration",
@@ -131,8 +147,10 @@ test("audited-iteration is rejected when replay is synthetic and repair closure 
     evidenceDigest: expectedEvidenceDigest({
       evaluatorDigest,
       formativeReplay: analysis.formativeReplay,
+      limitations: analysis.limitations,
       liveActivationEvidence: analysis.liveActivationEvidence,
       matrixDigest,
+      measurementBasis: analysis.measurementBasis,
       metricsInterpretation: analysis.metricsInterpretation,
       resourceEnvelope: analysis.resourceEnvelope,
       runtimeDigest,
