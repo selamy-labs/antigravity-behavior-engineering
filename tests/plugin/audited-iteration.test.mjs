@@ -16,6 +16,7 @@ const analysisPath = path.join(repoRoot, "evals", "formative", "audited-iteratio
 const evaluatorPath = path.join(repoRoot, "evaluator", "src", "abe_eval", "skill_ablation.py");
 const runtimePath = path.join(pluginRoot, "scripts", "runtime-lib.mjs");
 const lockPath = path.join(pluginRoot, "behavior-lock.json");
+const framingSkillPath = path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md");
 const contractFixturesPath = path.join(repoRoot, "tests", "contract", "fixtures", "evaluation-contracts.json");
 
 const rejectionReasons = [
@@ -83,6 +84,12 @@ const assertEvaluatorSuccess = (result) => {
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stdout + result.stderr);
   return JSON.parse(result.stdout);
+};
+
+const assertEvaluatorFailure = (result, error, errorPath) => {
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 2, result.stdout + result.stderr);
+  assert.deepEqual(JSON.parse(result.stderr), { error, path: errorPath });
 };
 
 test("audited-iteration is rejected when replay is synthetic and repair closure is not executable", async () => {
@@ -250,10 +257,12 @@ test("the rejection analysis validates and binds both deterministic replay index
     },
   ];
   const replayIndexes = new Map();
+  const replayRoots = new Map();
 
   for (const phase of phases) {
     const rawRoot = path.join(temporaryRoot, phase.key, "raw");
     const outputRoot = path.join(temporaryRoot, phase.key, "publishable");
+    replayRoots.set(phase.key, { outputRoot, rawRoot });
     const runResult = assertEvaluatorSuccess(runEvaluator(
       "run-matrix",
       "--matrix",
@@ -316,16 +325,51 @@ test("the rejection analysis validates and binds both deterministic replay index
   assert.equal(replayIndexes.get("matchedAfter").qualificationDigest, protocol.qualificationDigest);
   assert.deepEqual(analysis.formativeReplay.protocol, protocol);
   assert.equal(analysis.formativeReplay.protocolDigest, sha256Digest(canonicalBytes(protocol)));
+
+  const { outputRoot, rawRoot } = replayRoots.get("matchedAfter");
+  const runsRoot = path.join(rawRoot, "runs");
+  let removedRunDigest;
+  for (const runDirectory of (await fs.readdir(runsRoot)).sort()) {
+    const runPath = path.join(runsRoot, runDirectory, "run.json");
+    const run = await readJson(runPath);
+    if (run.conditionId === "incumbent-minus") {
+      removedRunDigest = run.runDigest;
+      await fs.rm(path.dirname(runPath), { recursive: true, force: true });
+      break;
+    }
+  }
+  assert.ok(removedRunDigest);
+  const runIndexPath = path.join(rawRoot, "run-index.json");
+  const tamperedRunIndex = await readJson(runIndexPath);
+  tamperedRunIndex.runDigests = tamperedRunIndex.runDigests.filter((digest) => digest !== removedRunDigest);
+  await fs.writeFile(
+    runIndexPath,
+    Buffer.concat([canonicalBytes(tamperedRunIndex), Buffer.from("\n")]),
+  );
+
+  assertEvaluatorFailure(
+    runEvaluator("grade", "--analysis", analysisPath, "--raw-root", rawRoot),
+    "skill_ablation.replay_binding_mismatch",
+    "$.formativeReplay.matchedAfter.runIndexDigest",
+  );
+  assertEvaluatorFailure(
+    runEvaluator("report", "--analysis", analysisPath, "--raw-root", rawRoot, "--output", outputRoot),
+    "skill_ablation.replay_binding_mismatch",
+    "$.formativeReplay.matchedAfter.runIndexDigest",
+  );
 });
 
 test("behavior lock omits the rejected skill and resolves every shipped file from its public revision", async () => {
   const lock = await readJson(lockPath);
+  const framingSkill = await fs.readFile(framingSkillPath, "utf8");
   const pluginFiles = (await collectFiles(pluginRoot))
     .map((file) => path.relative(pluginRoot, file).split(path.sep).join("/"))
     .filter((relativePath) => relativePath !== "behavior-lock.json")
     .sort();
 
   assert.equal(await exists(skillPath), false);
+  assert.doesNotMatch(framingSkill, /\baudited-iteration\b/u);
+  assert.match(framingSkill, /Long-running repair\/review loops remain outside this skill/u);
   assert.equal(lock.sourceRevision, "72651577666fca7f56849ec952dad641a31a43ea");
   assert.deepEqual(lock.components.filter((component) => component.name === "audited-iteration"), []);
   assert.equal(Object.hasOwn(lock.files, "skills/audited-iteration/SKILL.md"), false);
