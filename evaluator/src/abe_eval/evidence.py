@@ -389,10 +389,10 @@ def _finalize_run_directory(root: Path, run_id: str, run: dict[str, object], art
         try:
             (run_dir / "run.json").chmod(0o400)
             (run_dir / "run.digest").chmod(0o400)
-            (run_dir / "grade-ledger.ndjson").chmod(0o600)
+            (run_dir / "grade-ledger.ndjson").chmod(0o400)
             (run_dir / "artifacts" / "sha256").chmod(0o500)
             (run_dir / "artifacts").chmod(0o500)
-            (run_dir / "grades").chmod(0o700)
+            (run_dir / "grades").chmod(0o500)
             run_dir.chmod(0o500)
         except OSError:
             _rollback_finalized_run_directory(root, run_id)

@@ -51,6 +51,10 @@ _PREFLIGHT_FIELDS = (
     ("structuredCapturePreflight", "structuredCapturePreflight"),
     ("authorityToolInventory", "authorityToolInventory"),
 )
+_GRADE_STORE_REST_MODE = 0o500
+_GRADE_STORE_WRITE_MODE = 0o700
+_GRADE_LEDGER_REST_MODE = 0o400
+_GRADE_LEDGER_WRITE_MODE = 0o600
 
 
 def _fail(reason_code: str, path: str = "$") -> None:
@@ -220,6 +224,32 @@ def _write_grade_exclusive(path: Path, grade: dict[str, object]) -> None:
             tmp_path.unlink()
         except FileNotFoundError:
             pass
+
+
+def _ensure_existing_grade_store(run_dir: Path) -> tuple[Path, Path]:
+    grades_dir = run_dir / "grades"
+    ledger_path = run_dir / "grade-ledger.ndjson"
+    _ensure_existing_plain_dir(grades_dir, "grade.grade_store_invalid", "$.grades")
+    if ledger_path.is_symlink() or not ledger_path.is_file():
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+    _ensure_not_owner_writable(grades_dir, "$.grades", "grade.grade_store_invalid")
+    _ensure_not_owner_writable(ledger_path, "$.graderDigest", "grade.grade_store_invalid")
+    return grades_dir, ledger_path
+
+
+def _restore_grade_store_modes(grades_dir: Path, ledger_path: Path) -> OSError | None:
+    restore_error = None
+    if ledger_path.exists() and not ledger_path.is_symlink():
+        try:
+            ledger_path.chmod(_GRADE_LEDGER_REST_MODE)
+        except OSError as exc:
+            restore_error = restore_error or exc
+    if grades_dir.exists() and not grades_dir.is_symlink():
+        try:
+            grades_dir.chmod(_GRADE_STORE_REST_MODE)
+        except OSError as exc:
+            restore_error = restore_error or exc
+    return restore_error
 
 
 def _read_json_file(path: Path, reason_code: str, error_path: str) -> dict[str, object]:
@@ -454,10 +484,35 @@ def _validate_raw_evidence(
     return manifest, condition, scenario, environment, staged, _terminal_evidence_digest(staged, staged_files)
 
 
-def _read_grade_ledger(run_dir: Path) -> set[str]:
+def _validate_ledger_grade_slot(run_dir: Path, run_id: str, grader_digest: str, grade_digest: str) -> None:
+    try:
+        grade_segment = _safe_digest_segment(grader_digest, "$.graderDigest")
+        _safe_digest_segment(grade_digest, "$.graderDigest")
+    except ContractValidationError:
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+    grader_dir = run_dir / "grades" / grade_segment
+    grade_path = grader_dir / "grade.json"
+    if grader_dir.is_symlink() or not grader_dir.is_dir():
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+    _ensure_not_owner_writable(grader_dir, "$.graderDigest", "grade.grade_store_invalid")
+    if grade_path.is_symlink() or not grade_path.is_file():
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+    _ensure_not_owner_writable(grade_path, "$.graderDigest", "grade.grade_store_invalid")
+    try:
+        parsed_grade = parse_contract("GradeRecord", json.loads(grade_path.read_text(encoding="utf-8")))
+    except (UnicodeDecodeError, json.JSONDecodeError, ContractValidationError):
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+    if parsed_grade["runId"] != run_id or parsed_grade["graderDigest"] != grader_digest:
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+    if canonical_contract_digest("GradeRecord", parsed_grade) != grade_digest:
+        _fail("grade.grade_store_invalid", "$.graderDigest")
+
+
+def _read_grade_ledger(run_dir: Path, run_id: str) -> set[str]:
     ledger_path = run_dir / "grade-ledger.ndjson"
     if ledger_path.is_symlink() or not ledger_path.is_file():
         _fail("grade.grade_store_invalid", "$.graderDigest")
+    _ensure_not_owner_writable(ledger_path, "$.graderDigest", "grade.grade_store_invalid")
     digests: set[str] = set()
     for index, line in enumerate(ledger_path.read_text(encoding="utf-8").splitlines()):
         if not line:
@@ -470,11 +525,12 @@ def _read_grade_ledger(run_dir: Path) -> set[str]:
             _fail("grade.grade_store_invalid", "$.graderDigest")
         if event["schemaVersion"] != 1:
             _fail("grade.grade_store_invalid", "$.graderDigest")
-        _safe_digest_segment(str(event["graderDigest"]), "$.graderDigest")
-        _safe_digest_segment(str(event["gradeDigest"]), "$.graderDigest")
-        if event["graderDigest"] in digests:
+        grader_digest = str(event["graderDigest"])
+        grade_digest = str(event["gradeDigest"])
+        _validate_ledger_grade_slot(run_dir, run_id, grader_digest, grade_digest)
+        if grader_digest in digests:
             _fail("grade.grade_store_invalid", "$.graderDigest")
-        digests.add(str(event["graderDigest"]))
+        digests.add(grader_digest)
     return digests
 
 
@@ -533,28 +589,31 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
     )
 
     grade_segment = _safe_digest_segment(str(parsed_grade["graderDigest"]), "$.graderDigest")
-    grades_dir = run_dir / "grades"
+    grades_dir, ledger_path = _ensure_existing_grade_store(run_dir)
     grader_dir = grades_dir / grade_segment
-    _ensure_plain_dir(grades_dir, "grade.grade_store_invalid", "$.grades")
-    if parsed_grade["graderDigest"] in _read_grade_ledger(run_dir):
+    if parsed_grade["graderDigest"] in _read_grade_ledger(run_dir, safe_run_id):
         _fail("grade.grader_digest_already_exists", "$.graderDigest")
+    succeeded = False
     try:
+        grades_dir.chmod(_GRADE_STORE_WRITE_MODE)
+        ledger_path.chmod(_GRADE_LEDGER_WRITE_MODE)
         grader_dir.mkdir(mode=0o700, exist_ok=False)
-    except FileExistsError:
-        _fail("grade.grader_digest_already_exists", "$.graderDigest")
-    grade_path = grader_dir / "grade.json"
-    if grade_path.exists() or grade_path.is_symlink():
-        _fail("grade.grader_digest_already_exists", "$.graderDigest")
-    grade_digest = canonical_contract_digest("GradeRecord", parsed_grade)
-    try:
+        grade_path = grader_dir / "grade.json"
+        if grade_path.exists() or grade_path.is_symlink():
+            _fail("grade.grader_digest_already_exists", "$.graderDigest")
+        grade_digest = canonical_contract_digest("GradeRecord", parsed_grade)
         _write_grade_exclusive(grade_path, parsed_grade)
         grader_dir.chmod(0o500)
         _append_grade_ledger(run_dir, str(parsed_grade["graderDigest"]), grade_digest)
+        succeeded = True
+    except FileExistsError:
+        _fail("grade.grader_digest_already_exists", "$.graderDigest")
     except Exception:
         try:
             grader_dir.chmod(0o700)
         except OSError:
             pass
+        grade_path = grader_dir / "grade.json"
         if grade_path.exists() and not grade_path.is_symlink():
             try:
                 grade_path.unlink()
@@ -565,6 +624,10 @@ def append_grade(run_id: str, grade: object, root: Path) -> str:
         except OSError:
             pass
         raise
+    finally:
+        restore_error = _restore_grade_store_modes(grades_dir, ledger_path)
+        if succeeded and restore_error is not None:
+            raise restore_error
     return grade_digest
 
 

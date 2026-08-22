@@ -37,6 +37,10 @@ def _grade_path(root: Path, run: dict[str, object], grade: dict[str, object]) ->
     return root / "runs" / str(run["runId"]) / "grades" / str(grade["graderDigest"]).removeprefix("sha256:") / "grade.json"
 
 
+def _owner_writable(path: Path) -> bool:
+    return bool(stat.S_IMODE(path.stat().st_mode) & stat.S_IWUSR)
+
+
 def _open_artifact_store_for_tamper(run_path: Path) -> None:
     artifacts = run_path.parent / "artifacts"
     artifacts.chmod(0o700)
@@ -62,6 +66,10 @@ def test_append_grade_is_append_only_by_grader_digest_and_keeps_run_immutable(tm
 
     assert grade_digest == canonical_contract_digest("GradeRecord", grade)
     grade_path = _grade_path(tmp_path, run, grade)
+    grades_dir = grade_path.parent.parent
+    ledger_path = run_path.parent / "grade-ledger.ndjson"
+    assert not _owner_writable(grades_dir)
+    assert not _owner_writable(ledger_path)
     assert stat.S_IMODE(grade_path.parent.stat().st_mode) & stat.S_IWUSR == 0
     assert stat.S_IMODE(grade_path.stat().st_mode) & stat.S_IWUSR == 0
     assert json.loads(grade_path.read_bytes()) == grade
@@ -136,7 +144,7 @@ def test_repeated_grader_digest_cannot_recreate_missing_grade_slot(tmp_path):
     with pytest.raises(ContractValidationError) as excinfo:
         append_grade(str(run["runId"]), replacement, tmp_path)
 
-    assert excinfo.value.reason_code == "grade.grader_digest_already_exists"
+    assert excinfo.value.reason_code == "grade.grade_store_invalid"
     assert not first_path.exists()
 
 
@@ -148,15 +156,39 @@ def test_repeated_grader_digest_cannot_recreate_removed_grade_directory(tmp_path
     first_path.parent.chmod(0o700)
     first_path.chmod(0o600)
     first_path.unlink()
+    first_path.parent.parent.chmod(0o700)
     first_path.parent.rmdir()
+    first_path.parent.parent.chmod(0o500)
     replacement = copy.deepcopy(first)
     replacement["outcome"] = "fail"
 
     with pytest.raises(ContractValidationError) as excinfo:
         append_grade(str(run["runId"]), replacement, tmp_path)
 
-    assert excinfo.value.reason_code == "grade.grader_digest_already_exists"
+    assert excinfo.value.reason_code == "grade.grade_store_invalid"
     assert not first_path.exists()
+
+
+def test_repeated_grader_digest_cannot_be_replaced_without_chmod_of_grade_store(tmp_path):
+    run, _attempt, run_path, _raw_manifest_before, _run_digest = _finalized_run(tmp_path)
+    first = _grade(str(run["runId"]), "cb")
+    append_grade(str(run["runId"]), first, tmp_path)
+    first_path = _grade_path(tmp_path, run, first)
+    original_grade_bytes = first_path.read_bytes()
+    moved_grade_dir = tmp_path / "moved-grade-dir"
+    replacement = copy.deepcopy(first)
+    replacement["outcome"] = "fail"
+
+    with pytest.raises(PermissionError):
+        first_path.parent.rename(moved_grade_dir)
+    with pytest.raises(PermissionError):
+        (run_path.parent / "grade-ledger.ndjson").write_bytes(b"")
+    with pytest.raises(ContractValidationError) as excinfo:
+        append_grade(str(run["runId"]), replacement, tmp_path)
+
+    assert excinfo.value.reason_code == "grade.grader_digest_already_exists"
+    assert first_path.read_bytes() == original_grade_bytes
+    assert not moved_grade_dir.exists()
 
 
 def test_second_grader_appends_without_mutating_first_grade_or_raw_evidence(tmp_path):
