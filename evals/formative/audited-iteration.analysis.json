@@ -12,7 +12,7 @@
   "decisionOutput": {
     "component": "audited-iteration",
     "decision": "not_selected",
-    "evidenceDigest": "sha256:43827e3bdb268430854197d0818f0187d45b993492df2eb8c5e386640b816bf0",
+    "evidenceDigest": "sha256:5c351d193b18d008fc94b7aeb141fec1f85ce797225f317b705eec4f7037d620",
     "reason": "The candidate is not retained because T026 has no observed incumbent-versus-treatment long-task ablation, its deterministic replay copies authored outcomes, the T024 CLI cannot close accepted findings or pending obligations, and the required resource and regression gates are unmeasured."
   },
   "metrics": {
