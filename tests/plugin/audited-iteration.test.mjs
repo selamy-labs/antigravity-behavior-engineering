@@ -390,6 +390,10 @@ test("behavior lock omits the rejected skill and resolves every shipped file fro
   assert.equal(Object.hasOwn(lock.files, "skills/audited-iteration/SKILL.md"), false);
   assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
 
+  for (const component of lock.components) {
+    assert.equal(component.digest, lock.files[component.path]);
+  }
+
   for (const relativePath of pluginFiles) {
     assert.equal(lock.files[relativePath], await fileDigest(path.join(pluginRoot, relativePath)));
     const recovered = spawnSync(
