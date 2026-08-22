@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "superpowers-incumbent-formative-pilot-2026-08-22",
+  "matrixType": "superpowers-paired-incumbent-pilot",
+  "partition": "formative",
+  "conditionPair": [
+    "bare",
+    "superpowers"
+  ],
+  "rawEvidenceRoot": "evidence/raw/formative/incumbent-baseline",
+  "sourceRegistries": {
+    "schemaVersion": 1,
+    "taskFamilies": "evals/protocols/task-families.json",
+    "analysisLocks": "evals/protocols/analysis-locks.json",
+    "qualificationProtocol": "evals/protocols/qualification.json"
+  },
+  "superpowersSource": {
+    "schemaVersion": 1,
+    "name": "superpowers",
+    "sourceUrl": "https://github.com/obra/superpowers",
+    "revision": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+    "version": "6.3.0",
+    "license": "MIT",
+    "rootDigest": "sha256:a89f1095b9170551686c36a85efb811bfffa6f925c6b757d17b4dcd540a6ea00"
+  },
+  "superpowersFileDigests": {
+    "LICENSE": "sha256:a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400",
+    ".codex-plugin/plugin.json": "sha256:d7ac84a700062e865715f75626945a2a3324778c68dba1a543c7ed41e48def10",
+    "gemini-extension.json": "sha256:3200d324e4ce3c47edf5cf4b251878febb9c32f64ec33bb9eb58c06d96c8e3b9",
+    "GEMINI.md": "sha256:0823da8b7277f8b623746d57c0bee75fda02e4c832fe57843e644d0fe633abbc",
+    "hooks/session-start": "sha256:88a060272ca8047e0d1cd73a016e1cebba8396807a44be1e296d7c02dcbb9934"
+  },
+  "sourceShaInstallSupported": false,
+  "stateIsolation": {
+    "schemaVersion": 1,
+    "appHome": "fresh-per-attempt",
+    "profile": "fresh-per-attempt",
+    "repository": "fresh-fixture-only-checkout",
+    "priorConversation": "none",
+    "crossRunContaminationCanary": "committed-digest-only"
+  },
+  "repositoryInstructionPolicy": {
+    "schemaVersion": 1,
+    "source": "fixture-only",
+    "localTreatmentFilesAllowed": false,
+    "superpowersAllowed": true,
+    "candidatePackageAllowed": false
+  },
+  "modelRequests": [
+    "gemini-3.1-pro-high",
+    "gemini-3.7-flash-high"
+  ],
+  "reasoningRequest": "high",
+  "repetitionsPerPairCell": 3,
+  "familyIds": [
+    "fr044-agent-positive-control",
+    "fr044-debug-repair",
+    "fr044-durable-intent-restart",
+    "fr044-hook-tool-failure",
+    "fr044-interrogation-injection",
+    "fr044-leakage-state-isolation",
+    "fr044-model-quota-drift",
+    "fr044-permission-missing-input",
+    "fr044-preferences-dirty-worktree",
+    "fr044-proportionality-safe-default",
+    "fr044-review-defect-contrast",
+    "fr044-rule-negative-control",
+    "fr044-tooling-negative-control",
+    "fr044-verification-truncation"
+  ],
+  "classificationPolicy": {
+    "schemaVersion": 1,
+    "policyId": "classification-policy-t008",
+    "reasonCodes": [
+      {
+        "schemaVersion": 1,
+        "reasonCode": "adapter_failure",
+        "priority": 1
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "budget_exhaustion",
+        "priority": 2
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "grader_leakage",
+        "priority": 3
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "invalid_controller_input",
+        "priority": 4
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "malformed_ndjson",
+        "priority": 5
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "needs_input",
+        "priority": 6
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "ordinary_artifact_failure",
+        "priority": 7
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "pre_start_auth_failure",
+        "priority": 8
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "product_timeout",
+        "priority": 9
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "safety_refusal",
+        "priority": 10
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "success",
+        "priority": 11
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "test_flake",
+        "priority": 12
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "tool_misuse",
+        "priority": 13
+      },
+      {
+        "schemaVersion": 1,
+        "reasonCode": "truncated_ndjson",
+        "priority": 14
+      }
+    ],
+    "replacementCaps": {
+      "adapter_failure": 1,
+      "malformed_ndjson": 1,
+      "pre_start_auth_failure": 1,
+      "test_flake": 1,
+      "truncated_ndjson": 1
+    },
+    "validRunProjection": "gradable_only",
+    "policyDigest": "sha256:e37d8012ffe55956d37837d66475fe9362591a6f23a70b63cd6d60ce49db054a"
+  },
+  "outcomeProgram": {
+    "bare": [
+      {
+        "pairOrdinal": 1,
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "stale_claim_without_verification"
+      },
+      {
+        "pairOrdinal": 2,
+        "reasonCode": "product_timeout",
+        "firstDivergenceCode": "tool_failure_not_recovered"
+      },
+      {
+        "pairOrdinal": 3,
+        "reasonCode": "needs_input",
+        "firstDivergenceCode": "missing_question_before_edit"
+      }
+    ],
+    "superpowers": [
+      {
+        "pairOrdinal": 1,
+        "reasonCode": "success",
+        "firstDivergenceCode": "none"
+      },
+      {
+        "pairOrdinal": 2,
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "scope_boundary_missed"
+      },
+      {
+        "pairOrdinal": 3,
+        "reasonCode": "success",
+        "firstDivergenceCode": "none"
+      }
+    ]
+  }
+}

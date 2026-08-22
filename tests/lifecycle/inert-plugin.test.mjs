@@ -198,7 +198,18 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
   assert.equal(lock.packageVersion, "0.0.0");
   assert.equal(lock.minimumCliVersion, "1.1.18");
   assert.deepEqual(lock.components, []);
-  assert.deepEqual(lock.dependencies, []);
+  assert.deepEqual(lock.dependencies, [
+    {
+      schemaVersion: 1,
+      name: "superpowers",
+      sourceUrl: "https://github.com/obra/superpowers",
+      revision: "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      license: "MIT",
+      consumption: "research",
+      required: false,
+      qualificationEvidence: "docs/provenance/superpowers-lock.md",
+    },
+  ]);
   assert.deepEqual(lock.lifecycle.requiredCommands, [
     "validate",
     "install",

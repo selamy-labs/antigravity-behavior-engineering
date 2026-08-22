@@ -24,6 +24,8 @@ const PACKAGE_LOCK_KEYS = new Set([
 const PLATFORM_KEYS = new Set(["schemaVersion", "os", "architecture", "nodeRange"]);
 const COMPONENT_KEYS = new Set(["schemaVersion", "kind", "name", "path", "claimId", "defaultEnabled", "digest"]);
 const COMPONENT_KINDS = new Set(["skill", "rule", "agent", "hook", "script"]);
+const DEPENDENCY_KEYS = new Set(["schemaVersion", "name", "sourceUrl", "revision", "license", "consumption", "required", "qualificationEvidence"]);
+const DEPENDENCY_CONSUMPTIONS = new Set(["runtime", "development", "research"]);
 const LIFECYCLE_KEYS = new Set(["requiredCommands", "volatilityPolicy"]);
 const VOLATILITY_KEYS = new Set(["ignoredPaths"]);
 
@@ -124,6 +126,34 @@ const validateComponent = (component, index) => {
   assertDigest(component.digest, "$.components[" + index + "].digest");
 };
 
+const validateDependency = (dependency, index) => {
+  assertObject(dependency, "$.dependencies[" + index + "]");
+  assertKnownKeys(dependency, DEPENDENCY_KEYS, "$.dependencies[" + index + "]");
+  if (dependency.schemaVersion !== 1) {
+    fail("lifecycle.invalid_field", "$.dependencies[" + index + "].schemaVersion");
+  }
+  assertNonEmptyString(dependency.name, "$.dependencies[" + index + "].name");
+  if (typeof dependency.sourceUrl !== "string" || !dependency.sourceUrl.startsWith("https://") || dependency.sourceUrl.includes("\u0000")) {
+    fail("lifecycle.invalid_field", "$.dependencies[" + index + "].sourceUrl");
+  }
+  if (typeof dependency.revision !== "string" || !PINNED_REVISION_PATTERN.test(dependency.revision)) {
+    fail("lifecycle.invalid_field", "$.dependencies[" + index + "].revision");
+  }
+  assertNonEmptyString(dependency.license, "$.dependencies[" + index + "].license");
+  if (!DEPENDENCY_CONSUMPTIONS.has(dependency.consumption)) {
+    fail("lifecycle.invalid_field", "$.dependencies[" + index + "].consumption");
+  }
+  if (typeof dependency.required !== "boolean") {
+    fail("lifecycle.invalid_field", "$.dependencies[" + index + "].required");
+  }
+  if (dependency.qualificationEvidence !== "not_qualified") {
+    assertRelativePath(dependency.qualificationEvidence, "$.dependencies[" + index + "].qualificationEvidence");
+  }
+  if (dependency.required && dependency.qualificationEvidence === "not_qualified") {
+    fail("lifecycle.unqualified_required_dependency", "$.dependencies[" + index + "].qualificationEvidence");
+  }
+};
+
 const validateLifecycle = (lifecycle) => {
   assertObject(lifecycle, "$.lifecycle");
   assertKnownKeys(lifecycle, LIFECYCLE_KEYS, "$.lifecycle");
@@ -173,9 +203,17 @@ const validateLock = (lock) => {
     }
     components.add(key);
   });
-  if (!Array.isArray(lock.dependencies) || lock.dependencies.length !== 0) {
+  if (!Array.isArray(lock.dependencies)) {
     fail("lifecycle.invalid_field", "$.dependencies");
   }
+  const dependencies = new Set();
+  lock.dependencies.forEach((dependency, index) => {
+    validateDependency(dependency, index);
+    if (dependencies.has(dependency.name)) {
+      fail("lifecycle.invalid_field", "$.dependencies");
+    }
+    dependencies.add(dependency.name);
+  });
   assertObject(lock.files, "$.files");
   for (const [relativePath, digest] of Object.entries(lock.files)) {
     assertRelativePath(relativePath, "$.files");
