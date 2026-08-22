@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "analysisType": "reviewer-ablation-formative-analysis",
+  "analysisId": "requirements-reviewer-formative-2026-08-22",
+  "component": "requirements-falsifier",
+  "matrixPath": "evals/formative/requirements-reviewer.matrix.json",
+  "matrixDigest": "sha256:bf45a38fd0d2a18b27c4d5e6aa670540663ba55c436f5681c2d0e3f13eeb2bdc",
+  "replayProtocol": {
+    "observedAt": "2026-08-22T21:55:18Z",
+    "cli": {"name": "agy", "version": "1.1.18"},
+    "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+    "requestedReasoning": "high",
+    "servedModelIdentity": "requested model recorded; independent served identity unavailable from print-mode output",
+    "workspaceProfile": "fresh temporary project with slash-command expansion disabled",
+    "sandbox": true,
+    "toolInvocations": 0,
+    "permissionRequests": 0,
+    "authenticationMode": "environment-supplied existing CLI authentication",
+    "printTimeoutSeconds": 180,
+    "repetitionsPerModelProfile": 1,
+    "promptDigests": {
+      "matched": "sha256:e2114c3ab48755a895b6c8e2404bbb04ee7ed07ceaa45c5eea3fbe67f4656b38",
+      "higher-cost-labeled": "sha256:08a2781f7607e50af65dc2260c85340b9968406669a283e853167d9dac1bd819"
+    }
+  },
+  "incumbentReplay": {
+    "attemptedBeforeCandidateBody": true,
+    "candidateDefinitionPresentDuringReplay": false,
+    "models": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+    "profiles": ["matched", "higher-cost-labeled"],
+    "invocations": 4,
+    "scenarioJudgments": 20,
+    "truePositives": 12,
+    "falseNegatives": 0,
+    "falsePositives": 0,
+    "trueNegatives": 8,
+    "materialDefectRecall": "1.00",
+    "precision": "1.00",
+    "observations": [
+      {"model": "gemini-3.1-pro-high", "profileId": "matched", "responseDigest": "sha256:c2b16829436a6e7e23156c9a698d04aa8643d4dafef481333574952d95d7f6d4", "runRecordDigest": "sha256:7d10780379128593a4b65e07bb2b7da6bb916cab7616ddd671364de3c6f84a3f", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "18.796", "totalTokens": 23635},
+      {"model": "gemini-3.1-pro-high", "profileId": "higher-cost-labeled", "responseDigest": "sha256:c81de464178439dac6d5ddf2bd8c9ac4ef665c38ca00d78e5391b1bea27804a1", "runRecordDigest": "sha256:d5ad181b1d5e884c2b4d1f700b0ccc76496c0de8f1cb200a2ebdf2e2c1d3d4da", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "22.315", "totalTokens": 32318},
+      {"model": "gemini-3.7-flash-high", "profileId": "matched", "responseDigest": "sha256:689293ea07874cdd26ab8120f541f19dcfd2f930cee8b2983cea32f8c7d2cfdf", "runRecordDigest": "sha256:ee43323e2528242bee45946330b1edb1e6f80ff2979682fec58da87245c2c5eb", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "6.686", "totalTokens": 31357},
+      {"model": "gemini-3.7-flash-high", "profileId": "higher-cost-labeled", "responseDigest": "sha256:25fa6ec41a7b5c231b5e312efcdd5aba2f4c82d6f204baf8ef8f10d67546cb1f", "runRecordDigest": "sha256:a24b441e4fc6205b05dc6883e32fc7a4791ba82d775222b22ef498146b1cc4be", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "7.228", "totalTokens": 31518}
+    ]
+  },
+  "protectedEvidence": {
+    "committed": false,
+    "recordDigest": "sha256:524b7a3244c31fc1166ac76d9af996c3952fe1d466546c6cf85a4a4317f2c81a",
+    "sourceRunDigests": [
+      "sha256:7d10780379128593a4b65e07bb2b7da6bb916cab7616ddd671364de3c6f84a3f",
+      "sha256:d5ad181b1d5e884c2b4d1f700b0ccc76496c0de8f1cb200a2ebdf2e2c1d3d4da",
+      "sha256:ee43323e2528242bee45946330b1edb1e6f80ff2979682fec58da87245c2c5eb",
+      "sha256:a24b441e4fc6205b05dc6883e32fc7a4791ba82d775222b22ef498146b1cc4be"
+    ]
+  },
+  "frozenGate": {
+    "materialDefectRecallMinimum": "0.85",
+    "precisionMinimum": "0.80",
+    "acceptedRepairFreshChecksRequired": true,
+    "materialRegressionMaximum": 0
+  },
+  "candidateBodyCreated": false,
+  "treatmentReplay": {
+    "status": "not_run",
+    "reason": "The pre-treatment incumbent exceeded both frozen effectiveness thresholds without false positives, so the repository requires not_selected and forbids creating a treatment body."
+  },
+  "decisionOutput": {
+    "component": "requirements-falsifier",
+    "decision": "not_selected",
+    "reason": "The observed incumbent gap disappeared before treatment creation: recall and precision were both 1.00 across both requested models, both profiles, all planted defects, and both defect-free controls. The pre-registered matrix also lacks a quantitative resource ceiling, so it cannot support selecting a treatment."
+  },
+  "selectionGate": {
+    "effectivenessGap": "not_observed",
+    "resourceEnvelope": "not_pre_registered",
+    "supportsSelection": false
+  },
+  "invalidVerdictsBecomePass": false,
+  "replayedVerdictsBecomePass": false,
+  "timedOutVerdictsBecomePass": false,
+  "permissionBlockedVerdictsBecomePass": false,
+  "packageInfrastructureRetained": true,
+  "retained": false,
+  "limitations": [
+    "The formative cases are conclusion-free claim-level probes rather than repository-sized diffs.",
+    "The pre-registered matrix has no quantitative latency or token ceiling, so its resource evidence cannot support selecting a treatment.",
+    "The CLI records requested model slugs but does not independently attest served model identity in print-mode output.",
+    "The approved builder interface constructs the pair envelope and role packages in one process; the closed envelope schema omits package content and does not claim fresh-process reconstruction.",
+    "The approved verdict-validator interface performs structural request and digest binding only; evidence-locator existence and content checks remain downstream triage because no package root is supplied.",
+    "No treatment comparison exists because the incumbent saturated the frozen selection metrics before a candidate body was permitted.",
+    "The package builder is retained as role-neutral infrastructure required by the downstream paired-review contract; no requirements reviewer agent is packaged."
+  ]
+}
