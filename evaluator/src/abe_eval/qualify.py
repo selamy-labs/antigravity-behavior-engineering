@@ -11,6 +11,8 @@ from abe_eval.antigravity import AntigravityWorkerHandle, qualify_environment, r
 from abe_eval.bare_condition import MATRIX_TYPE, run_bare_pilot_matrix
 from abe_eval.canonical import canonical_bytes
 from abe_eval.contracts import parse_contract
+from abe_eval.paired_incumbent import MATRIX_TYPE as PAIRED_INCUMBENT_MATRIX_TYPE
+from abe_eval.paired_incumbent import run_paired_incumbent_matrix
 
 
 def load_json(path: Path) -> dict[str, object]:
@@ -64,6 +66,7 @@ def command_run_matrix(
     matrix_path: Path,
     qualification_path: Path,
     condition: str | None = None,
+    condition_pair: tuple[str, str] | None = None,
     raw_root: Path | None = None,
 ) -> object:
     matrix = load_json(matrix_path)
@@ -76,6 +79,12 @@ def command_run_matrix(
         if raw_root is None:
             raise ValueError("bare_condition.raw_root_required")
         return run_bare_pilot_matrix(matrix, qualification, raw_root)
+    if matrix.get("matrixType") == PAIRED_INCUMBENT_MATRIX_TYPE:
+        if condition_pair != ("bare", "superpowers"):
+            raise ValueError("paired_incumbent.condition_pair_mismatch")
+        if raw_root is None:
+            raise ValueError("paired_incumbent.raw_root_required")
+        return run_paired_incumbent_matrix(matrix, qualification, raw_root)
     return run_matrix(matrix, qualification)
 
 

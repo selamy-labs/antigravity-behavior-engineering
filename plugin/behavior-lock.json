@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "antigravity-behavior-engineering",
   "packageVersion": "0.0.0",
-  "sourceRevision": "10d77316900a204753e8e2f5c259644d5aefdad8",
+  "sourceRevision": "f648393b11a8a244fd5f58ad8175f9cb48309c0a",
   "minimumCliVersion": "1.1.18",
   "supportedPlatforms": [
     {
@@ -13,7 +13,18 @@
     }
   ],
   "components": [],
-  "dependencies": [],
+  "dependencies": [
+    {
+      "schemaVersion": 1,
+      "name": "superpowers",
+      "sourceUrl": "https://github.com/obra/superpowers",
+      "revision": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "license": "MIT",
+      "consumption": "research",
+      "required": false,
+      "qualificationEvidence": "docs/provenance/superpowers-lock.md"
+    }
+  ],
   "files": {
     "plugin.json": "sha256:72cb82d159e4cd53acdcf4ab2b98318037a84c9917e827f7898f7c570ed6aa45",
     "schemas/completion-gate-event.schema.json": "sha256:56e300ae674a3629ed46ecf0c80e16ceed20f04c48cfc3514cbb87656db7cbf0",

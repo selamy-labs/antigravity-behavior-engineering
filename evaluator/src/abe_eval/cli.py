@@ -16,6 +16,8 @@ from abe_eval.classify import classify
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 from abe_eval.evidence import import_run
 from abe_eval.grade import append_grade
+from abe_eval.paired_incumbent import ANALYSIS_TYPE as PAIRED_INCUMBENT_ANALYSIS_TYPE
+from abe_eval.paired_incumbent import grade_paired_incumbent_baseline
 from abe_eval.qualify import command_qualify, command_run_matrix
 from abe_eval.redact import redact_run
 from abe_eval.runner import RunAttemptInputs, run_attempt
@@ -385,6 +387,10 @@ def _grade_path(raw_root: Path, run: dict[str, object], grade: dict[str, object]
 
 def _cmd_grade(args: argparse.Namespace) -> int:
     raw_root = Path(args.raw_root)
+    raw_analysis = _load_json(Path(args.analysis))
+    if raw_analysis.get("analysisType") == PAIRED_INCUMBENT_ANALYSIS_TYPE:
+        _emit(grade_paired_incumbent_baseline(Path(args.analysis), raw_root))
+        return 0
     analysis = _analysis(Path(args.analysis))
     created: list[str] = []
     skipped: list[str] = []
@@ -543,6 +549,7 @@ def _cmd_run_matrix(args: argparse.Namespace) -> int:
         matrix_path=Path(args.matrix),
         qualification_path=Path(args.qualification),
         condition=getattr(args, "condition", None),
+        condition_pair=tuple(getattr(args, "condition_pair", None) or ()) or None,
         raw_root=Path(args.raw_root) if getattr(args, "raw_root", None) else None,
     )
     if isinstance(result, dict):
@@ -582,6 +589,7 @@ def _parser() -> argparse.ArgumentParser:
     run_matrix_parser = subcommands.add_parser("run-matrix")
     run_matrix_parser.add_argument("--matrix", required=True)
     run_matrix_parser.add_argument("--condition")
+    run_matrix_parser.add_argument("--condition-pair", nargs=2)
     run_matrix_parser.add_argument("--qualification", required=True)
     run_matrix_parser.add_argument("--raw-root")
     run_matrix_parser.set_defaults(func=_cmd_run_matrix)
