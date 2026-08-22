@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { constants } from "node:fs";
 import path from "node:path";
 
 import { canonicalBytes, sha256Digest } from "../../packages/contracts/src/canonical-json.mjs";
@@ -40,21 +41,27 @@ const assertNoSymlink = async (target) => {
 };
 
 const readArtifact = async (artifactRoot, expectedDigest) => {
-  const absolute = path.resolve(process.cwd(), artifactRoot);
-  const relative = path.relative(process.cwd(), absolute);
-  if (relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative)) {
+  const workspaceRoot = await fs.realpath(process.cwd());
+  const absolute = path.resolve(workspaceRoot, artifactRoot);
+  if (!isContained(workspaceRoot, absolute)) {
     throw new ContractValidationError(ReasonCodes.INVALID_PATH, "$.artifactRoot");
   }
   await assertNoSymlink(absolute);
-  const stat = await fs.stat(absolute);
-  if (!stat.isFile()) {
-    throw new ContractValidationError(ReasonCodes.INVALID_PATH, "$.artifactRoot");
+  const handle = await fs.open(absolute, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const stat = await handle.stat();
+    const openedPath = await fs.realpath(`/proc/self/fd/${handle.fd}`);
+    if (!stat.isFile() || !isContained(workspaceRoot, openedPath)) {
+      throw new ContractValidationError(ReasonCodes.INVALID_PATH, "$.artifactRoot");
+    }
+    const bytes = await handle.readFile();
+    if (sha256Digest(bytes) !== expectedDigest) {
+      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.artifactDigest");
+    }
+    return bytes;
+  } finally {
+    await handle.close();
   }
-  const bytes = await fs.readFile(absolute);
-  if (sha256Digest(bytes) !== expectedDigest) {
-    throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.artifactDigest");
-  }
-  return bytes;
 };
 
 const commonFiles = (input, artifactBytes) => ({
@@ -69,6 +76,79 @@ const fileManifest = (files) => Object.fromEntries(
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([name, bytes]) => [name, sha256Digest(bytes)]),
 );
+
+const isContained = (root, target) => {
+  const relative = path.relative(root, target);
+  return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
+};
+
+const openOutputRoot = async (root) => {
+  if (typeof root !== "string" || root.length === 0) {
+    throw new ContractValidationError(ReasonCodes.INVALID_PATH, "$.root");
+  }
+  const absolute = path.resolve(root);
+  await assertNoSymlink(absolute);
+  await fs.mkdir(absolute, { recursive: true });
+  await assertNoSymlink(absolute);
+  const handle = await fs.open(
+    absolute,
+    constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
+  );
+  try {
+    if (!(await handle.stat()).isDirectory()) {
+      throw new ContractValidationError(ReasonCodes.INVALID_PATH, "$.root");
+    }
+    const anchoredPath = `/proc/self/fd/${handle.fd}`;
+    await fs.realpath(anchoredPath);
+    return { handle, anchoredPath };
+  } catch (error) {
+    await handle.close();
+    throw error;
+  }
+};
+
+const publishPackage = async (root, directoryName, files) => {
+  const { handle, anchoredPath } = await openOutputRoot(root);
+  const finalPath = path.join(anchoredPath, directoryName);
+  let stagingPath;
+  try {
+    stagingPath = await fs.mkdtemp(path.join(anchoredPath, ".review-package-"));
+    for (const [name, bytes] of Object.entries(files)) {
+      await fs.writeFile(path.join(stagingPath, name), bytes, { flag: "wx" });
+    }
+    try {
+      await fs.rename(stagingPath, finalPath);
+      stagingPath = undefined;
+      return;
+    } catch (error) {
+      if (!["EEXIST", "ENOTEMPTY"].includes(error?.code)) {
+        throw error;
+      }
+    }
+    await fs.rm(stagingPath, { recursive: true, force: true });
+    stagingPath = undefined;
+    const stat = await fs.lstat(finalPath);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) {
+      throw new ContractValidationError(ReasonCodes.INVALID_PATH, "$.root");
+    }
+    const actualNames = (await fs.readdir(finalPath)).sort();
+    const expectedNames = Object.keys(files).sort();
+    if (actualNames.length !== expectedNames.length
+      || actualNames.some((name, index) => name !== expectedNames[index])) {
+      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+    }
+    for (const [name, bytes] of Object.entries(files)) {
+      if (!(await fs.readFile(path.join(finalPath, name))).equals(bytes)) {
+        throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+      }
+    }
+  } finally {
+    if (stagingPath !== undefined) {
+      await fs.rm(stagingPath, { recursive: true, force: true }).catch(() => {});
+    }
+    await handle.close();
+  }
+};
 
 export const buildReviewPairEnvelope = (value) => {
   const input = parseReviewPackageInput(value);
@@ -104,7 +184,6 @@ export const buildReviewPackage = async (value, role, root) => {
   if (!input) {
     throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.reviewPairEnvelopeDigest");
   }
-  await assertNoSymlink(root);
   const artifactBytes = await readArtifact(input.artifactRoot, input.artifactDigest);
   const common = commonFiles(input, artifactBytes);
   const actualSharedDigest = sha256Digest(canonicalBytes(fileManifest(common)));
@@ -137,17 +216,12 @@ export const buildReviewPackage = async (value, role, root) => {
     authorityDigest: envelope.authorityDigest,
   });
 
-  const packageRoot = path.join(
-    path.resolve(root),
-    `${role}-${parsedRequest.reviewRequestDigest.slice("sha256:".length)}`,
-  );
-  await fs.mkdir(path.resolve(root), { recursive: true });
-  await fs.mkdir(packageRoot);
-  for (const [name, bytes] of Object.entries(visibleFiles)) {
-    await fs.writeFile(path.join(packageRoot, name), bytes, { flag: "wx" });
-  }
-  await fs.writeFile(path.join(packageRoot, "artifact-manifest.json"), jsonBytes(manifest), { flag: "wx" });
-  await fs.writeFile(path.join(packageRoot, "review-request.json"), jsonBytes(parsedRequest), { flag: "wx" });
+  const directoryName = `${role}-${parsedRequest.reviewRequestDigest.slice("sha256:".length)}`;
+  await publishPackage(root, directoryName, {
+    ...visibleFiles,
+    "artifact-manifest.json": jsonBytes(manifest),
+    "review-request.json": jsonBytes(parsedRequest),
+  });
   return parsedRequest;
 };
 

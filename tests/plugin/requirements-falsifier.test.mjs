@@ -100,6 +100,12 @@ test("requirements-falsifier is not packaged when incumbent replay closes the ga
   assert.equal(analysis.incumbentReplay.attemptedBeforeCandidateBody, true);
   assert.equal(analysis.incumbentReplay.materialDefectRecall, "1.00");
   assert.equal(analysis.incumbentReplay.precision, "1.00");
+  assert.ok(analysis.incumbentReplay.observations.every(
+    (observation) => /^sha256:[0-9a-f]{64}$/u.test(observation.responseDigest)
+      && /^sha256:[0-9a-f]{64}$/u.test(observation.runRecordDigest),
+  ));
+  assert.match(analysis.protectedEvidence.recordDigest, /^sha256:[0-9a-f]{64}$/u);
+  assert.equal(analysis.selectionGate.supportsSelection, false);
   assert.equal(analysis.candidateBodyCreated, false);
   assert.equal(analysis.decisionOutput.decision, "not_selected");
   await assert.rejects(() => fs.access(agentPath), /ENOENT/u);
@@ -150,6 +156,7 @@ test("review packages bind the shared subject without circular or competing-revi
   const requestBody = Object.fromEntries(Object.entries(request).filter(([key]) => key !== "reviewRequestDigest"));
   assert.equal(request.reviewRequestDigest, sha256Digest(canonicalBytes(requestBody)));
   assert.equal(request.reviewerRole, "requirements");
+  assert.deepEqual(await buildReviewPackage(envelope, "requirements", temporaryRoot), request);
 
   const verdict = structuredClone(reviewerVerdictFixture);
   Object.assign(verdict, {
@@ -162,13 +169,27 @@ test("review packages bind the shared subject without circular or competing-revi
     authorityDigest: request.authorityDigest,
   });
   assert.deepEqual(validateReviewerVerdict(request, verdict), verdict);
-  assert.throws(
-    () => validateReviewerVerdict(request, { ...verdict, authorityDigest: `sha256:${"0".repeat(64)}` }),
-    /binding_mismatch/u,
-  );
+  for (const field of [
+    "artifactDigest",
+    "obligationDigest",
+    "verificationInterfaceDigest",
+    "authorityDigest",
+  ]) {
+    assert.throws(
+      () => validateReviewerVerdict(request, { ...verdict, [field]: `sha256:${"0".repeat(64)}` }),
+      /binding_mismatch/u,
+    );
+  }
   assert.throws(
     () => validateReviewerVerdict(request, { ...verdict, verdict: "pass", inspectedEvidence: [] }),
     /invalid_verdict/u,
+  );
+  const qualityRequest = await buildReviewPackage(envelope, "quality", temporaryRoot);
+  assert.throws(() => validateReviewerVerdict(qualityRequest, verdict), /(?:invalid_role|binding_mismatch)/u);
+  assert.throws(() => validateReviewerVerdict(request, undefined), /invalid_field/u);
+  assert.throws(
+    () => validateReviewerVerdict(request, { status: "permission_blocked" }),
+    /(?:missing_field|unknown_field)/u,
   );
 });
 
@@ -206,6 +227,7 @@ test("formative reviewer evidence freezes mixed controls, profiles, and selectio
     materialRegressionMaximum: 0,
   });
   assert.equal(analysis.invalidVerdictsBecomePass, false);
+  assert.equal(analysis.replayedVerdictsBecomePass, false);
   assert.equal(analysis.timedOutVerdictsBecomePass, false);
   assert.equal(analysis.permissionBlockedVerdictsBecomePass, false);
   assert.equal(analysis.retained, false);
