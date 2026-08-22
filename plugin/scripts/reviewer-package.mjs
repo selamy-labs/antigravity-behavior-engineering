@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { constants } from "node:fs";
+import fsSync, { constants } from "node:fs";
 import path from "node:path";
 
 import { canonicalBytes, sha256Digest } from "../../packages/contracts/src/canonical-json.mjs";
@@ -15,6 +15,19 @@ import {
 const REVIEW_ROLES = new Set(["requirements", "quality"]);
 const REQUIRED_REVIEW_ACTIONS = ["execute_verification", "read", "write_verdict"];
 const packageInputs = new Map();
+const publishedPackages = new Map();
+const PACKAGE_FILE_NAMES = [
+  "approved-obligations.json",
+  "artifact-manifest.json",
+  "artifact-or-diff.patch",
+  "authority.json",
+  "review-pair-envelope.json",
+  "review-request.json",
+  "verification-interface.json",
+];
+const MANIFEST_FILE_NAMES = PACKAGE_FILE_NAMES.filter(
+  (name) => !["artifact-manifest.json", "review-request.json"].includes(name),
+);
 
 const jsonBytes = (value) => Buffer.concat([canonicalBytes(value), Buffer.from("\n")]);
 const selfDigest = (value, field) => sha256Digest(canonicalBytes(
@@ -26,6 +39,26 @@ const assertNoSymlink = async (target) => {
   while (true) {
     try {
       if ((await fs.lstat(cursor)).isSymbolicLink()) {
+        throw new TypeError(`symlink path is not allowed: ${cursor}`);
+      }
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+    }
+    const parent = path.dirname(cursor);
+    if (parent === cursor) {
+      return;
+    }
+    cursor = parent;
+  }
+};
+
+const assertNoSymlinkSync = (target) => {
+  let cursor = path.resolve(target);
+  while (true) {
+    try {
+      if (fsSync.lstatSync(cursor).isSymbolicLink()) {
         throw new TypeError(`symlink path is not allowed: ${cursor}`);
       }
     } catch (error) {
@@ -262,7 +295,116 @@ export const buildReviewPackage = async (value, role, root) => {
     "artifact-manifest.json": jsonBytes(manifest),
     "review-request.json": jsonBytes(parsedRequest),
   });
+  publishedPackages.set(parsedRequest.reviewRequestDigest, {
+    directoryName,
+    root: path.resolve(root),
+  });
   return parsedRequest;
+};
+
+const readPackageSnapshot = (request, envelope) => {
+  const published = publishedPackages.get(request.reviewRequestDigest);
+  if (published === undefined) {
+    throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.reviewRequestDigest");
+  }
+  assertNoSymlinkSync(published.root);
+  const rootHandle = fsSync.openSync(
+    published.root,
+    constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
+  );
+  let packageHandle;
+  try {
+    packageHandle = fsSync.openSync(
+      path.join(`/proc/self/fd/${rootHandle}`, published.directoryName),
+      constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
+    );
+    const packageRoot = `/proc/self/fd/${packageHandle}`;
+    const names = fsSync.readdirSync(packageRoot).sort();
+    if (names.length !== PACKAGE_FILE_NAMES.length
+      || names.some((name, index) => name !== PACKAGE_FILE_NAMES[index])) {
+      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+    }
+    const bytesByName = {};
+    for (const name of names) {
+      const entryHandle = fsSync.openSync(
+        path.join(packageRoot, name),
+        constants.O_RDONLY | constants.O_NOFOLLOW,
+      );
+      try {
+        if (!fsSync.fstatSync(entryHandle).isFile()) {
+          throw new ContractValidationError(
+            ReasonCodes.BINDING_MISMATCH,
+            "$.packageManifestDigest",
+          );
+        }
+        bytesByName[name] = fsSync.readFileSync(entryHandle);
+      } finally {
+        fsSync.closeSync(entryHandle);
+      }
+    }
+    if (!bytesByName["review-request.json"].equals(jsonBytes(request))
+      || !bytesByName["review-pair-envelope.json"].equals(jsonBytes(envelope))) {
+      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.reviewRequestDigest");
+    }
+    const manifest = JSON.parse(bytesByName["artifact-manifest.json"].toString("utf8"));
+    const manifestNames = Object.keys(manifest).sort();
+    if (manifestNames.length !== MANIFEST_FILE_NAMES.length
+      || manifestNames.some((name, index) => name !== MANIFEST_FILE_NAMES[index])) {
+      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+    }
+    for (const name of MANIFEST_FILE_NAMES) {
+      if (manifest[name] !== sha256Digest(bytesByName[name])) {
+        throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+      }
+    }
+    if (sha256Digest(canonicalBytes(manifest)) !== request.packageManifestDigest
+      || !bytesByName["artifact-manifest.json"].equals(jsonBytes(manifest))) {
+      throw new ContractValidationError(ReasonCodes.BINDING_MISMATCH, "$.packageManifestDigest");
+    }
+    return {
+      reviewRequestDigest: request.reviewRequestDigest,
+      reviewerRole: request.reviewerRole,
+      packageManifestDigest: request.packageManifestDigest,
+      fileNames: names,
+    };
+  } finally {
+    if (packageHandle !== undefined) {
+      fsSync.closeSync(packageHandle);
+    }
+    fsSync.closeSync(rootHandle);
+  }
+};
+
+export const validatePublishedReviewPair = (
+  envelopeValue,
+  requirementsRequestValue,
+  qualityRequestValue,
+) => {
+  const envelope = parseReviewPairEnvelope(envelopeValue);
+  const requirementsRequest = parseReviewRequest(requirementsRequestValue, {
+    reviewerRole: "requirements",
+    reviewPairEnvelopeDigest: envelope.reviewPairEnvelopeDigest,
+    artifactDigest: envelope.artifactDigest,
+    obligationDigest: envelope.obligationDigest,
+    verificationInterfaceDigest: envelope.verificationInterfaceDigest,
+    authorityDigest: envelope.authorityDigest,
+  });
+  const qualityRequest = parseReviewRequest(qualityRequestValue, {
+    reviewerRole: "quality",
+    reviewPairEnvelopeDigest: envelope.reviewPairEnvelopeDigest,
+    artifactDigest: envelope.artifactDigest,
+    obligationDigest: envelope.obligationDigest,
+    verificationInterfaceDigest: envelope.verificationInterfaceDigest,
+    authorityDigest: envelope.authorityDigest,
+  });
+  return {
+    schemaVersion: 1,
+    reviewPairEnvelopeDigest: envelope.reviewPairEnvelopeDigest,
+    packageFilePolicy: PACKAGE_FILE_NAMES,
+    requirements: readPackageSnapshot(requirementsRequest, envelope),
+    quality: readPackageSnapshot(qualityRequest, envelope),
+    competingReviewArtifactsPresent: false,
+  };
 };
 
 export const validateReviewerVerdict = (requestValue, verdictValue) => {
