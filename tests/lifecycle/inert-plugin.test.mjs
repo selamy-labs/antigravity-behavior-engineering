@@ -191,6 +191,7 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
   const manifest = await readJson(manifestPath);
   const lock = await loadLock();
   const framingSkillDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md")));
+  const runtimeScriptDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs")));
 
   assert.deepEqual(Object.keys(manifest).sort(), ["name"]);
   assert.equal(manifest.name, "antigravity-behavior-engineering");
@@ -207,6 +208,15 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
       claimId: "T023.evidence-first-framing.material-ambiguity-before-edit",
       defaultEnabled: true,
       digest: framingSkillDigest,
+    },
+    {
+      schemaVersion: 1,
+      kind: "script",
+      name: "abe-evidence-runtime",
+      path: "scripts/runtime-lib.mjs",
+      claimId: "T024.durable-evidence-cli.safe-task-state-mechanics",
+      defaultEnabled: true,
+      digest: runtimeScriptDigest,
     },
   ]);
   assert.deepEqual(lock.dependencies, [

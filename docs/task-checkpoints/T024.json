@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T024",
+  "taskTitle": "Build the dependency-free durable evidence CLI",
+  "taskEntryDigest": "sha256:9e45d5ba81a067fcf79b5dcede7d368d744854491fcfe655787757a208375e8e",
+  "baseCommit": "461505ddcb59d60c48b5d6cbbdba048be540c500",
+  "implementationCommit": "643be49877025ca53a4acd82fd14a0e011494cd8",
+  "treeDigest": "sha256:176de048aafb8495b97535576651f92c8633720756f14482fbd64b81b9e93674",
+  "outcome": "implemented",
+  "files": {
+    "package.json": "sha256:b052f9bdedf6872b1cdd39133692f463371f5c2370c7117533fc7ffb0bb8de3b",
+    "packages/evidence-cli/bin/abe-evidence.mjs": "sha256:1ecf6c9c7a0e1c6857278053eac523753cc919e79bf214b3cd7002fc1445273d",
+    "packages/evidence-cli/package.json": "sha256:2eb120bf62c7769b87976e59d4b085b3b583d1674a04b554f470bc4259f29c27",
+    "packages/evidence-cli/src/runtime-lib.mjs": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
+    "packages/evidence-cli/src/task-state.mjs": "sha256:014547e622e738c7c35da382404117761a0453e6c5d31cca8fe4d08f31cf9ffc",
+    "packages/evidence-cli/test/task-state.test.mjs": "sha256:42db07bb5bd2efad0c48d61acfa9cbd3ca2ff2b058b88203ba80121eceffe9cc",
+    "plugin/behavior-lock.json": "sha256:7aafb93791aa61bee528d0711d62d7efd53efe8e3b335e5736d5eda45806508d",
+    "plugin/scripts/runtime-lib.mjs": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
+    "pnpm-lock.yaml": "sha256:9388de9d4dd77a7ffac251d111a0dbccbc9e68c3396becce828ac8d8e24c12d0",
+    "pnpm-workspace.yaml": "sha256:de0aed161a00aab62c03711bafece0d55316b2f7298c0f8589547e9879786835",
+    "tests/contract/workspace.test.mjs": "sha256:948cc50c8fee1568cb849c2c071d5af513809b9bbae0a100b09cf09c331d9771",
+    "tests/lifecycle/inert-plugin.test.mjs": "sha256:f6ed11441aa0439f7e350e2dff9376f7c190d34ff6d38167881fc523761974df",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:a4c6bb8277b5d66289225f4cdfa91b9846eced3b59cbbc9979275ece3baf48b6",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:f11cf9570e322f08d48a8748dc3c0552e9349457a2435746c1c1541396c8da12"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "jump-test-only-repair",
+        "node",
+        "--test",
+        "packages/evidence-cli/test/task-state.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:8fc8629dbde201d3e8b5fc1807c2e304c710f237ba76d0dbc805a7049131a6b3"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "jump-clean-checkout",
+        "node",
+        "--test",
+        "packages/evidence-cli/test/task-state.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:1fa7a4bac91bfc8f9721775d007035f74ade0d0607590a2f3d0827129e7d10c5"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "jump-clean-checkout",
+        "node",
+        "--test",
+        "packages/contracts/test/canonical-json.test.mjs",
+        "packages/contracts/test/runtime-contracts.test.mjs",
+        "tests/lifecycle/inert-plugin.test.mjs",
+        "tests/plugin/evidence-first-framing.test.mjs",
+        "tests/plugin/kernel-rule.test.mjs",
+        "packages/evidence-cli/test/task-state.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:8ff99761202895b6ff1ca5fbe6f77a1bd654c70526f4e86128da79f4fb86cbb7"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-clean-checkout",
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:724a59e37e6f842fb9bd07c869da44dba06b0ab54f8ee367a81fb5bdb853b76d"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "461505ddcb59d60c48b5d6cbbdba048be540c500..643be49877025ca53a4acd82fd14a0e011494cd8"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t024-public-boundary-scan",
+        "643be49877025ca53a4acd82fd14a0e011494cd8"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:3b52d3a4d62995946350a5a0615d83d611f1fa44684834eba7da817f07033d45"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:5223d51df8816e76c24da8e3770fe8fdeb7f94b0e7a6c5d60a0bedc03a4ff23d",
+      "verdictDigest": "sha256:39b1f23c13029601c5b80087af8d2626ac366c2a98f9f5c963c5ec3f1c247772",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:5223d51df8816e76c24da8e3770fe8fdeb7f94b0e7a6c5d60a0bedc03a4ff23d",
+      "verdictDigest": "sha256:0af4bf4d05cfc55848290ae3fae28c7dca8e0d5538be3c79d0eb24da928724ef",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:3b52d3a4d62995946350a5a0615d83d611f1fa44684834eba7da817f07033d45",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T024 branch; after merge, open a T024-linked revert PR without rewriting public history. The package artifact repair is isolated in commit 643be49877025ca53a4acd82fd14a0e011494cd8 for targeted revert if needed.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T12:36:32Z"
+}

@@ -1,0 +1,15 @@
+export {
+  EvidenceCliError,
+  HELP_TEXT,
+  ReasonCodes,
+  applyTaskStatePatch,
+  canonicalBytes,
+  initializeTaskState,
+  main,
+  parseCompletionGateEvent,
+  parseTaskState,
+  sha256Digest,
+  showTaskStateFile,
+  validateTaskStateFile,
+  writeCanonicalAtomic,
+} from "./runtime-lib.mjs";

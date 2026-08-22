@@ -36,6 +36,7 @@ const t001TextFiles = [
   'evaluator/uv.lock',
   'package.json',
   'packages/contracts/package.json',
+  'packages/evidence-cli/package.json',
   'packages/plugin-tooling/package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
@@ -50,6 +51,7 @@ for (const relativePath of t001TextFiles) {
 for (const relativePath of [
   'package.json',
   'packages/contracts/package.json',
+  'packages/evidence-cli/package.json',
   'packages/plugin-tooling/package.json',
 ]) {
   const contents = fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
@@ -115,13 +117,13 @@ const pnpmWorkspaceMembers = pnpmWorkspace
   .map((line) => line.slice(2).replace(/^['"]|['"]$/g, ''));
 assert.deepEqual(
   pnpmWorkspaceMembers,
-  ['packages/contracts', 'packages/plugin-tooling'],
+  ['packages/contracts', 'packages/evidence-cli', 'packages/plugin-tooling'],
   'pnpm workspace members',
 );
 assert.match(pnpmLock, /^lockfileVersion: '9\.0'$/m, 'pnpm lockfile version');
 assert.deepEqual(
   [...pnpmLock.matchAll(/^  ([^:\n]+): \{\}$/gm)].map((match) => match[1]),
-  ['.', 'packages/contracts', 'packages/plugin-tooling'],
+  ['.', 'packages/contracts', 'packages/evidence-cli', 'packages/plugin-tooling'],
   'pnpm lock importers',
 );
 const uvPackagePairs = [...uvLock.matchAll(/^\[\[package\]\]\nname = "([^"]+)"\nversion = "([^"]+)"$/gm)].map(
@@ -192,7 +194,7 @@ for (const expected of [
         verify: 'corepack pnpm verify:offline',
         'verify:offline': 'corepack pnpm format:check && corepack pnpm test:node && corepack pnpm test:python && uv run --no-project --offline python -m py_compile evaluator/src/abe_eval/__init__.py',
       },
-      workspaces: ['packages/contracts', 'packages/plugin-tooling'],
+      workspaces: ['packages/contracts', 'packages/evidence-cli', 'packages/plugin-tooling'],
       dependencies: {},
       devDependencies: {},
       main: undefined,
@@ -217,6 +219,26 @@ for (const expected of [
       main: undefined,
       exports: undefined,
       bin: undefined,
+      dependencies: {},
+      devDependencies: {},
+    },
+  },
+  {
+    id: 'evidence-cli',
+    path: 'packages/evidence-cli/package.json',
+    spec: {
+      name: '@antigravity/abe-evidence-cli',
+      version: '0.0.0',
+      license: 'Apache-2.0',
+      type: 'module',
+      main: undefined,
+      exports: { '.': './src/task-state.mjs' },
+      bin: { 'abe-evidence': './bin/abe-evidence.mjs' },
+      files: [
+        'bin/abe-evidence.mjs',
+        'src/runtime-lib.mjs',
+        'src/task-state.mjs',
+      ],
       dependencies: {},
       devDependencies: {},
     },
@@ -256,6 +278,9 @@ for (const expected of [
   assert.deepEqual(loaded.main, expected.spec.main, `${expected.id}: main`);
   assert.deepEqual(loaded.exports, expected.spec.exports, `${expected.id}: exports`);
   assert.deepEqual(loaded.bin, expected.spec.bin, `${expected.id}: bin`);
+  if (expected.spec.files) {
+    assert.deepEqual(loaded.files, expected.spec.files, `${expected.id}: files`);
+  }
   if (expected.spec.scripts) {
     assert.deepEqual(loaded.scripts, expected.spec.scripts, `${expected.id}: scripts`);
   }

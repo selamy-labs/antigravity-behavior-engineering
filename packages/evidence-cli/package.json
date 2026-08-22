@@ -1,0 +1,21 @@
+{
+  "name": "@antigravity/abe-evidence-cli",
+  "version": "0.0.0",
+  "description": "Dependency-free durable evidence CLI for Antigravity behavior engineering",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/task-state.mjs"
+  },
+  "bin": {
+    "abe-evidence": "./bin/abe-evidence.mjs"
+  },
+  "files": [
+    "bin/abe-evidence.mjs",
+    "src/runtime-lib.mjs",
+    "src/task-state.mjs"
+  ],
+  "dependencies": {},
+  "devDependencies": {}
+}
