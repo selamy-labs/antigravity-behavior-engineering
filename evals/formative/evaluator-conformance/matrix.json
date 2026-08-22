@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "evaluator-conformance-fake-matrix-001",
+  "seed": "t010-fake-matrix-seed",
+  "block": {
+    "schemaVersion": 1,
+    "blockId": "fake-matrix-evaluator-conformance-001",
+    "modelRequest": "gemini-3.7-flash-high",
+    "scenarioDigests": [
+      "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+      "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "sha256:7777777777777777777777777777777777777777777777777777777777777777"
+    ],
+    "conditionIds": [
+      "bare",
+      "full"
+    ],
+    "conditionPairLockDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "repetitions": 1,
+    "randomizationSeedCommitment": "sha256:6b9f0ef1cc7b01932533aec5b4eae648c775c55dd5df0f00187ab5aa79042b8f",
+    "resourceEnvelopeDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "classificationPolicy": {
+    "schemaVersion": 1,
+    "policyId": "classification-policy-t008",
+    "reasonCodes": [
+      {"schemaVersion": 1, "reasonCode": "adapter_failure", "priority": 1},
+      {"schemaVersion": 1, "reasonCode": "budget_exhaustion", "priority": 2},
+      {"schemaVersion": 1, "reasonCode": "grader_leakage", "priority": 3},
+      {"schemaVersion": 1, "reasonCode": "invalid_controller_input", "priority": 4},
+      {"schemaVersion": 1, "reasonCode": "malformed_ndjson", "priority": 5},
+      {"schemaVersion": 1, "reasonCode": "needs_input", "priority": 6},
+      {"schemaVersion": 1, "reasonCode": "ordinary_artifact_failure", "priority": 7},
+      {"schemaVersion": 1, "reasonCode": "pre_start_auth_failure", "priority": 8},
+      {"schemaVersion": 1, "reasonCode": "product_timeout", "priority": 9},
+      {"schemaVersion": 1, "reasonCode": "safety_refusal", "priority": 10},
+      {"schemaVersion": 1, "reasonCode": "success", "priority": 11},
+      {"schemaVersion": 1, "reasonCode": "test_flake", "priority": 12},
+      {"schemaVersion": 1, "reasonCode": "tool_misuse", "priority": 13},
+      {"schemaVersion": 1, "reasonCode": "truncated_ndjson", "priority": 14}
+    ],
+    "replacementCaps": {
+      "adapter_failure": 1,
+      "malformed_ndjson": 1,
+      "pre_start_auth_failure": 1,
+      "test_flake": 1,
+      "truncated_ndjson": 1
+    },
+    "validRunProjection": "gradable_only",
+    "policyDigest": "sha256:e37d8012ffe55956d37837d66475fe9362591a6f23a70b63cd6d60ce49db054a"
+  },
+  "caseOrder": [
+    "pre_start_auth_failure",
+    "invalid_controller_input",
+    "product_timeout",
+    "needs_input",
+    "safety_refusal",
+    "malformed_ndjson",
+    "truncated_ndjson",
+    "grader_leakage",
+    "adapter_failure",
+    "budget_exhaustion",
+    "tool_misuse",
+    "test_flake",
+    "ordinary_artifact_failure",
+    "success"
+  ],
+  "behaviors": {
+    "pre_start_auth_failure": {"preStartFailure": "authentication"},
+    "invalid_controller_input": {"controllerInputMismatch": "condition"},
+    "product_timeout": {"terminalKind": "product_timeout", "controllerExitCode": 124, "workerExitCode": "none", "timeout": true},
+    "needs_input": {"terminalKind": "agent_finished", "controllerExitCode": 0, "workerExitCode": 0, "agentDeclaredState": "needs_input", "inputPermissionState": "needs_input"},
+    "safety_refusal": {"terminalKind": "agent_finished", "agentDeclaredState": "safety_refusal"},
+    "malformed_ndjson": {"terminalKind": "capture_indeterminate", "infrastructureValidity": "capture_malformed"},
+    "truncated_ndjson": {"terminalKind": "capture_indeterminate", "infrastructureValidity": "capture_truncated"},
+    "grader_leakage": {"terminalKind": "capture_indeterminate", "infrastructureValidity": "grader_leakage_detected"},
+    "adapter_failure": {"terminalKind": "adapter_failure", "controllerExitCode": 70, "workerExitCode": "none", "infrastructureValidity": "adapter_failure"},
+    "budget_exhaustion": {"terminalKind": "agent_finished", "consumption": {"toolCalls": 20, "wallTimeMs": 600000}},
+    "tool_misuse": {"terminalKind": "agent_finished", "agentDeclaredState": "tool_misuse"},
+    "test_flake": {"terminalKind": "capture_indeterminate", "infrastructureValidity": "test_flake"},
+    "ordinary_artifact_failure": {"terminalKind": "agent_finished", "agentDeclaredState": "artifact_failed"},
+    "success": {"terminalKind": "agent_finished", "agentDeclaredState": "completed"}
+  }
+}
