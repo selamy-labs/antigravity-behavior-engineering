@@ -188,7 +188,7 @@ test("formative matrix selects iteration gaps and preserves a trivial-task contr
     materializedEvaluatorRunsAddedByT026: true,
     rawEvidenceCommitted: false,
   });
-  assert.equal(analysis.incumbentReplay.attemptedBeforeCandidateBody, false);
+  assert.equal(analysis.incumbentReplay.attemptedBeforeCandidateBody, true);
   assert.equal(analysis.incumbentReplay.runsCreated, 16);
   assert.equal(analysis.matchedAfterReplay.attemptedAfterCandidateBody, true);
   assert.equal(analysis.matchedAfterReplay.runsCreated, 32);

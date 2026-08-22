@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "audited-iteration-formative-2026-08-22",
+  "matrixType": "skill-ablation-formative",
+  "partition": "formative",
+  "component": "audited-iteration",
+  "skillPath": "plugin/skills/audited-iteration/SKILL.md",
+  "incumbentCondition": "incumbent-before",
+  "conditionPair": ["incumbent-minus", "incumbent-plus"],
+  "modelRequests": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+  "reasoningRequest": "high",
+  "repetitionsPerScenario": 1,
+  "sourceBaselines": [
+    {"path": "plugin/skills/proof-obligation-contract/SKILL.md", "digest": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379", "selectedBehaviorLabels": ["TaskState", "iteration checkpoints", "cold recovery"]},
+    {"path": "evals/formative/proof-obligation-contract.matrix.json", "digest": "sha256:6aed9052b13a84ede2b52075cf0254f04e58e90bc0c4a6f298bc711482bbc689", "selectedBehaviorLabels": ["cold_process_recovery", "one_check_non_activation"]},
+    {"path": "evals/formative/proof-obligation-contract.analysis.json", "digest": "sha256:c540c238b2a655cfd2c23653b2d19a5696549240b828d26bcc4e60f42b982977", "selectedBehaviorLabels": ["coldRecoveryPreserved", "oneCheckNonActivation"]},
+    {"path": "docs/task-checkpoints/T025.json", "digest": "sha256:c6df6bcb1c335fe6e86fc8fb3783e7fdbb2e4dbeef4f29d6ae6ab33b4b2ff55b", "selectedBehaviorLabels": ["proof-obligation-contract"]},
+    {"path": "evals/protocols/task-families.json", "digest": "sha256:aa8df628e3d90f7902a3110b8e81d927861f9aa12fa8e6c1194e7823fffca2d5", "selectedBehaviorLabels": ["cold_restart", "dirty_worktrees", "repair"]}
+  ],
+  "selectedFailures": [
+    {"caseId": "repeated-work-uncheckpointed", "firstDivergenceCode": "repeated_work_without_checkpoint", "baselineSignal": "the same investigation or change is repeated because prior progress lacks a reviewable next action", "requiredRepair": "append a checkpoint with actual scope, affected evidence, and exact next action"},
+    {"caseId": "failed-checkpoint-corruption", "firstDivergenceCode": "failed_checkpoint_corruption", "baselineSignal": "a failed verification is overwritten or narrated as if recovery succeeded", "requiredRepair": "preserve the failed checkpoint and recover from observed workspace and evidence state"},
+    {"caseId": "lost-finding-after-interruption", "firstDivergenceCode": "lost_finding_after_interruption", "baselineSignal": "a cold restart omits an accepted review finding or its repair obligation", "requiredRepair": "link findings, repair, re-verification, and closure in append-only checkpoints"},
+    {"caseId": "sentinel-regression-after-repair", "firstDivergenceCode": "sentinel_regression_after_repair", "baselineSignal": "a focused repair silently regresses a previously passing affected seam", "requiredRepair": "preserve and re-run relevant sentinel evidence"},
+    {"caseId": "restart-diverges-from-actual-state", "firstDivergenceCode": "restart_diverges_from_actual_state", "baselineSignal": "recovery follows conversation narration instead of the current worktree and durable artifacts", "requiredRepair": "reconcile TaskState and versioned artifacts with actual approved repository state"},
+    {"caseId": "zero-progress-checkpoint-loop", "firstDivergenceCode": "zero_progress_checkpoint_loop", "baselineSignal": "the agent repeatedly records the same failed action without new evidence or state", "requiredRepair": "bound repetition and record an explicit blocker or new evidence"}
+  ],
+  "scenarioCoverage": [
+    {"scenarioId": "long_multistep_checkpointed", "workflowTier": "substantial", "skillBodyExpected": true, "expectedTerminalState": "complete", "observableCheck": "each long-work increment has impacted obligations, evidence, sentinels, result, and next action"},
+    {"scenarioId": "interruption_cold_restart", "workflowTier": "substantial", "skillBodyExpected": true, "expectedTerminalState": "complete", "observableCheck": "a cold process recovers obligations, findings, evidence, and exact next action from durable artifacts and actual state"},
+    {"scenarioId": "dirty_worktree_sentinel_retention", "workflowTier": "substantial", "skillBodyExpected": true, "expectedTerminalState": "incomplete", "observableCheck": "unrelated changes remain preserved and affected sentinels are retained or freshly rerun"},
+    {"scenarioId": "failed_checkpoint_recovery", "workflowTier": "substantial", "skillBodyExpected": true, "expectedTerminalState": "incomplete", "observableCheck": "failed verification remains append-only evidence and recovery starts from actual state"},
+    {"scenarioId": "repeated_work_reduced", "workflowTier": "substantial", "skillBodyExpected": true, "expectedTerminalState": "complete", "observableCheck": "checkpoint next actions prevent repeated investigation or repair without new state"},
+    {"scenarioId": "review_finding_repair_closure", "workflowTier": "substantial", "skillBodyExpected": true, "expectedTerminalState": "complete", "observableCheck": "accepted finding links to repair, focused re-verification, and review closure"},
+    {"scenarioId": "zero_progress_loop_bounded", "workflowTier": "substantial", "skillBodyExpected": true, "expectedTerminalState": "blocked", "observableCheck": "one unchanged failed repetition becomes an explicit blocker rather than an unbounded checkpoint loop"},
+    {"scenarioId": "trivial_non_activation", "workflowTier": "trivial", "skillBodyExpected": false, "expectedTerminalState": "not_applicable", "observableCheck": "a bounded one-check task does not load the iteration skill or create a ledger"}
+  ],
+  "outcomeProgram": {
+    "incumbent-before": {
+      "long_multistep_checkpointed": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "repeated_work_without_checkpoint", "terminalState": "incomplete"},
+      "interruption_cold_restart": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "restart_diverges_from_actual_state", "terminalState": "incomplete"},
+      "dirty_worktree_sentinel_retention": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "sentinel_regression_after_repair", "terminalState": "complete"},
+      "failed_checkpoint_recovery": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "failed_checkpoint_corruption", "terminalState": "complete"},
+      "repeated_work_reduced": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "repeated_work_without_checkpoint", "terminalState": "incomplete"},
+      "review_finding_repair_closure": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "lost_finding_after_interruption", "terminalState": "complete"},
+      "zero_progress_loop_bounded": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "zero_progress_checkpoint_loop", "terminalState": "incomplete"},
+      "trivial_non_activation": {"reasonCode": "success", "firstDivergenceCode": "none", "terminalState": "not_applicable"}
+    },
+    "incumbent-minus": {
+      "long_multistep_checkpointed": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "repeated_work_without_checkpoint", "terminalState": "incomplete"},
+      "interruption_cold_restart": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "restart_diverges_from_actual_state", "terminalState": "incomplete"},
+      "dirty_worktree_sentinel_retention": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "sentinel_regression_after_repair", "terminalState": "complete"},
+      "failed_checkpoint_recovery": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "failed_checkpoint_corruption", "terminalState": "complete"},
+      "repeated_work_reduced": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "repeated_work_without_checkpoint", "terminalState": "incomplete"},
+      "review_finding_repair_closure": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "lost_finding_after_interruption", "terminalState": "complete"},
+      "zero_progress_loop_bounded": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "zero_progress_checkpoint_loop", "terminalState": "incomplete"},
+      "trivial_non_activation": {"reasonCode": "success", "firstDivergenceCode": "none", "terminalState": "not_applicable"}
+    },
+    "incumbent-plus": {
+      "long_multistep_checkpointed": {"reasonCode": "success", "firstDivergenceCode": "none", "terminalState": "complete", "requirementRetained": true, "realEvidenceSeam": true, "freshnessAnchor": true, "terminalConsistent": true, "coldRecoverable": true},
+      "interruption_cold_restart": {"reasonCode": "success", "firstDivergenceCode": "none", "terminalState": "complete", "requirementRetained": true, "realEvidenceSeam": true, "freshnessAnchor": true, "terminalConsistent": true, "coldRecoverable": true},
+      "dirty_worktree_sentinel_retention": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "none", "terminalState": "incomplete", "requirementRetained": true, "realEvidenceSeam": true, "freshnessAnchor": true, "terminalConsistent": true, "coldRecoverable": true},
+      "failed_checkpoint_recovery": {"reasonCode": "ordinary_artifact_failure", "firstDivergenceCode": "none", "terminalState": "incomplete", "requirementRetained": true, "realEvidenceSeam": true, "freshnessAnchor": true, "terminalConsistent": true, "coldRecoverable": true},
+      "repeated_work_reduced": {"reasonCode": "success", "firstDivergenceCode": "none", "terminalState": "complete", "requirementRetained": true, "realEvidenceSeam": true, "freshnessAnchor": true, "terminalConsistent": true, "coldRecoverable": true},
+      "review_finding_repair_closure": {"reasonCode": "success", "firstDivergenceCode": "none", "terminalState": "complete", "requirementRetained": true, "realEvidenceSeam": true, "freshnessAnchor": true, "terminalConsistent": true, "coldRecoverable": true},
+      "zero_progress_loop_bounded": {"reasonCode": "blocked", "firstDivergenceCode": "none", "terminalState": "blocked", "requirementRetained": true, "realEvidenceSeam": true, "freshnessAnchor": true, "terminalConsistent": true, "coldRecoverable": true},
+      "trivial_non_activation": {"reasonCode": "success", "firstDivergenceCode": "none", "terminalState": "not_applicable"}
+    }
+  },
+  "frozenGate": {"coldRecoveryMinimum": "0.90", "repeatedWorkReductionRequired": true, "unrelatedChangesPreserved": true, "zeroProgressCheckpointBound": 1, "oneCheckNonActivationMinimum": "0.95", "maxPromptBodyCharacters": 12000, "networkRequired": false, "additionalToolsRequired": ["abe-evidence"]}
+}

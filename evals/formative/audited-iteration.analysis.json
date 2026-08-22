@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "analysisType": "skill-ablation-formative-analysis",
+  "analysisId": "audited-iteration-formative-2026-08-22",
+  "component": "audited-iteration",
+  "matrixPath": "evals/formative/audited-iteration.matrix.json",
+  "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
+  "skillPath": "plugin/skills/audited-iteration/SKILL.md",
+  "skillDigest": "sha256:0c550f7002083c801132509a9d0b445b4e5af23fe5231b9c149462239b7575bd",
+  "runtimePath": "plugin/scripts/runtime-lib.mjs",
+  "runtimeDigest": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
+  "decisionOutput": {
+    "component": "audited-iteration",
+    "decision": "selected",
+    "evidenceDigest": "sha256:d3a8d49df78db7540809e41f350fcb8ce814e990a4d3a079c2a156fa05d516db",
+    "reason": "T025 establishes durable obligations but public formative scenarios still need compact, append-only iteration behavior to retain sentinels, recover from actual state, close review repairs, and stop zero-progress loops without imposing a ledger on bounded work. T026 materializes deterministic public replay records for incumbent-before and matched-after conditions."
+  },
+  "metrics": {
+    "requirementRetentionRecall": "1.0",
+    "realEvidenceSeamPrecision": "1.0",
+    "freshnessAnchorEnforced": true,
+    "terminalConsistencyEnforced": true,
+    "foreignOrStaleStateRejected": true,
+    "coldRecoveryPreserved": true,
+    "oneCheckNonActivation": true,
+    "criticalFalseCompletionCount": 0,
+    "schemaTheaterRejected": true
+  },
+  "resourceEnvelope": {
+    "maxPromptBodyCharacters": 12000,
+    "additionalToolsRequired": ["abe-evidence"],
+    "networkRequired": false
+  },
+  "measurementBasis": {
+    "mode": "materialized-public-formative-replay-plus-static-iteration-conformance",
+    "liveAntigravityRunsAddedByT026": false,
+    "materializedEvaluatorRunsAddedByT026": true,
+    "rawEvidenceCommitted": false
+  },
+  "sourceArtifacts": [
+    {"path": "plugin/skills/proof-obligation-contract/SKILL.md", "digest": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379", "usedFor": ["TaskState", "iteration checkpoints", "cold recovery"]},
+    {"path": "evals/formative/proof-obligation-contract.matrix.json", "digest": "sha256:6aed9052b13a84ede2b52075cf0254f04e58e90bc0c4a6f298bc711482bbc689", "usedFor": ["cold_process_recovery", "one_check_non_activation"]},
+    {"path": "evals/formative/proof-obligation-contract.analysis.json", "digest": "sha256:c540c238b2a655cfd2c23653b2d19a5696549240b828d26bcc4e60f42b982977", "usedFor": ["coldRecoveryPreserved", "oneCheckNonActivation"]},
+    {"path": "docs/task-checkpoints/T025.json", "digest": "sha256:c6df6bcb1c335fe6e86fc8fb3783e7fdbb2e4dbeef4f29d6ae6ab33b4b2ff55b", "usedFor": ["proof-obligation-contract"]},
+    {"path": "evals/protocols/task-families.json", "digest": "sha256:aa8df628e3d90f7902a3110b8e81d927861f9aa12fa8e6c1194e7823fffca2d5", "usedFor": ["cold_restart", "dirty_worktrees", "repair"]}
+  ],
+  "incumbentReplay": {
+    "condition": "incumbent-before",
+    "attemptedBeforeCandidateBody": true,
+    "command": "uv run --project evaluator abe-eval run-matrix --matrix evals/formative/audited-iteration.matrix.json --condition incumbent-before --qualification evidence/raw/qualification/local/qualification.json --raw-root evidence/raw/formative/audited-iteration/incumbent-before",
+    "exitCode": 0,
+    "runsCreated": 16,
+    "gradeCommand": "uv run --project evaluator abe-eval grade --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/incumbent-before",
+    "reportCommand": "uv run --project evaluator abe-eval report --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/incumbent-before --output evidence/publishable/formative/audited-iteration/incumbent-before"
+  },
+  "matchedAfterReplay": {
+    "conditionPair": "incumbent-minus/incumbent-plus",
+    "attemptedAfterCandidateBody": true,
+    "command": "uv run --project evaluator abe-eval run-matrix --matrix evals/formative/audited-iteration.matrix.json --condition-pair incumbent-minus incumbent-plus --qualification evidence/raw/qualification/local/qualification.json --raw-root evidence/raw/formative/audited-iteration/matched-after",
+    "exitCode": 0,
+    "runsCreated": 32,
+    "gradeCommand": "uv run --project evaluator abe-eval grade --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/matched-after",
+    "reportCommand": "uv run --project evaluator abe-eval report --analysis evals/formative/audited-iteration.analysis.json --raw-root evidence/raw/formative/audited-iteration/matched-after --output evidence/publishable/formative/audited-iteration/matched-after"
+  },
+  "staticConformance": {
+    "taskStateParser": "parseTaskState",
+    "schema": "plugin/schemas/task-state.schema.json",
+    "validatedControls": ["append-only checkpoint fields", "impacted obligations and evidence", "sentinel retention", "dirty-worktree preservation", "failed-checkpoint recovery", "review-to-repair closure", "cold restart", "zero-progress bound", "one-check non-activation"],
+    "parserOnlyRules": ["TaskState identity matches current task, workspace, and request", "passing evidence is fresh only when afterChangeDigest equals lastRelevantChangeDigest"]
+  },
+  "limitations": [
+    "does not publish new raw live Antigravity traces; T026 uses deterministic public formative replay records materialized by the evaluator",
+    "uses T025 TaskState mechanics plus static skill conformance rather than claiming a release-grade live causal estimate",
+    "does not replace generic TDD, debugging, review, or bounded-task workflows"
+  ],
+  "retained": true
+}
