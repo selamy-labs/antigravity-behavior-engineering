@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "qualification-protocol-cli-core-2026-08-22",
+  "cliVersionConstraint": "1.1.18",
+  "cliArtifactDigest": "sha256:60eb243a68bfbc1bffa3823c7fb90df27a72502550b333c6248fc55f20d02564",
+  "imageDigest": "sha256:499351be92ba47a34e4d5efee46e30ee05fbc8a22b90574a8637a64ca7c34331",
+  "platforms": [
+    {
+      "schemaVersion": 1,
+      "os": "linux",
+      "architecture": "x64"
+    }
+  ],
+  "modelRequests": [
+    {
+      "schemaVersion": 1,
+      "modelRequest": "gemini-3.7-flash-high",
+      "reasoningRequest": "high"
+    },
+    {
+      "schemaVersion": 1,
+      "modelRequest": "gemini-3.1-pro-high",
+      "reasoningRequest": "high"
+    }
+  ],
+  "fallbackProbes": [
+    {
+      "schemaVersion": 1,
+      "probeId": "unknown-model-gemini-3.7-flash-high",
+      "request": "gemini-3.7-flash-high-misspelled/high",
+      "evidenceDigest": "sha256:18d1a7d67e3c23e254ff8a6cf5fb4df6575f014d68c7e12ad2a746ea8ea23321"
+    },
+    {
+      "schemaVersion": 1,
+      "probeId": "altered-reasoning-gemini-3.7-flash-high",
+      "request": "gemini-3.7-flash-high/medium",
+      "evidenceDigest": "sha256:d9c5aa0668177dec45941e075be995231ea128e127e03d0857aae6f52258c34f"
+    },
+    {
+      "schemaVersion": 1,
+      "probeId": "unknown-model-gemini-3.1-pro-high",
+      "request": "gemini-3.1-pro-high-misspelled/high",
+      "evidenceDigest": "sha256:2f4bf663a3c8da06394bd485611dba8d27d0047c568c0df23bc59798065670e8"
+    },
+    {
+      "schemaVersion": 1,
+      "probeId": "altered-reasoning-gemini-3.1-pro-high",
+      "request": "gemini-3.1-pro-high/low",
+      "evidenceDigest": "sha256:a2a3350cdccbf75f7ba99827e7e8f94311504b790795af5bfd9ba9dc0d4978e7"
+    }
+  ],
+  "structuredCaptureContractDigest": "sha256:e5e17728c8549e17cb961d087c20e789a3d010c337881c3b5745e85e6848125c",
+  "requiredPreflights": [
+    "authentication",
+    "fixture_provisioning",
+    "model_preflight",
+    "fallback_probe",
+    "plugin_component_discovery",
+    "structured_capture_preflight",
+    "authority_tool_inventory"
+  ],
+  "customizationScope": "cli_core",
+  "protocolDigest": "sha256:3f7c193d857a1ca8c5a2107105b17ed21bbcca9a18af56d5ad9fcde395525f49"
+}

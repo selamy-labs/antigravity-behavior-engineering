@@ -16,6 +16,7 @@ from abe_eval.classify import classify
 from abe_eval.contracts import ContractValidationError, canonical_contract_digest, parse_contract
 from abe_eval.evidence import import_run
 from abe_eval.grade import append_grade
+from abe_eval.qualify import command_qualify, command_run_matrix
 from abe_eval.redact import redact_run
 from abe_eval.runner import RunAttemptInputs, run_attempt
 from abe_eval.schedule import build_schedule
@@ -518,6 +519,31 @@ def _cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_qualify(args: argparse.Namespace) -> int:
+    raw = command_qualify(
+        protocol_path=Path(args.protocol),
+        scope=str(args.scope),
+        cli_artifact=Path(args.cli_artifact),
+        output_path=Path(args.output),
+    )
+    _emit(
+        {
+            "schemaVersion": 1,
+            "command": "qualify",
+            "output": str(args.output),
+            "environmentQualificationDigest": raw["environmentQualificationDigest"],
+            "supportDecision": raw["supportDecision"],
+        }
+    )
+    return 0
+
+
+def _cmd_run_matrix(args: argparse.Namespace) -> int:
+    runs = command_run_matrix(matrix_path=Path(args.matrix), qualification_path=Path(args.qualification))
+    _emit({"schemaVersion": 1, "command": "run-matrix", "runs": len(runs)})
+    return 0
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="abe-eval")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -537,6 +563,18 @@ def _parser() -> argparse.ArgumentParser:
     report.add_argument("--raw-root", required=True)
     report.add_argument("--output", required=True)
     report.set_defaults(func=_cmd_report)
+
+    qualify = subcommands.add_parser("qualify")
+    qualify.add_argument("--protocol", required=True)
+    qualify.add_argument("--scope", required=True, choices=["cli_core", "release_candidate"])
+    qualify.add_argument("--cli-artifact", required=True)
+    qualify.add_argument("--output", required=True)
+    qualify.set_defaults(func=_cmd_qualify)
+
+    run_matrix_parser = subcommands.add_parser("run-matrix")
+    run_matrix_parser.add_argument("--matrix", required=True)
+    run_matrix_parser.add_argument("--qualification", required=True)
+    run_matrix_parser.set_defaults(func=_cmd_run_matrix)
     return parser
 
 
