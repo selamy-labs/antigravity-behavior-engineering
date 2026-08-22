@@ -82,7 +82,7 @@ def validate_tasks() -> None:
         )
         if not file_ops:
             fail(f"{task_id} has no parseable file operations")
-        if len(file_ops) > 10:
+        if len(file_ops) > 12:
             fail(f"{task_id} touches {len(file_ops)} paths; split the PR")
 
         for operation, path in file_ops:

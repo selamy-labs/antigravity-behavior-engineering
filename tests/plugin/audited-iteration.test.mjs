@@ -19,6 +19,8 @@ const runtimePath = path.join(pluginRoot, "scripts", "runtime-lib.mjs");
 const lockPath = path.join(pluginRoot, "behavior-lock.json");
 const framingSkillPath = path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md");
 const contractFixturesPath = path.join(repoRoot, "tests", "contract", "fixtures", "evaluation-contracts.json");
+const executionStateExamplePath = path.join(repoRoot, "handoff", "execution-state.example.json");
+const executionStateSchemaPath = path.join(repoRoot, "handoff", "execution-state.schema.json");
 
 const rejectionReasons = [
   "formative_replay_copies_preprogrammed_outcomes",
@@ -97,6 +99,71 @@ const assertEvaluatorFailure = (result, command, error, errorPath) => {
     message: `${error} at ${errorPath}`,
   });
 };
+
+test("a ready execution state accepts a non-null task-set approved commit", async () => {
+  const example = await readJson(executionStateExamplePath);
+  const schema = await readJson(executionStateSchemaPath);
+  const commit = "a".repeat(40);
+  const digest = `sha256:${"b".repeat(64)}`;
+  const taskState = {
+    status: "not_started",
+    branch: null,
+    prUrl: null,
+    headCommit: null,
+    mergeCommit: null,
+    attemptCount: 0,
+    sameFailureCount: 0,
+    infrastructureRetryCount: 0,
+    reviewRepairCount: 0,
+    noProgressCount: 0,
+    lastEvidenceDigest: null,
+    blocker: null,
+  };
+  const state = {
+    ...example,
+    runId: "abe-execution-state-schema-regression",
+    initializationStatus: "ready",
+    baseCommit: commit,
+    taskSetDigest: digest,
+    humanGates: {
+      ...example.humanGates,
+      taskSet: {
+        status: "approved",
+        recordDigest: digest,
+        approvedCommit: commit,
+        approvedTaskSetDigest: digest,
+      },
+    },
+    tasks: Object.fromEntries(
+      Array.from({ length: 46 }, (_, index) => [
+        `T${String(index + 1).padStart(3, "0")}`,
+        taskState,
+      ]),
+    ),
+  };
+  const validation = spawnSync(
+    "uv",
+    [
+      "run",
+      "--project",
+      "evaluator",
+      "--locked",
+      "--offline",
+      "python",
+      "-c",
+      "import json, sys; from jsonschema import Draft202012Validator; payload = json.load(sys.stdin); Draft202012Validator(payload['schema']).validate(payload['state'])",
+    ],
+    {
+      cwd: repoRoot,
+      encoding: "utf8",
+      input: JSON.stringify({ schema, state }),
+      shell: false,
+    },
+  );
+
+  assert.equal(validation.error, undefined);
+  assert.equal(validation.status, 0, validation.stdout + validation.stderr);
+});
 
 test("audited-iteration is rejected when replay is synthetic and repair closure is not executable", async () => {
   const matrix = await readJson(matrixPath);
