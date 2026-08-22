@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "analysisType": "reviewer-topology-formative-analysis",
+  "analysisId": "reviewer-topology-formative-2026-08-23",
+  "component": "quality-falsifier-and-paired-review",
+  "matrixPath": "evals/formative/reviewer-topology.matrix.json",
+  "matrixDigest": "sha256:b9251e18fbe6c4e68b5d9722f7c30b20e7ab67bdc67c6d72abc117e05a759b77",
+  "replayProtocol": {
+    "observedAt": "2026-08-22T23:02:00Z",
+    "cli": {"name": "agy", "version": "1.1.18"},
+    "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+    "requestedReasoning": "high",
+    "servedModelIdentity": "requested model recorded; independent served identity unavailable from print-mode output",
+    "workspaceProfile": "fresh temporary project with slash-command expansion disabled",
+    "sandbox": true,
+    "toolInvocations": 0,
+    "permissionRequests": 0,
+    "authenticationMode": "environment-supplied existing CLI authentication",
+    "printTimeoutSeconds": 180,
+    "repetitionsPerModelProfile": 1
+  },
+  "incumbentReplay": {
+    "attemptedBeforeCandidateBody": true,
+    "candidateDefinitionPresentDuringReplay": false,
+    "models": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+    "profiles": ["matched", "higher-cost-labeled"],
+    "invocations": 4,
+    "scenarioJudgments": 20,
+    "truePositives": 12,
+    "falseNegatives": 0,
+    "falsePositives": 0,
+    "trueNegatives": 8,
+    "materialDefectRecall": "1.00",
+    "precision": "1.00",
+    "severityCalibration": "0.67",
+    "rawDecisionAgreement": "1.00",
+    "observations": [
+      {"model": "gemini-3.1-pro-high", "profileId": "matched", "responseDigest": "sha256:158957d7248538810be534685831de4218be80efb5c26394b8449428089ace54", "runRecordDigest": "sha256:825bb3a60558e9db39085ed69ad3d17dec2d3c436ea17abd47a14d5135a0765d", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "20.833", "totalTokens": 32216},
+      {"model": "gemini-3.1-pro-high", "profileId": "higher-cost-labeled", "responseDigest": "sha256:1afc04d8690fe0c55ad5174d0ad7da84a0bd4277882fb86f8c79e07aa64641c8", "runRecordDigest": "sha256:82c54a1e7f13486e8ad8495b8bad65c2c6b1a214446fce6f6133764c45cfc4fa", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "22.926", "totalTokens": 24068},
+      {"model": "gemini-3.7-flash-high", "profileId": "matched", "responseDigest": "sha256:d062d65b5e87af08f90bce10ece21505c252454315928889a552615267eec119", "runRecordDigest": "sha256:b9530b87c50bd83dfd8dc17a0b1f7eba0ba2b062b31394be4805b7e5aac14fdb", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "6.735", "totalTokens": 31615},
+      {"model": "gemini-3.7-flash-high", "profileId": "higher-cost-labeled", "responseDigest": "sha256:73ba9dc4d64aa1b32ce556cf5da422cc6fc3e29ebf8959ea978b6d5bd15950fc", "runRecordDigest": "sha256:e74708b639d57649d9a4f0ccb57ae097418ceeea8f71e299167b5ebfe3d493c9", "materialFound": 3, "materialTotal": 3, "controlPasses": 2, "controlTotal": 2, "durationSeconds": "8.073", "totalTokens": 31745}
+    ]
+  },
+  "resourceReport": {
+    "wallTimeSeconds": {"median": "14.453", "p90": "22.926", "maximum": "22.926"},
+    "totalTokens": {"median": 31680, "p90": 32216, "maximum": 32216},
+    "toolCalls": {"median": 0, "p90": 0, "maximum": 0},
+    "retries": {"median": 0, "p90": 0, "maximum": 0},
+    "subagentFanOut": {"median": 0, "p90": 0, "maximum": 0},
+    "timeouts": 0,
+    "indeterminate": 0,
+    "withinFrozenEnvelope": true
+  },
+  "protectedEvidence": {
+    "committed": false,
+    "recordDigest": "sha256:ec227e04ce54ccedfcb3464dce65a1ecc1ae08e8fdf4e519ab1714df4afb700b",
+    "sourceRunDigests": [
+      "sha256:825bb3a60558e9db39085ed69ad3d17dec2d3c436ea17abd47a14d5135a0765d",
+      "sha256:82c54a1e7f13486e8ad8495b8bad65c2c6b1a214446fce6f6133764c45cfc4fa",
+      "sha256:b9530b87c50bd83dfd8dc17a0b1f7eba0ba2b062b31394be4805b7e5aac14fdb",
+      "sha256:e74708b639d57649d9a4f0ccb57ae097418ceeea8f71e299167b5ebfe3d493c9"
+    ]
+  },
+  "frozenGate": {
+    "materialDefectRecallMinimum": "0.85",
+    "precisionMinimum": "0.80",
+    "rawAgreementMinimum": "0.80",
+    "acceptedRepairFreshChecksRequired": true,
+    "materialRegressionMaximum": 0,
+    "trivialTaskReviewerFanOutMaximum": 0
+  },
+  "candidateBodyCreated": false,
+  "treatmentReplay": {
+    "status": "not_run",
+    "conditions": ["requirements-only", "quality-only", "paired-review"],
+    "reason": "The pre-treatment incumbent achieved 1.00 recall, precision, and raw decision agreement on both requested models and both profiles, so the required pre-candidate gate closed the gap before any reviewer agent body or paired treatment could be created. The requirements role was also not selected by T027."
+  },
+  "decisionOutput": {
+    "component": "quality-falsifier-and-paired-review",
+    "decision": "not_selected",
+    "reason": "The incumbent self-review found every planted implementation, safety, and maintainability defect without a control false positive. No treatment can demonstrate material lift from this frozen baseline, and the prerequisite requirements reviewer body was not selected."
+  },
+  "selectionGate": {
+    "effectivenessGap": "not_observed",
+    "prerequisiteRequirementsRole": "not_selected",
+    "supportsSelection": false
+  },
+  "retainedTopology": "self-review",
+  "qualityAgentRetained": false,
+  "pairedReviewRetained": false,
+  "joinInfrastructureRetained": true,
+  "repairCorrectness": "not_applicable_without_accepted_treatment_findings",
+  "materialRegressions": 0,
+  "invalidVerdictsBecomePass": false,
+  "timedOutVerdictsBecomePass": false,
+  "permissionBlockedVerdictsBecomePass": false,
+  "missingVerdictsBecomePass": false,
+  "limitations": [
+    "The formative cases are conclusion-free claim-level probes rather than repository-sized diffs.",
+    "The CLI records requested model slugs but does not independently attest served model identity in print-mode output.",
+    "Severity calibration was 0.67 because all four incumbent invocations rated the concurrency defect critical instead of the frozen important label; selection is based on material discovery and precision, not exact severity agreement.",
+    "No one-role or paired treatment result exists because the incumbent saturated the frozen selection metrics before candidate creation, and T027 did not earn the prerequisite requirements reviewer body.",
+    "The role-neutral mechanical joiner is retained as contract infrastructure; its role-separation digest attests the validated request bindings and production package contract, not an external process attestation."
+  ]
+}

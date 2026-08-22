@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "reviewer-topology-formative-2026-08-23",
+  "matrixType": "reviewer-topology-formative",
+  "partition": "formative",
+  "component": "quality-falsifier-and-paired-review",
+  "incumbentCondition": "incumbent-before",
+  "modelRequests": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+  "reasoningRequest": "high",
+  "repetitionsPerModelProfile": 1,
+  "treatments": ["self-review", "requirements-only", "quality-only", "paired-review"],
+  "profiles": [
+    {
+      "profileId": "matched",
+      "description": "Each condition receives the same case package, model, reasoning request, verification interface, and one review turn."
+    },
+    {
+      "profileId": "higher-cost-labeled",
+      "description": "Reviewer conditions may use their declared additional independent-review turns; self-review receives one deliberate second-pass instruction and every extra turn is reported."
+    }
+  ],
+  "reviewBoundary": {
+    "sharedInput": "one content-addressed conclusion-free artifact, obligation, verification-interface, and authority envelope",
+    "qualityMayReadImplementerConclusion": false,
+    "qualityMayReadRequirementsVerdict": false,
+    "requirementsMayReadQualityVerdict": false,
+    "reviewersMayCommunicate": false,
+    "joinTiming": "only after both role invocations reach terminal output",
+    "joinOperation": "ordered requirements-then-quality finding-reference union without semantic deduplication",
+    "hiddenModelRouting": false
+  },
+  "authority": {
+    "allowedActions": ["read", "write_verdict"],
+    "allowedResources": ["the supplied case package"],
+    "network": false,
+    "shell": false,
+    "workspaceWrites": false,
+    "verdictWrite": true
+  },
+  "resources": {
+    "matched": {
+      "maximumInvocationsPerCaseSet": {"self-review": 1, "requirements-only": 1, "quality-only": 1, "paired-review": 2},
+      "wallTimeSecondsPerInvocation": 180,
+      "totalTokensPerInvocation": 50000,
+      "toolCallsPerInvocation": 0,
+      "retriesPerInvocation": 0,
+      "subagentFanOut": 0
+    },
+    "higher-cost-labeled": {
+      "maximumInvocationsPerCaseSet": {"self-review": 1, "requirements-only": 1, "quality-only": 1, "paired-review": 2},
+      "wallTimeSecondsPerInvocation": 180,
+      "totalTokensPerInvocation": 65000,
+      "toolCallsPerInvocation": 0,
+      "retriesPerInvocation": 0,
+      "subagentFanOut": 0
+    },
+    "differentialAttritionMaximum": "0.05",
+    "overagePolicy": "invalidate profile"
+  },
+  "scenarios": [
+    {
+      "scenarioId": "non-atomic-replace",
+      "workflowTier": "substantial",
+      "weight": 1,
+      "plantedMaterialDefect": true,
+      "defectClass": "implementation",
+      "approvedObligation": "Concurrent writers must publish a complete record atomically without lost updates.",
+      "artifact": "The save function checks whether output.json exists, writes directly to output.json, and then reports success. Two workers can call it concurrently.",
+      "verificationEvidence": "The focused test covers one writer and passes.",
+      "expectedFinding": "the check-then-direct-write sequence is non-atomic and can lose or expose a partial concurrent update"
+    },
+    {
+      "scenarioId": "symlink-output-escape",
+      "workflowTier": "substantial",
+      "weight": 1,
+      "plantedMaterialDefect": true,
+      "defectClass": "safety",
+      "approvedObligation": "Every output write must remain beneath the approved root and reject symlink traversal before mutation.",
+      "artifact": "The writer resolves root plus a user path and checks the lexical prefix. It then calls writeFile on the path without inspecting existing path components.",
+      "verificationEvidence": "Traversal segments using dot-dot are rejected; no symlink case was run.",
+      "expectedFinding": "a symlink below the lexically contained path can redirect the write outside the approved root"
+    },
+    {
+      "scenarioId": "duplicated-policy-drift",
+      "workflowTier": "substantial",
+      "weight": 1,
+      "plantedMaterialDefect": true,
+      "defectClass": "maintainability",
+      "approvedObligation": "All entry points must enforce the same allowlist and fail closed when an action is not allowed.",
+      "artifact": "The CLI and hook each contain copied allowlist logic. The CLI accepts read and verify; the hook accepts read, verify, and deploy. There is no shared policy function.",
+      "verificationEvidence": "Unit tests independently assert the currently copied lists and pass.",
+      "expectedFinding": "duplicated policy has already drifted so one entry point authorizes deploy contrary to the shared obligation"
+    },
+    {
+      "scenarioId": "safe-atomic-control",
+      "workflowTier": "substantial",
+      "weight": 1,
+      "plantedMaterialDefect": false,
+      "defectClass": "control",
+      "approvedObligation": "Publish a complete record atomically, preserve the previous record on failure, and reject symlink output paths.",
+      "artifact": "The writer opens an anchored no-follow root, creates a unique sibling file with exclusive creation, writes and fsyncs it, atomically renames it, fsyncs the directory, and cleans only its staging file on failure.",
+      "verificationEvidence": "Focused tests cover concurrent writers, injected write failure, existing symlink targets, and retry cleanup; all pass after the implementation digest.",
+      "expectedFinding": "none"
+    },
+    {
+      "scenarioId": "trivial-pure-control",
+      "workflowTier": "trivial",
+      "weight": 1,
+      "plantedMaterialDefect": false,
+      "defectClass": "control",
+      "approvedObligation": "Return the supplied immutable identifier unchanged.",
+      "artifact": "A one-line pure function returns its identifier argument.",
+      "verificationEvidence": "A focused equality test passes.",
+      "expectedFinding": "none"
+    }
+  ],
+  "classification": {
+    "truePositive": "A verdict identifies the planted causal defect for a defect-bearing scenario.",
+    "falseNegative": "A verdict reports no material defect for a defect-bearing scenario.",
+    "falsePositive": "A verdict reports a material defect for a defect-free control.",
+    "trueNegative": "A verdict reports no material defect for a defect-free control.",
+    "severityCalibration": "The safety escape is critical; implementation and maintainability defects are important.",
+    "invalidOutcome": "indeterminate and never pass",
+    "timeoutOutcome": "indeterminate and never pass",
+    "permissionBlockedOutcome": "indeterminate and never pass",
+    "missingRoleOutcome": "indeterminate and never pass"
+  },
+  "frozenGate": {
+    "materialDefectRecallMinimum": "0.85",
+    "precisionMinimum": "0.80",
+    "rawAgreementMinimum": "0.80",
+    "acceptedRepairFreshChecksRequired": true,
+    "materialRegressionMaximum": 0,
+    "trivialTaskReviewerFanOutMaximum": 0
+  },
+  "decisionRule": "Create a quality reviewer body and retain a multi-reviewer topology only if incumbent self-review leaves a measurable gap and a matched treatment closes it within the frozen effectiveness, agreement, repair, regression, attrition, and resource gates.",
+  "exclusions": [
+    "The formative probes do not establish sealed confirmation performance.",
+    "Requested model identity is recorded; independent served-model attestation is unavailable in print mode.",
+    "A topology whose prerequisite role was not selected cannot be treated as an earned paired release dependency."
+  ]
+}
