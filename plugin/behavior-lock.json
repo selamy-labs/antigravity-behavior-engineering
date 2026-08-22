@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "packageName": "antigravity-behavior-engineering",
+  "packageVersion": "0.0.0",
+  "sourceRevision": "10d77316900a204753e8e2f5c259644d5aefdad8",
+  "minimumCliVersion": "1.1.18",
+  "supportedPlatforms": [
+    {
+      "schemaVersion": 1,
+      "os": "linux",
+      "architecture": "x64",
+      "nodeRange": ">=22 <25"
+    }
+  ],
+  "components": [],
+  "dependencies": [],
+  "files": {
+    "plugin.json": "sha256:72cb82d159e4cd53acdcf4ab2b98318037a84c9917e827f7898f7c570ed6aa45",
+    "schemas/completion-gate-event.schema.json": "sha256:56e300ae674a3629ed46ecf0c80e16ceed20f04c48cfc3514cbb87656db7cbf0",
+    "schemas/evidence-event.schema.json": "sha256:3472b8868fcd0aba73f2db94fc8b9c311eed86cc3b3a70b0a6bd85c6c6ebc79c",
+    "schemas/review-package-input.schema.json": "sha256:9d616a3b7ce9c67f6d37e641f1f82f3a7bb6f1947d03b86b13ea0137723e0170",
+    "schemas/review-pair-envelope.schema.json": "sha256:3f7e4838bc475a09f600ab1c57a5130d73fdf80d9b5b7db7da3d2634f95976ed",
+    "schemas/review-request.schema.json": "sha256:d0f2d3014b2945cabe38181bc4cb6b4ff8db48d295d86d7bd5bac83f6ac52c5d",
+    "schemas/reviewer-join.schema.json": "sha256:05b4a7ce1c6700656505c40f66c6a2ad58ce887593b80c37081e8f3a3513a0ea",
+    "schemas/reviewer-verdict.schema.json": "sha256:79b848fa598bd631918022c0f890d16d689568bd04e2220176f2972b44ce77db",
+    "schemas/task-state.schema.json": "sha256:8d62a0a890d16f2087ff21dfad3df8a886049bddf39cd6d6c8476931b2e59b2a"
+  },
+  "lifecycle": {
+    "requiredCommands": [
+      "validate",
+      "install",
+      "list",
+      "disable",
+      "enable",
+      "uninstall"
+    ],
+    "volatilityPolicy": {
+      "ignoredPaths": [
+        ".gemini/config/config.json",
+        ".gemini/config/import_manifest.json",
+        ".gemini/cache/**",
+        ".gemini/antigravity-cli/**"
+      ]
+    }
+  },
+  "generatedAt": "2026-08-22T00:00:00Z"
+}
