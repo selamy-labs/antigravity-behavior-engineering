@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "description": "Synthetic T008 fixture manifest for fake worker staged outputs only.",
+  "requiredOutputs": [
+    "raw-stream.ndjson",
+    "process.json"
+  ],
+  "optionalOutputs": [
+    "artifact-manifest.json",
+    "hook-events.ndjson",
+    "observed-config.json",
+    "plugin-discovery.json",
+    "repository-after.json",
+    "repository-before.json",
+    "stderr.txt",
+    "stdout.txt"
+  ]
+}
