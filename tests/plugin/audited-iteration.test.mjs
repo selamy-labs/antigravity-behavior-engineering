@@ -332,14 +332,13 @@ test("behavior lock registers audited-iteration, covers plugin files, and resolv
   assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
   for (const relativePath of pluginFiles) {
     assert.equal(lock.files[relativePath], await fileDigest(path.join(pluginRoot, relativePath)));
+    const recovered = spawnSync(
+      "git",
+      ["show", `${lock.sourceRevision}:plugin/${relativePath}`],
+      { cwd: repoRoot, shell: false },
+    );
+    assert.equal(recovered.error, undefined);
+    assert.equal(recovered.status, 0, recovered.stderr.toString("utf8"));
+    assert.equal(digestBytes(recovered.stdout), lock.files[relativePath]);
   }
-
-  const recovered = spawnSync(
-    "git",
-    ["show", `${lock.sourceRevision}:plugin/skills/audited-iteration/SKILL.md`],
-    { cwd: repoRoot, shell: false },
-  );
-  assert.equal(recovered.error, undefined);
-  assert.equal(recovered.status, 0, recovered.stderr.toString("utf8"));
-  assert.equal(digestBytes(recovered.stdout), auditedSkillDigest);
 });
