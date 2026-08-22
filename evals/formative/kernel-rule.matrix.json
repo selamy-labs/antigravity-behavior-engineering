@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "matrixId": "kernel-rule-no-rule-decision-2026-08-22",
+  "matrixType": "kernel-rule-no-rule-decision",
+  "partition": "formative",
+  "component": "engineering-evidence-kernel",
+  "conditionPair": [
+    "incumbent-minus",
+    "incumbent-plus"
+  ],
+  "qualifiedActivationMode": "disqualified_by_t015_rule_body_selective_false",
+  "rulePath": "plugin/rules/engineering-evidence-kernel.md",
+  "ruleBodyCharacterCeiling": 12000,
+  "gateSource": {
+    "path": "evals/protocols/customization-conformance.json",
+    "digest": "sha256:b64c26dcccc0cfd807bb393014e453b7b237312844d1fdb52a0b5f5c331d02dd",
+    "requiredRuleBodySelective": true,
+    "observedRuleBodySelective": false
+  },
+  "comparisonStatus": {
+    "status": "not_run_rule_surface_disqualified",
+    "blockedBy": "T015.contentConformance.ruleBodySelective=false"
+  },
+  "coveredControls": [
+    "applicable_engineering_cases",
+    "explicit_preferences",
+    "non_engineering_controls",
+    "prompt_injection",
+    "trivial_tasks"
+  ],
+  "noRuleRationale": [
+    "T015 observed Antigravity CLI 1.1.18 does not expose rule body-level selective application evidence.",
+    "The specification disqualifies rule bodies when body-level selectivity is false, unknown, or unobservable.",
+    "Shipping no replacement kernel skill avoids compensating instruction bloat and preserves SC-007 laziness."
+  ]
+}
