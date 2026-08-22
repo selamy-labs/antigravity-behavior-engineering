@@ -231,8 +231,8 @@ test("formative matrix selects obligation-contract gaps and rejects one-check ac
   assert.equal(matrix.component, "proof-obligation-contract");
   assert.equal(matrix.skillPath, "plugin/skills/proof-obligation-contract/SKILL.md");
   assert.deepEqual(matrix.conditionPair, [
-    "incumbent-minus-proof-obligation-contract",
-    "incumbent-plus-proof-obligation-contract",
+    "incumbent-minus",
+    "incumbent-plus",
   ]);
   assert.deepEqual(matrix.sourceBaselines, [
     {
@@ -359,20 +359,17 @@ test("formative matrix selects obligation-contract gaps and rejects one-check ac
     networkRequired: false,
   });
   assert.deepEqual(analysis.measurementBasis, {
-    mode: "frozen-public-formative-replay-plus-static-taskstate-conformance",
+    mode: "materialized-public-formative-replay-plus-static-taskstate-conformance",
     liveAntigravityRunsAddedByT025: false,
+    materializedEvaluatorRunsAddedByT025: true,
     rawEvidenceCommitted: false,
   });
-  assert.deepEqual(analysis.incumbentReplay.failure, {
-    error: "contract.unknown_field",
-    message: "contract.unknown_field at $",
-  });
   assert.equal(analysis.incumbentReplay.attemptedBeforeCandidateBody, true);
-  assert.deepEqual(analysis.matchedAfterReplay.failure, {
-    error: "contract.unknown_field",
-    message: "contract.unknown_field at $",
-  });
+  assert.equal(analysis.incumbentReplay.exitCode, 0);
+  assert.equal(analysis.incumbentReplay.runsCreated, 20);
   assert.equal(analysis.matchedAfterReplay.attemptedAfterCandidateBody, true);
+  assert.equal(analysis.matchedAfterReplay.exitCode, 0);
+  assert.equal(analysis.matchedAfterReplay.runsCreated, 40);
   assert.equal(analysis.retained, true);
   assert.ok(analysis.limitations.some((item) => /does not publish new raw live Antigravity traces/u.test(item)));
 });

@@ -1,9 +1,10 @@
 {
   "schemaVersion": 1,
   "analysisType": "skill-ablation-formative-analysis",
+  "analysisId": "proof-obligation-contract-formative-2026-08-22",
   "component": "proof-obligation-contract",
   "matrixPath": "evals/formative/proof-obligation-contract.matrix.json",
-  "matrixDigest": "sha256:a56007a91498d22b52b2e0ffca87c8d186fd0f913e0f7b512ba8f27267aa473c",
+  "matrixDigest": "sha256:73103ce76021b90f99cc180ed868044600870e82edf2f931af6ac17f7e722706",
   "skillPath": "plugin/skills/proof-obligation-contract/SKILL.md",
   "skillDigest": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379",
   "runtimePath": "plugin/scripts/runtime-lib.mjs",
@@ -11,8 +12,8 @@
   "decisionOutput": {
     "component": "proof-obligation-contract",
     "decision": "selected",
-    "evidenceDigest": "sha256:366a88fd3b867ba963ec20ee99407e1bbd82bb137462828401ce119f01e937f9",
-    "reason": "Frozen public baselines show repeat stale-verification and recovery gaps; the retained body adds a compact TaskState workflow with observable proof obligations, freshness anchors, terminal-state honesty, cold recovery, and explicit non-activation on bounded work."
+    "evidenceDigest": "sha256:d12bb9861606cdafacef99bfd1f94e24cd0ff82d2fe5e26c187c0c2e68052bae",
+    "reason": "Frozen public baselines show repeat stale-verification and recovery gaps; the retained body adds a compact TaskState workflow with observable proof obligations, freshness anchors, terminal-state honesty, cold recovery, and explicit non-activation on bounded work. T025 materializes deterministic public formative replay runs for incumbent-before and matched-after conditions."
   },
   "metrics": {
     "requirementRetentionRecall": "1.0",
@@ -33,8 +34,9 @@
     "networkRequired": false
   },
   "measurementBasis": {
-    "mode": "frozen-public-formative-replay-plus-static-taskstate-conformance",
+    "mode": "materialized-public-formative-replay-plus-static-taskstate-conformance",
     "liveAntigravityRunsAddedByT025": false,
+    "materializedEvaluatorRunsAddedByT025": true,
     "rawEvidenceCommitted": false
   },
   "sourceArtifacts": [
@@ -84,21 +86,19 @@
     "condition": "incumbent-before",
     "attemptedBeforeCandidateBody": true,
     "command": "uv run --project evaluator abe-eval run-matrix --matrix evals/formative/proof-obligation-contract.matrix.json --condition incumbent-before --qualification evidence/raw/qualification/local/qualification.json --raw-root evidence/raw/formative/proof-obligation-contract/incumbent-before",
-    "exitCode": 2,
-    "failure": {
-      "error": "contract.unknown_field",
-      "message": "contract.unknown_field at $"
-    }
+    "exitCode": 0,
+    "runsCreated": 20,
+    "gradeCommand": "uv run --project evaluator abe-eval grade --analysis evals/formative/proof-obligation-contract.analysis.json --raw-root evidence/raw/formative/proof-obligation-contract/incumbent-before",
+    "reportCommand": "uv run --project evaluator abe-eval report --analysis evals/formative/proof-obligation-contract.analysis.json --raw-root evidence/raw/formative/proof-obligation-contract/incumbent-before --output evidence/publishable/formative/proof-obligation-contract/incumbent-before"
   },
   "matchedAfterReplay": {
     "conditionPair": "incumbent-minus/incumbent-plus",
     "attemptedAfterCandidateBody": true,
     "command": "uv run --project evaluator abe-eval run-matrix --matrix evals/formative/proof-obligation-contract.matrix.json --condition-pair incumbent-minus incumbent-plus --qualification evidence/raw/qualification/local/qualification.json --raw-root evidence/raw/formative/proof-obligation-contract/matched-after",
-    "exitCode": 2,
-    "failure": {
-      "error": "contract.unknown_field",
-      "message": "contract.unknown_field at $"
-    }
+    "exitCode": 0,
+    "runsCreated": 40,
+    "gradeCommand": "uv run --project evaluator abe-eval grade --analysis evals/formative/proof-obligation-contract.analysis.json --raw-root evidence/raw/formative/proof-obligation-contract/matched-after",
+    "reportCommand": "uv run --project evaluator abe-eval report --analysis evals/formative/proof-obligation-contract.analysis.json --raw-root evidence/raw/formative/proof-obligation-contract/matched-after --output evidence/publishable/formative/proof-obligation-contract/matched-after"
   },
   "staticConformance": {
     "taskStateParser": "parseTaskState",
@@ -117,8 +117,8 @@
     ]
   },
   "limitations": [
-    "does not publish new raw live Antigravity traces because the current public evaluator rejects this formative matrix shape before scheduling model runs",
-    "uses frozen public baselines plus TaskState schema/runtime conformance rather than claiming a fresh causal estimate",
+    "does not publish new raw live Antigravity traces; T025 uses deterministic public formative replay records materialized by the evaluator",
+    "uses frozen public baselines plus materialized public replay and TaskState schema/runtime conformance rather than claiming a release-grade live causal estimate",
     "does not replace the existing TDD, review, or semantic grading workflows"
   ],
   "retained": true

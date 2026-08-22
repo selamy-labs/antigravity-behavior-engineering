@@ -13,6 +13,8 @@ from abe_eval.canonical import canonical_bytes
 from abe_eval.contracts import parse_contract
 from abe_eval.paired_incumbent import MATRIX_TYPE as PAIRED_INCUMBENT_MATRIX_TYPE
 from abe_eval.paired_incumbent import run_paired_incumbent_matrix
+from abe_eval.skill_ablation import MATRIX_TYPE as SKILL_ABLATION_MATRIX_TYPE
+from abe_eval.skill_ablation import run_skill_ablation_matrix
 
 
 def load_json(path: Path) -> dict[str, object]:
@@ -85,6 +87,16 @@ def command_run_matrix(
         if raw_root is None:
             raise ValueError("paired_incumbent.raw_root_required")
         return run_paired_incumbent_matrix(matrix, qualification, raw_root)
+    if matrix.get("matrixType") == SKILL_ABLATION_MATRIX_TYPE:
+        if raw_root is None:
+            raise ValueError("skill_ablation.raw_root_required")
+        return run_skill_ablation_matrix(
+            matrix,
+            qualification,
+            raw_root,
+            condition=condition,
+            condition_pair=condition_pair,
+        )
     return run_matrix(matrix, qualification)
 
 

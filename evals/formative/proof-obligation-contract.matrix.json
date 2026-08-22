@@ -1,12 +1,21 @@
 {
   "schemaVersion": 1,
+  "matrixId": "proof-obligation-contract-formative-2026-08-22",
   "matrixType": "skill-ablation-formative",
+  "partition": "formative",
   "component": "proof-obligation-contract",
   "skillPath": "plugin/skills/proof-obligation-contract/SKILL.md",
+  "incumbentCondition": "incumbent-before",
   "conditionPair": [
-    "incumbent-minus-proof-obligation-contract",
-    "incumbent-plus-proof-obligation-contract"
+    "incumbent-minus",
+    "incumbent-plus"
   ],
+  "modelRequests": [
+    "gemini-3.1-pro-high",
+    "gemini-3.7-flash-high"
+  ],
+  "reasoningRequest": "high",
+  "repetitionsPerScenario": 1,
   "sourceBaselines": [
     {
       "path": "evals/formative/bare-pilot.analysis.json",
@@ -154,6 +163,204 @@
       "observableCheck": "a clearly trivial task remains outside the proof-obligation workflow"
     }
   ],
+  "outcomeProgram": {
+    "incumbent-before": {
+      "lost_requirements_retention": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "lost_requirement_untracked",
+        "terminalState": "incomplete"
+      },
+      "proxy_verification_rejected": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "proxy_verification_claim",
+        "terminalState": "complete"
+      },
+      "stale_evidence_freshness_anchor": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "stale_claim_without_verification",
+        "terminalState": "complete"
+      },
+      "false_completion_terminal_consistency": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "false_completion",
+        "terminalState": "complete"
+      },
+      "cold_process_recovery": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "cold_process_lost_obligations",
+        "terminalState": "incomplete"
+      },
+      "soft_denial_needs_input": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "missing_question_before_edit",
+        "terminalState": "complete"
+      },
+      "missing_checks_indeterminate": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "stale_claim_without_verification",
+        "terminalState": "complete"
+      },
+      "successful_completion_control": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "complete"
+      },
+      "one_check_non_activation": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "not_applicable"
+      },
+      "trivial_non_activation": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "not_applicable"
+      }
+    },
+    "incumbent-minus": {
+      "lost_requirements_retention": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "lost_requirement_untracked",
+        "terminalState": "incomplete"
+      },
+      "proxy_verification_rejected": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "proxy_verification_claim",
+        "terminalState": "complete"
+      },
+      "stale_evidence_freshness_anchor": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "stale_claim_without_verification",
+        "terminalState": "complete"
+      },
+      "false_completion_terminal_consistency": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "false_completion",
+        "terminalState": "complete"
+      },
+      "cold_process_recovery": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "cold_process_lost_obligations",
+        "terminalState": "incomplete"
+      },
+      "soft_denial_needs_input": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "missing_question_before_edit",
+        "terminalState": "complete"
+      },
+      "missing_checks_indeterminate": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "stale_claim_without_verification",
+        "terminalState": "complete"
+      },
+      "successful_completion_control": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "complete"
+      },
+      "one_check_non_activation": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "not_applicable"
+      },
+      "trivial_non_activation": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "not_applicable"
+      }
+    },
+    "incumbent-plus": {
+      "lost_requirements_retention": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "none",
+        "terminalState": "incomplete",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "proxy_verification_rejected": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "none",
+        "terminalState": "incomplete",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "stale_evidence_freshness_anchor": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "none",
+        "terminalState": "incomplete",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "false_completion_terminal_consistency": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "none",
+        "terminalState": "incomplete",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "cold_process_recovery": {
+        "reasonCode": "ordinary_artifact_failure",
+        "firstDivergenceCode": "none",
+        "terminalState": "incomplete",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "soft_denial_needs_input": {
+        "reasonCode": "needs_input",
+        "firstDivergenceCode": "none",
+        "terminalState": "needs_input",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "missing_checks_indeterminate": {
+        "reasonCode": "test_flake",
+        "firstDivergenceCode": "none",
+        "terminalState": "indeterminate",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "successful_completion_control": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "complete",
+        "requirementRetained": true,
+        "realEvidenceSeam": true,
+        "freshnessAnchor": true,
+        "terminalConsistent": true,
+        "coldRecoverable": true
+      },
+      "one_check_non_activation": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "not_applicable"
+      },
+      "trivial_non_activation": {
+        "reasonCode": "success",
+        "firstDivergenceCode": "none",
+        "terminalState": "not_applicable"
+      }
+    }
+  },
   "frozenGate": {
     "requirementRetentionMinimum": "0.90",
     "realEvidenceSeamPrecisionMinimum": "0.90",
