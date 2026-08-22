@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "behaviorRuns": {
+    "hostNetwork": "deny",
+    "packageManagerNetwork": "deny",
+    "dependencyInstallation": "deny",
+    "allowedEgress": [
+      "authenticated-antigravity-inference"
+    ],
+    "ambientBrowserOrDesktopState": "deny"
+  },
+  "qualificationRuns": {
+    "packageManagerNetwork": "pinned-dependencies-only",
+    "modelPreflight": "allow-authenticated-antigravity-inference",
+    "fallbackProbe": "allow-authenticated-antigravity-inference"
+  },
+  "publicWorkerImage": {
+    "containsCredentials": false,
+    "containsAuthorizedCli": false,
+    "requiresRuntimeCliBind": true
+  }
+}

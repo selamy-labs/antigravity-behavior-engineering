@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "workerUser": {
+    "uid": 10001,
+    "gid": 10001,
+    "name": "abe"
+  },
+  "runtimeSecurity": {
+    "init": true,
+    "readOnlyRootFilesystem": true,
+    "capDrop": [
+      "ALL"
+    ],
+    "noNewPrivileges": true,
+    "dockerSocket": "forbidden",
+    "hostUserWorkspace": "forbidden",
+    "ambientAgentState": "forbidden"
+  },
+  "authorizedCli": {
+    "containerPath": "/opt/antigravity/bin/agy",
+    "readOnly": true,
+    "regularFile": true,
+    "providedAtRuntime": true,
+    "bakedIntoImage": false,
+    "digestSource": "EnvironmentQualificationRecord.cliDigest"
+  },
+  "mounts": [
+    {
+      "containerPath": "/workspace/input",
+      "source": "worker-projection",
+      "readOnly": true,
+      "visibleToAgent": true
+    },
+    {
+      "containerPath": "/workspace/repo",
+      "source": "fresh-fixture-repository",
+      "readOnly": false,
+      "visibleToAgent": true
+    },
+    {
+      "containerPath": "/workspace/profile",
+      "source": "fresh-antigravity-profile",
+      "readOnly": false,
+      "visibleToAgent": true
+    },
+    {
+      "containerPath": "/workspace/output",
+      "source": "evidence-staging",
+      "readOnly": false,
+      "visibleToAgent": true
+    }
+  ],
+  "forbiddenMounts": [
+    "/controller",
+    "/var/run/docker.sock",
+    "/root",
+    "/home/abe/.gemini",
+    "/home/abe/.config/gemini",
+    "/home/abe/.config/antigravity",
+    "/workspace/.gemini",
+    "/workspace/hidden",
+    "/workspace/competing-runs"
+  ],
+  "hiddenControllerArtifacts": {
+    "ScheduledAttempt": "never-mounted",
+    "conditionIdentity": "never-mounted",
+    "blockIdentity": "never-mounted",
+    "randomizationProof": "never-mounted",
+    "hiddenScenarioLabels": "never-mounted",
+    "graders": "never-mounted",
+    "referenceSolutions": "never-mounted",
+    "competingRuns": "never-mounted"
+  },
+  "authentication": {
+    "imageStorage": "forbidden",
+    "agentVisibleEvidence": "forbidden",
+    "runtimeSecret": "smallest-antigravity-inference-secret-only"
+  }
+}
