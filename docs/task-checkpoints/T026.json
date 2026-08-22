@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T026",
+  "taskTitle": "Earn the `audited-iteration` skill",
+  "taskEntryDigest": "sha256:e7f1a68df470211482bdad9b592ae5205928ee13a8bda4ed3fe116c90966d1b4",
+  "baseCommit": "add91af5b2451d4a93881cc7036b10698ee0e7a5",
+  "implementationCommit": "c7c801f31696c4b7a74069b8df2517a43e532a59",
+  "treeDigest": "sha256:97af9ea47228afb6f8fad1de88fda8bf30ece9b8f5eded9f98de66790ec28ed0",
+  "outcome": "not_selected",
+  "files": {
+    "evals/formative/audited-iteration.analysis.json": "sha256:ece906d9d915bb95b686c49f293853c9598bdf1f4b92862961a16aabeb357505",
+    "evals/formative/audited-iteration.matrix.json": "sha256:85e98647fdc214d4d5ab7ad62854b1b090190b82a13da9915e433fd4d4d97db9",
+    "evaluator/src/abe_eval/skill_ablation.py": "sha256:f9be6d558f5df048a09ba6b7150aa6b2a5bab5c6b7f94f40f8c7d26101ae0f76",
+    "handoff/artifact-manifest.sha256": "sha256:d625959b4b4bba2b6d72cc1bafed837c8ccebb8fb20d42387ca18bc280e450bf",
+    "handoff/execution-state.schema.json": "sha256:f1f7f1bc7ae56a535ae68edf4218bb161a44dfddeb5ceb3d61caee7827aaccf3",
+    "handoff/validate_handoff.py": "sha256:1995946ad26fa26ce6c9fd0963931a7a8a08e4c87f54563c6cf29d3aeb73c303",
+    "plugin/behavior-lock.json": "sha256:6d09697b78e1828cced957026f91cc878d07ff7a0ced96192845ee3e1982e8f2",
+    "plugin/skills/evidence-first-framing/SKILL.md": "sha256:f976f5cac112c4a329d3ae02c1abdd8022211923ce718d004920a368764055df",
+    "specs/001-improve-antigravity-behavior/tasks.md": "sha256:62284cf9091c9a238a64ea2e833c3f7c4c3d523507489074c73f29228a9c4c6a",
+    "tests/plugin/audited-iteration.test.mjs": "sha256:8c71efa056372571ad2aa67f8975dbe453cbe6ef636cedeeb5a9dc3cc4faa603",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:e75876f6e22441efcbfbd3c9f68ec7f309d1218791c0845212f4b56b0c57e8ab",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:9bc14aa750a288aef7dafbb0a2b9e2a6f7c18e5a93f430feb71bc0b253dab3be"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/audited-iteration.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:732a5188b4c095b2ad6bfc8aaa41665a8512cb18d07d0c8241ba74640086750d"
+    },
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/audited-iteration.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:1b8b349931046dab5d64099076bfccf032799f804984ef724a1890f0b3214974"
+    },
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/audited-iteration.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:9d36c5d7ad079b8b57ead9278e575939573c1b856fe08263a5be7daac2939ca2"
+    },
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/audited-iteration.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:1ac1985a9eff881391567525b5fe715a57320ccbc25e9546fd8a8308667aa1d5"
+    },
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "--test-name-pattern=a ready execution state accepts a non-null task-set approved commit",
+        "tests/plugin/audited-iteration.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:207a77cc0260719042619a93616c468f3e47ae5460c08ef07296aec8f8759de4"
+    },
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "--test-name-pattern=a ready execution state rejects null task-set approval bindings",
+        "tests/plugin/audited-iteration.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:d3cdc1ca5e48ad7cd6923ddfa7cc7431919fd948e09d64286ac97746760cd6b4"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "node",
+        "--test",
+        "tests/plugin/audited-iteration.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:716d33e810bb091f5c47d4d4f0475271ad2cf249f9bc54ca16180d8411386be1"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "node",
+        "--test",
+        "packages/evidence-cli/test/task-state.test.mjs",
+        "tests/plugin/evidence-first-framing.test.mjs",
+        "tests/plugin/kernel-rule.test.mjs",
+        "tests/lifecycle/inert-plugin.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:b0fc07476c45dda81c239f701675ecbd73f6069d4db5775dc37ec2796bcbe40e"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests/test_skill_ablation_formative.py",
+        "-q"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:b7a9e28c17a8913cf9a8554d854bb731e011ac945e720c72b0e6abdd1319fb13"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "t026-path-independent-run-matrix-grade-report",
+        "two-fresh-roots"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:0bed682af29fd615162ec15ee7879d2c5fa639e58e5ac1fc5fa65335a712c2d0"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "handoff/artifact-manifest.sha256"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9e4b914991cd7d475c6a9c1c470a303fa74bc31fe215340df5c378a9dfcabc80"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "python3",
+        "-c",
+        "load handoff/validate_handoff.py and call validate_tasks()"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:fd10a6e3dfca35a3e391f9d01bfab0e67322f2203fd63d6e92c9757b76aaebc5"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "python3",
+        "-c",
+        "validate schema and installed private execution state"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:7bcbcff04ccd26cf6f3d7c044441bcc6d81ea5a18d78dbd9368b034cb6231597"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:3dbe2d04270df40d84496dab46db10b39274ae0f611fe4181dc977f9ee542dd4"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "scanPublicTree",
+        "T026-changed-public-files"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:25a7a4e624ac6f0ee4f49396dcad46766e6c3fef3cf3fd1c14015ad8111cb87a"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "gh",
+        "api",
+        "contents-at-sourceRevision"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:401e24424b4d511dcf7d9c0b32a988e7bdad082756804b66f4a9cdb7e953376a"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:04acb8966d5704ea07d7e4f6c343f58ef8eacca2d0ad9992e0efd9fbf25c526b",
+      "verdictDigest": "sha256:68fe2074c3407edf53e1ceef5fd01b8633982b88c484c42fd3ac23494ce0fce8",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:04acb8966d5704ea07d7e4f6c343f58ef8eacca2d0ad9992e0efd9fbf25c526b",
+      "verdictDigest": "sha256:e848d556475a31d01b154ae09921df7f54df17b988968a62477b969ecb0d08d9",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:25a7a4e624ac6f0ee4f49396dcad46766e6c3fef3cf3fd1c14015ad8111cb87a",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T026 branch without changing main. After merge, open a T026-linked revert PR that removes the rejected formative analysis and reverses the evaluator, schema, scope, lock, and sentinel repairs without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T21:44:28Z"
+}
