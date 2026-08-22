@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
@@ -15,6 +16,7 @@ const analysisPath = path.join(repoRoot, "evals", "formative", "audited-iteratio
 const evaluatorPath = path.join(repoRoot, "evaluator", "src", "abe_eval", "skill_ablation.py");
 const runtimePath = path.join(pluginRoot, "scripts", "runtime-lib.mjs");
 const lockPath = path.join(pluginRoot, "behavior-lock.json");
+const contractFixturesPath = path.join(repoRoot, "tests", "contract", "fixtures", "evaluation-contracts.json");
 
 const rejectionReasons = [
   "formative_replay_copies_preprogrammed_outcomes",
@@ -55,15 +57,28 @@ const collectFiles = async (directory) => {
   return files.sort();
 };
 
-const expectedEvidenceDigest = ({ evaluatorDigest, liveActivationEvidence, matrixDigest, runtimeDigest }) => sha256Digest(canonicalBytes({
+const expectedEvidenceDigest = ({ evaluatorDigest, formativeReplay, liveActivationEvidence, matrixDigest, runtimeDigest }) => sha256Digest(canonicalBytes({
   component: "audited-iteration",
   decision: "not_selected",
   evaluatorDigest,
+  formativeReplay,
   liveActivationEvidence,
   matrixDigest,
   rejectionReasons,
   runtimeDigest,
 }));
+
+const runEvaluator = (...args) => spawnSync(
+  "uv",
+  ["run", "--project", "evaluator", "--locked", "--offline", "abe-eval", ...args],
+  { cwd: repoRoot, encoding: "utf8", shell: false },
+);
+
+const assertEvaluatorSuccess = (result) => {
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  return JSON.parse(result.stdout);
+};
 
 test("audited-iteration is rejected when replay is synthetic and repair closure is not executable", async () => {
   const matrix = await readJson(matrixPath);
@@ -99,6 +114,7 @@ test("audited-iteration is rejected when replay is synthetic and repair closure 
     decision: "not_selected",
     evidenceDigest: expectedEvidenceDigest({
       evaluatorDigest,
+      formativeReplay: analysis.formativeReplay,
       liveActivationEvidence: analysis.liveActivationEvidence,
       matrixDigest,
       runtimeDigest,
@@ -166,6 +182,86 @@ test("the frozen intervention card remains expectations rather than observed evi
     "sha256:c70f00ce7d7af547e16e02fe46f916ae19764f0cfa910e4eb38332a833f5698a",
     "sha256:32da87a5bfee4a028a89ab91fe33ea2280b5a0a7634854aff86e38314cd25c45",
   ]);
+});
+
+test("the rejection analysis validates and binds both deterministic replay indexes", async (context) => {
+  const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "abe-t026-replay-"));
+  context.after(() => fs.rm(temporaryRoot, { recursive: true, force: true }));
+
+  const fixtures = await readJson(contractFixturesPath);
+  const qualification = fixtures.validCases.find((item) => item.name === "EnvironmentQualificationRecord")?.value;
+  assert.ok(qualification);
+  const qualificationPath = path.join(temporaryRoot, "qualification.json");
+  await fs.writeFile(
+    qualificationPath,
+    Buffer.concat([
+      canonicalBytes({ schemaVersion: 1, environmentQualification: qualification }),
+      Buffer.from("\n"),
+    ]),
+  );
+
+  const analysis = await readJson(analysisPath);
+  const phases = [
+    {
+      key: "incumbentBefore",
+      conditions: ["incumbent-before"],
+      args: ["--condition", "incumbent-before"],
+      runsCreated: 16,
+    },
+    {
+      key: "matchedAfter",
+      conditions: ["incumbent-minus", "incumbent-plus"],
+      args: ["--condition-pair", "incumbent-minus", "incumbent-plus"],
+      runsCreated: 32,
+    },
+  ];
+
+  for (const phase of phases) {
+    const rawRoot = path.join(temporaryRoot, phase.key, "raw");
+    const outputRoot = path.join(temporaryRoot, phase.key, "publishable");
+    const runResult = assertEvaluatorSuccess(runEvaluator(
+      "run-matrix",
+      "--matrix",
+      matrixPath,
+      ...phase.args,
+      "--qualification",
+      qualificationPath,
+      "--raw-root",
+      rawRoot,
+    ));
+    assert.equal(runResult.runsCreated, phase.runsCreated);
+
+    const runIndex = await readJson(path.join(rawRoot, "run-index.json"));
+    const recorded = analysis.formativeReplay[phase.key];
+    assert.deepEqual(recorded.conditions, phase.conditions);
+    assert.equal(recorded.conditionDigest, sha256Digest(canonicalBytes(phase.conditions)));
+    assert.equal(recorded.qualificationDigest, runIndex.qualificationDigest);
+    assert.equal(recorded.runIndexDigest, sha256Digest(canonicalBytes(runIndex)));
+    assert.equal(recorded.runSetDigest, sha256Digest(canonicalBytes(runIndex.runDigests)));
+    assert.equal(recorded.runsCreated, phase.runsCreated);
+
+    const gradeResult = assertEvaluatorSuccess(runEvaluator(
+      "grade",
+      "--analysis",
+      analysisPath,
+      "--raw-root",
+      rawRoot,
+    ));
+    assert.equal(gradeResult.runsGraded, phase.runsCreated);
+
+    const reportResult = assertEvaluatorSuccess(runEvaluator(
+      "report",
+      "--analysis",
+      analysisPath,
+      "--raw-root",
+      rawRoot,
+      "--output",
+      outputRoot,
+    ));
+    const report = await readJson(reportResult.reportPath);
+    assert.deepEqual(report.decisionOutput, analysis.decisionOutput);
+    assert.deepEqual(report.resourceEnvelope, analysis.resourceEnvelope);
+  }
 });
 
 test("behavior lock omits the rejected skill and resolves every shipped file from its public revision", async () => {
