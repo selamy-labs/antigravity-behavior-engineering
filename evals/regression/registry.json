@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "partition": "regression",
+  "registryId": "regression-registry-2026-08-22",
+  "familyIds": [
+    "fr044-interrogation-injection",
+    "fr044-proportionality-safe-default",
+    "fr044-durable-intent-restart",
+    "fr044-debug-repair",
+    "fr044-verification-truncation",
+    "fr044-review-defect-contrast",
+    "fr044-preferences-dirty-worktree",
+    "fr044-permission-missing-input",
+    "fr044-hook-tool-failure",
+    "fr044-model-quota-drift",
+    "fr044-leakage-state-isolation",
+    "fr044-tooling-negative-control",
+    "fr044-agent-positive-control",
+    "fr044-rule-negative-control"
+  ],
+  "reservedSeedCommitments": [
+    "sha256:010f010f010f010f010f010f010f010f010f010f010f010f010f010f010f010f",
+    "sha256:020f020f020f020f020f020f020f020f020f020f020f020f020f020f020f020f",
+    "sha256:030f030f030f030f030f030f030f030f030f030f030f030f030f030f030f030f"
+  ],
+  "sealedInstancesCommitted": false,
+  "contaminationHistory": [
+    {
+      "schemaVersion": 1,
+      "event": "registry_created",
+      "source": "pre_treatment_registry",
+      "evidenceDigest": "sha256:040f040f040f040f040f040f040f040f040f040f040f040f040f040f040f040f"
+    },
+    {
+      "schemaVersion": 1,
+      "event": "contamination_check",
+      "source": "pre_treatment_registry",
+      "evidenceDigest": "sha256:050f050f050f050f050f050f050f050f050f050f050f050f050f050f050f050f"
+    }
+  ]
+}
