@@ -1089,7 +1089,17 @@ const discoverObserverTask = async (workspacePaths) => {
       const state = await readJsonFile(stateFile, "observer.task_state_invalid");
       parseTaskState(state, { taskId: entry.name });
       if (state.workflowTier === "substantial" && state.terminalState.activeWork === true) {
-        candidates.push({ root, taskId: entry.name, taskDirectory: path.dirname(stateFile) });
+        const taskDirectory = path.dirname(stateFile);
+        const directoryStatus = await fs.lstat(taskDirectory, { bigint: true });
+        if (directoryStatus.isSymbolicLink() || !directoryStatus.isDirectory()) {
+          observerFail("state.path_escape", "$.taskDirectory");
+        }
+        candidates.push({
+          root,
+          taskId: entry.name,
+          taskDirectory,
+          taskDirectoryIdentity: { device: directoryStatus.dev, inode: directoryStatus.ino },
+        });
       }
     }
   }
@@ -1103,6 +1113,50 @@ const discoverObserverTask = async (workspacePaths) => {
 };
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+const openAnchoredObserverTask = async (task) => {
+  if (!Number.isInteger(fsConstants.O_DIRECTORY) || !Number.isInteger(fsConstants.O_NOFOLLOW)) {
+    observerFail("observer.directory_anchor_unsupported");
+  }
+  let handle;
+  try {
+    handle = await fs.open(
+      task.taskDirectory,
+      fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
+    );
+    const status = await handle.stat({ bigint: true });
+    if (
+      !status.isDirectory()
+      || status.dev !== task.taskDirectoryIdentity.device
+      || status.ino !== task.taskDirectoryIdentity.inode
+    ) {
+      observerFail("state.path_escape", "$.taskDirectory");
+    }
+    for (const descriptorRoot of ["/proc/self/fd", "/dev/fd"]) {
+      const anchoredDirectory = path.join(descriptorRoot, String(handle.fd));
+      try {
+        const anchoredStatus = await fs.stat(anchoredDirectory, { bigint: true });
+        if (
+          anchoredStatus.isDirectory()
+          && anchoredStatus.dev === status.dev
+          && anchoredStatus.ino === status.ino
+        ) {
+          return { directory: anchoredDirectory, handle };
+        }
+      } catch (error) {
+        if (error?.code !== "ENOENT" && error?.code !== "ENOTDIR") {
+          throw error;
+        }
+      }
+    }
+    observerFail("observer.directory_anchor_unsupported");
+  } catch (error) {
+    if (handle) {
+      await handle.close().catch(() => {});
+    }
+    throw error;
+  }
+};
 
 const withObserverLock = async (taskDirectory, fn) => {
   const lockFile = path.join(taskDirectory, ".evidence-observer.lock");
@@ -1191,47 +1245,55 @@ export const appendEvidenceObservation = async ({ input, occurredAt = new Date()
   const parsed = parseEvidenceObserverInput(input);
   timestamp(occurredAt, "$.occurredAt");
   const task = await discoverObserverTask(parsed.input.workspacePaths);
-  return withObserverLock(task.taskDirectory, async () => {
-    const relativeState = ".agents/abe/" + task.taskId + "/state.json";
-    const stateFile = await resolveWorkspaceFile(task.root, relativeState, "$.stateFile");
-    const state = await readJsonFile(stateFile, "observer.task_state_invalid");
-    parseTaskState(state, { taskId: task.taskId });
-    if (state.workflowTier !== "substantial" || state.terminalState.activeWork !== true) {
-      observerFail("observer.task_state_stale");
-    }
-    const ledgerFile = path.join(task.taskDirectory, "evidence-events.ndjson");
-    const { bytes: ledgerBytes, events } = await readObserverLedger(ledgerFile, task.taskId);
-    const previousEventDigest = events.length === 0
-      ? "genesis"
-      : sha256Digest(canonicalBytes(events.at(-1)));
-    const payload = observerPayload(parsed, task.workspaceRoots);
-    const sequence = events.length;
-    const redactedPayloadDigest = sha256Digest(canonicalBytes(payload));
-    const eventIdentity = sha256Digest(canonicalBytes({
-      taskId: task.taskId,
-      sequence,
-      eventKind: parsed.eventKind,
-      redactedPayloadDigest,
-      previousEventDigest,
-    })).slice("sha256:".length, "sha256:".length + 32);
-    const event = {
-      schemaVersion: 1,
-      eventId: "observer:" + eventIdentity,
-      taskId: task.taskId,
-      sequence,
-      eventKind: parsed.eventKind,
-      toolName: parsed.eventKind === "post_tool_use" ? normalizedToolName(parsed.input.toolCall.name) : "not_applicable",
-      resultClass: parsed.eventKind === "post_tool_use" && typeof parsed.input.error === "string" && parsed.input.error.length > 0
-        ? "error"
-        : "success",
-      redactedPayloadDigest,
-      previousEventDigest,
-      occurredAt,
-    };
-    parseEvidenceEvent(event, { taskId: task.taskId });
-    await appendObserverEvent(task.taskDirectory, event, ledgerBytes);
-    return event;
-  });
+  const anchoredTask = await openAnchoredObserverTask(task);
+  try {
+    return await withObserverLock(anchoredTask.directory, async () => {
+      const stateFile = path.join(anchoredTask.directory, "state.json");
+      const stateStatus = await fs.lstat(stateFile);
+      if (stateStatus.isSymbolicLink() || !stateStatus.isFile() || stateStatus.size > OBSERVER_LIMITS.maxStateBytes) {
+        observerFail("observer.task_state_invalid");
+      }
+      const state = await readJsonFile(stateFile, "observer.task_state_invalid");
+      parseTaskState(state, { taskId: task.taskId });
+      if (state.workflowTier !== "substantial" || state.terminalState.activeWork !== true) {
+        observerFail("observer.task_state_stale");
+      }
+      const ledgerFile = path.join(anchoredTask.directory, "evidence-events.ndjson");
+      const { bytes: ledgerBytes, events } = await readObserverLedger(ledgerFile, task.taskId);
+      const previousEventDigest = events.length === 0
+        ? "genesis"
+        : sha256Digest(canonicalBytes(events.at(-1)));
+      const payload = observerPayload(parsed, task.workspaceRoots);
+      const sequence = events.length;
+      const redactedPayloadDigest = sha256Digest(canonicalBytes(payload));
+      const eventIdentity = sha256Digest(canonicalBytes({
+        taskId: task.taskId,
+        sequence,
+        eventKind: parsed.eventKind,
+        redactedPayloadDigest,
+        previousEventDigest,
+      })).slice("sha256:".length, "sha256:".length + 32);
+      const event = {
+        schemaVersion: 1,
+        eventId: "observer:" + eventIdentity,
+        taskId: task.taskId,
+        sequence,
+        eventKind: parsed.eventKind,
+        toolName: parsed.eventKind === "post_tool_use" ? normalizedToolName(parsed.input.toolCall.name) : "not_applicable",
+        resultClass: parsed.eventKind === "post_tool_use" && typeof parsed.input.error === "string" && parsed.input.error.length > 0
+          ? "error"
+          : "success",
+        redactedPayloadDigest,
+        previousEventDigest,
+        occurredAt,
+      };
+      parseEvidenceEvent(event, { taskId: task.taskId });
+      await appendObserverEvent(anchoredTask.directory, event, ledgerBytes);
+      return event;
+    });
+  } finally {
+    await anchoredTask.handle.close();
+  }
 };
 
 const contextFromStatePath = (relativeStateFile, explicit = {}) => {

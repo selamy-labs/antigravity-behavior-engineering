@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -275,6 +276,57 @@ test("symlink escape, missing task state, and write failure fail open with visib
     assert.equal(unwritable.exitCode, 0);
     assert.equal(unwritable.stdout, "{}\n");
     assert.match(unwritable.stderr, /^observer\.not_recorded observer\.write_failed\n$/u);
+  });
+});
+
+test("task-directory replacement cannot redirect observer writes outside the selected evidence directory", async () => {
+  await withWorkspace(async (root) => {
+    await prepareTask(root);
+    const selectedTaskRoot = taskRoot(root);
+    const displacedTaskRoot = path.join(root, "selected-task-displaced");
+    const outside = path.join(root, "outside-task");
+    await fs.mkdir(outside);
+
+    const originalOpen = fs.open;
+    let releaseDirectoryOpen;
+    const directoryOpenReleased = new Promise((resolve) => {
+      releaseDirectoryOpen = resolve;
+    });
+    let observedDirectoryOpen;
+    const directoryOpened = new Promise((resolve) => {
+      observedDirectoryOpen = resolve;
+    });
+    fs.open = async (target, flags, ...rest) => {
+      const handle = await originalOpen(target, flags, ...rest);
+      if (target === selectedTaskRoot && (flags & fsConstants.O_DIRECTORY) !== 0) {
+        observedDirectoryOpen();
+        await directoryOpenReleased;
+      }
+      return handle;
+    };
+
+    try {
+      const append = appendEvidenceObservation({ input: postToolInput(root) });
+      const first = await Promise.race([
+        directoryOpened.then(() => "directory-opened"),
+        append.then(() => "append-completed"),
+      ]);
+      assert.equal(first, "directory-opened", "observer must anchor the selected task directory before writing");
+
+      await fs.rename(selectedTaskRoot, displacedTaskRoot);
+      await fs.symlink(outside, selectedTaskRoot);
+      releaseDirectoryOpen();
+      await append;
+
+      assert.equal((await fs.readFile(path.join(displacedTaskRoot, "evidence-events.ndjson"), "utf8")).trim().length > 0, true);
+      await assert.rejects(fs.stat(path.join(outside, ".evidence-observer.lock")), { code: "ENOENT" });
+      await assert.rejects(fs.stat(path.join(outside, "evidence-events.ndjson")), { code: "ENOENT" });
+    } finally {
+      releaseDirectoryOpen();
+      fs.open = originalOpen;
+      await fs.unlink(selectedTaskRoot).catch(() => {});
+      await fs.rename(displacedTaskRoot, selectedTaskRoot).catch(() => {});
+    }
   });
 });
 
