@@ -246,6 +246,21 @@ test("init atomically creates a valid TaskState and ordinal-zero completion ledg
   });
 });
 
+test("init refuses a symlinked .agents ancestry instead of escaping the workspace", async () => {
+  await withTemporaryWorkspace(async (root) => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), "abe-init-escape-"));
+    try {
+      await fs.symlink(outside, path.join(root, ".agents"));
+      const result = await runNode(pluginRuntime, initArgs(), { cwd: root });
+      assert.notEqual(result.exitCode, 0);
+      assert.match(result.stderr, /state\.path_escape/u);
+      await assert.rejects(() => fs.stat(path.join(outside, "abe", TASK_ID, "state.json")), { code: "ENOENT" });
+    } finally {
+      await fs.rm(outside, { recursive: true, force: true });
+    }
+  });
+});
+
 test("apply accepts closed patch operations, validates T003 invariants, and preserves the append-only ledger", async () => {
   await withTemporaryWorkspace(async (root) => {
     await initialize(root);
@@ -290,6 +305,61 @@ test("apply accepts closed patch operations, validates T003 invariants, and pres
       reasonCode: "valid",
       stateDigest: await digestFile(statePath(root)),
     });
+  });
+});
+
+test("concurrent apply from one base acknowledges at most one update and preserves the survivor", async () => {
+  await withTemporaryWorkspace(async (root) => {
+    await initialize(root);
+    const baseDigest = await digestFile(statePath(root));
+    const patchFiles = [];
+    for (let patchIndex = 0; patchIndex < 24; patchIndex += 1) {
+      const operations = [
+        { schemaVersion: 1, op: "setIntent", value: "concurrent patch " + patchIndex },
+      ];
+      for (let assumptionIndex = 0; assumptionIndex < 300; assumptionIndex += 1) {
+        operations.push({
+          schemaVersion: 1,
+          op: "appendAssumption",
+          value: {
+            schemaVersion: 1,
+            id: "A-" + String(patchIndex).padStart(2, "0") + "-" + String(assumptionIndex).padStart(3, "0"),
+            question: "Concurrent patch " + patchIndex + " assumption " + assumptionIndex + "?",
+            disposition: "user_direction",
+            decision: "Append-only same-base concurrency probe.",
+            evidence: [],
+            reversible: true,
+            material: true,
+          },
+        });
+      }
+      const patchPath = path.join(root, ".agents", "abe", TASK_ID, "patch-" + patchIndex + ".json");
+      await writeJson(patchPath, patchFor(baseDigest, { operations, updatedAt: APPLY_TIME }));
+      patchFiles.push(".agents/abe/task-0001/patch-" + patchIndex + ".json");
+    }
+
+    const results = await Promise.all(
+      patchFiles.map((patchFile) => runNode(pluginRuntime, ["apply", "--patch-file", patchFile], { cwd: root })),
+    );
+    const successes = results.filter((result) => result.exitCode === 0);
+    const failures = results.filter((result) => result.exitCode !== 0);
+    assert.equal(successes.length, 1, JSON.stringify(results.map((result) => ({
+      exitCode: result.exitCode,
+      stderr: result.stderr.trim(),
+    }))));
+    assert.equal(failures.length, patchFiles.length - 1);
+    assert.equal(
+      failures.every((result) => /state\.(concurrency_conflict|concurrent_update)/u.test(result.stderr)),
+      true,
+    );
+    const state = await readJson(statePath(root));
+    assert.equal(state.assumptions.length, 300);
+    const survivingPatch = state.intent.match(/^concurrent patch (?<index>\d+)$/u)?.groups?.index;
+    assert.notEqual(survivingPatch, undefined);
+    assert.equal(
+      state.assumptions.every((assumption) => assumption.id.startsWith("A-" + survivingPatch.padStart(2, "0") + "-")),
+      true,
+    );
   });
 });
 
@@ -472,6 +542,11 @@ test("runtime-library exported API reports the same T003 reason codes as the sha
       requestDigest: REQUEST_DIGEST,
     });
     const state = await readJson(statePath(root));
+    const parsed = runtime.parseTaskState(state);
+    assert.deepEqual(parsed, state);
+    assert.notEqual(parsed, state);
+    parsed.intent = "mutated parsed clone";
+    assert.equal(state.intent, "TaskState initialized; apply an approved or bounded substantial-task patch before implementation.");
     assert.throws(
       () => parseTaskState({ ...state, workspaceDigest: WRONG_DIGEST }, {
         taskId: TASK_ID,
@@ -479,6 +554,10 @@ test("runtime-library exported API reports the same T003 reason codes as the sha
         requestDigest: REQUEST_DIGEST,
       }),
       (error) => error instanceof ContractValidationError && error.reasonCode === ReasonCodes.FOREIGN_IDENTITY,
+    );
+    assert.throws(
+      () => runtime.parseTaskState(state, { unexpected: true }),
+      (error) => error?.reasonCode === ReasonCodes.INVALID_CONTEXT,
     );
     await assert.rejects(
       () => runtime.validateTaskStateFile({

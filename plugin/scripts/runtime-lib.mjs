@@ -20,6 +20,7 @@ export const ReasonCodes = Object.freeze({
   INVALID_NUMBER: "contract.invalid_number",
   INVALID_PATH: "contract.invalid_path",
   DUPLICATE_ID: "contract.duplicate_id",
+  INVALID_CONTEXT: "contract.invalid_context",
   FOREIGN_IDENTITY: "contract.foreign_identity",
   TERMINAL_INCONSISTENT: "task_state.terminal_inconsistent",
   STALE_EVIDENCE: "task_state.stale_evidence",
@@ -233,6 +234,24 @@ const relativePathValue = (value, fieldPath, allowDot = false) => {
   }
 };
 
+const cloneJson = (value) => JSON.parse(Buffer.from(canonicalBytes(value)).toString("utf8"));
+
+const validateContext = (context, allowed, fieldPath) => {
+  if (context === undefined) {
+    return {};
+  }
+  context = cloneJson(context);
+  if (!isPlainObject(context)) {
+    fail(ReasonCodes.INVALID_CONTEXT, fieldPath);
+  }
+  for (const key of Object.keys(context)) {
+    if (!allowed.includes(key)) {
+      fail(ReasonCodes.INVALID_CONTEXT, fieldPath + "." + key);
+    }
+  }
+  return context;
+};
+
 const strings = (value, fieldPath, options = {}) => {
   array(value, fieldPath, options);
   value.forEach((item, index) => string(item, fieldPath + "[" + index + "]"));
@@ -380,6 +399,7 @@ const validateTerminalState = (value, fieldPath) => {
 };
 
 export const parseTaskState = (value, context = {}) => {
+  value = cloneJson(value);
   versioned(
     value,
     ["taskId", "workspaceDigest", "requestDigest", "workflowTier", "intent", "assumptions", "obligations", "iterations", "reviewFindings", "terminalState", "updatedAt"],
@@ -429,6 +449,7 @@ export const parseTaskState = (value, context = {}) => {
     }
   }
 
+  context = validateContext(context, ["taskId", "workspaceDigest", "requestDigest"], "$context");
   if (context.taskId !== undefined && value.taskId !== context.taskId) {
     fail(ReasonCodes.FOREIGN_IDENTITY, "$context.taskId");
   }
@@ -442,6 +463,7 @@ export const parseTaskState = (value, context = {}) => {
 };
 
 export const parseCompletionGateEvent = (value, context = {}) => {
+  value = cloneJson(value);
   versioned(
     value,
     ["eventId", "taskId", "workspaceDigest", "requestDigest", "eventKind", "stopSequenceId", "continuationOrdinal", "frozenBound", "decision", "reasonCode", "previousEventDigest", "occurredAt"],
@@ -494,6 +516,7 @@ export const parseCompletionGateEvent = (value, context = {}) => {
   if (!genesis && !continued && !boundReached) {
     fail(ReasonCodes.INVALID_GATE_EVENT, "$");
   }
+  context = validateContext(context, ["taskId", "workspaceDigest", "requestDigest"], "$context");
   if (context.taskId !== undefined && value.taskId !== context.taskId) {
     fail(ReasonCodes.FOREIGN_IDENTITY, "$context.taskId");
   }
@@ -553,6 +576,36 @@ const validateRelativeWorkspacePath = (relative, fieldPath) => {
     fail("state.path_escape", fieldPath);
   }
   return segments;
+};
+
+const ensureWorkspaceDirectory = async (root, relative, fieldPath) => {
+  const segments = validateRelativeWorkspacePath(relative, fieldPath);
+  const canonicalRoot = await fs.realpath(root);
+  let current = canonicalRoot;
+  for (const segment of segments) {
+    current = path.join(current, segment);
+    const relativeCurrent = path.relative(canonicalRoot, current);
+    if (relativeCurrent.startsWith(".." + path.sep) || path.isAbsolute(relativeCurrent)) {
+      fail("state.path_escape", fieldPath);
+    }
+    try {
+      const status = await fs.lstat(current);
+      if (status.isSymbolicLink() || !status.isDirectory()) {
+        fail("state.path_escape", fieldPath);
+      }
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+      await fs.mkdir(current, { mode: 0o700 });
+      const createdStatus = await fs.lstat(current);
+      if (createdStatus.isSymbolicLink() || !createdStatus.isDirectory()) {
+        fail("state.path_escape", fieldPath);
+      }
+      await syncDirectory(path.dirname(current));
+    }
+  }
+  return current;
 };
 
 const resolveWorkspaceFile = async (root, relative, fieldPath) => {
@@ -695,8 +748,7 @@ export const initializeTaskState = async ({ root = process.cwd(), taskId, worksp
   parseCompletionGateEvent(event, { taskId, workspaceDigest, requestDigest });
 
   const canonicalRoot = await fs.realpath(root);
-  const abeRoot = path.join(canonicalRoot, ".agents", "abe");
-  await fs.mkdir(abeRoot, { recursive: true });
+  const abeRoot = await ensureWorkspaceDirectory(canonicalRoot, ".agents/abe", "$.stateRoot");
   const destination = path.join(abeRoot, taskId);
   try {
     await fs.lstat(destination);
@@ -823,8 +875,6 @@ const validatePatch = (value) => {
   return value;
 };
 
-const cloneJson = (value) => JSON.parse(Buffer.from(canonicalBytes(value)).toString("utf8"));
-
 const applyOperation = (state, operation) => {
   if (operation.op === "setWorkflowTier") {
     oneOf(operation.value, ["trivial", "substantial"], "$.operations.value");
@@ -847,34 +897,60 @@ const applyOperation = (state, operation) => {
   }
 };
 
+const withTaskStateLock = async (root, taskId, fn) => {
+  const lockFile = await resolveWorkspaceFile(root, ".agents/abe/" + taskId + "/.state.lock", "$.lockFile");
+  let handle;
+  try {
+    handle = await fs.open(lockFile, "wx", 0o600);
+    await handle.writeFile(String(process.pid) + "\n");
+    await handle.sync();
+  } catch (error) {
+    if (error?.code === "EEXIST") {
+      fail("state.concurrent_update", "$.lockFile");
+    }
+    throw error;
+  }
+  try {
+    return await fn();
+  } finally {
+    if (handle) {
+      await handle.close();
+    }
+    await fs.rm(lockFile, { force: true }).catch(() => {});
+    await syncDirectory(path.dirname(lockFile)).catch(() => {});
+  }
+};
+
 export const applyTaskStatePatch = async ({ root = process.cwd(), patchFile }) => {
   const resolvedPatchFile = await resolveWorkspaceFile(root, patchFile, "$.patchFile");
   const patch = validatePatch(await readJsonFile(resolvedPatchFile, "state.invalid_patch_json"));
-  const relativeStatePath = ".agents/abe/" + patch.taskId + "/state.json";
-  const resolvedStateFile = await resolveWorkspaceFile(root, relativeStatePath, "$.stateFile");
-  const currentBytes = await fs.readFile(resolvedStateFile);
-  const currentDigest = sha256Digest(currentBytes);
-  if (currentDigest !== patch.baseStateDigest) {
-    fail("state.concurrency_conflict", "$.baseStateDigest");
-  }
-  const current = await readJsonFile(resolvedStateFile, "state.invalid_json");
-  parseTaskState(current, {
-    taskId: patch.taskId,
-    workspaceDigest: patch.workspaceDigest,
-    requestDigest: patch.requestDigest,
+  return withTaskStateLock(root, patch.taskId, async () => {
+    const relativeStatePath = ".agents/abe/" + patch.taskId + "/state.json";
+    const resolvedStateFile = await resolveWorkspaceFile(root, relativeStatePath, "$.stateFile");
+    const currentBytes = await fs.readFile(resolvedStateFile);
+    const currentDigest = sha256Digest(currentBytes);
+    if (currentDigest !== patch.baseStateDigest) {
+      fail("state.concurrency_conflict", "$.baseStateDigest");
+    }
+    const current = await readJsonFile(resolvedStateFile, "state.invalid_json");
+    parseTaskState(current, {
+      taskId: patch.taskId,
+      workspaceDigest: patch.workspaceDigest,
+      requestDigest: patch.requestDigest,
+    });
+    const next = cloneJson(current);
+    for (const operation of patch.operations) {
+      applyOperation(next, operation);
+    }
+    next.updatedAt = patch.updatedAt;
+    parseTaskState(next, {
+      taskId: patch.taskId,
+      workspaceDigest: patch.workspaceDigest,
+      requestDigest: patch.requestDigest,
+    });
+    const stateDigest = await writeCanonicalAtomic(root, relativeStatePath, next);
+    return { ok: true, reasonCode: "applied", stateDigest };
   });
-  const next = cloneJson(current);
-  for (const operation of patch.operations) {
-    applyOperation(next, operation);
-  }
-  next.updatedAt = patch.updatedAt;
-  parseTaskState(next, {
-    taskId: patch.taskId,
-    workspaceDigest: patch.workspaceDigest,
-    requestDigest: patch.requestDigest,
-  });
-  const stateDigest = await writeCanonicalAtomic(root, relativeStatePath, next);
-  return { ok: true, reasonCode: "applied", stateDigest };
 };
 
 const parseOptions = (args, spec) => {
