@@ -1490,6 +1490,10 @@ Plan Phase 7A
 - Create: `plugin/scripts/evidence-observer.mjs`
 - Test: `tests/hooks/evidence-observer.test.mjs`
 - Modify (selected-component lifecycle sentinel): `tests/lifecycle/inert-plugin.test.mjs`
+- Modify (historical-runtime sentinel): `tests/plugin/audited-iteration.test.mjs`
+- Modify (advancing-lock sentinel): `tests/plugin/evidence-first-framing.test.mjs`
+- Modify (advancing-lock sentinel): `tests/plugin/kernel-rule.test.mjs`
+- Modify (historical-runtime and advancing-lock sentinel): `tests/plugin/proof-obligation-contract.test.mjs`
 - Create: `evals/formative/evidence-observer.matrix.json`
 - Create: `evals/formative/evidence-observer.analysis.json`
 - Modify: `plugin/behavior-lock.json`

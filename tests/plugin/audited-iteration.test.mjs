@@ -192,7 +192,13 @@ test("audited-iteration is rejected when replay is synthetic and repair closure 
   const runtime = await fs.readFile(runtimePath, "utf8");
   const matrixDigest = sha256Digest(canonicalBytes(matrix));
   const evaluatorDigest = await fileDigest(evaluatorPath);
-  const runtimeDigest = await fileDigest(runtimePath);
+  const historicalRuntime = spawnSync(
+    "git",
+    ["show", "7393ff45165e52139a9647442931bf6dabd5095e:plugin/scripts/runtime-lib.mjs"],
+    { cwd: repoRoot, shell: false },
+  );
+  assert.equal(historicalRuntime.status, 0, historicalRuntime.stderr.toString("utf8"));
+  const runtimeDigest = digestBytes(historicalRuntime.stdout);
 
   assert.equal(await exists(skillPath), false);
   assert.equal(analysis.schemaVersion, 1);
@@ -472,7 +478,7 @@ test("behavior lock omits the rejected skill and resolves every shipped file fro
   assert.equal(await exists(skillPath), false);
   assert.doesNotMatch(framingSkill, /\baudited-iteration\b/u);
   assert.match(framingSkill, /Long-running repair\/review loops remain outside this skill/u);
-  assert.equal(lock.sourceRevision, "7393ff45165e52139a9647442931bf6dabd5095e");
+  assert.match(lock.sourceRevision, /^[0-9a-f]{40}$/u);
   assert.deepEqual(lock.components.filter((component) => component.name === "audited-iteration"), []);
   assert.equal(Object.hasOwn(lock.files, "skills/audited-iteration/SKILL.md"), false);
   assert.deepEqual(Object.keys(lock.files).sort(), pluginFiles);
