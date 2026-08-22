@@ -30,6 +30,7 @@ const changeDigest = "sha256:" + "2".repeat(64);
 
 const readJson = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
 const taskRoot = (root) => path.join(root, ".agents", "abe", taskId);
+const statePath = (root) => path.join(taskRoot(root), "state.json");
 const ledgerPath = (root) => path.join(taskRoot(root), "evidence-events.ndjson");
 const readLedger = async (root) => (await fs.readFile(ledgerPath(root), "utf8"))
   .trimEnd()
@@ -298,7 +299,7 @@ test("task-directory replacement cannot redirect observer writes outside the sel
     });
     fs.open = async (target, flags, ...rest) => {
       const handle = await originalOpen(target, flags, ...rest);
-      if (target === selectedTaskRoot && (flags & fsConstants.O_DIRECTORY) !== 0) {
+      if (path.basename(String(target)) === taskId && (flags & fsConstants.O_DIRECTORY) !== 0) {
         observedDirectoryOpen();
         await directoryOpenReleased;
       }
@@ -328,6 +329,124 @@ test("task-directory replacement cannot redirect observer writes outside the sel
       await fs.rename(displacedTaskRoot, selectedTaskRoot).catch(() => {});
     }
   });
+});
+
+test("task-directory replacement before the first state read cannot expose external state", async () => {
+  await withWorkspace(async (root) => {
+    await prepareTask(root);
+    const selectedTaskRoot = taskRoot(root);
+    const displacedTaskRoot = path.join(root, "selected-task-before-read");
+    const outside = path.join(root, "outside-state-source");
+    await fs.mkdir(outside);
+    await fs.writeFile(path.join(outside, "state.json"), await fs.readFile(statePath(root)));
+
+    const originalLstat = fs.lstat;
+    const originalReadFile = fs.readFile;
+    let releaseStateInspection;
+    const stateInspectionReleased = new Promise((resolve) => {
+      releaseStateInspection = resolve;
+    });
+    let observedStateInspection;
+    const stateInspected = new Promise((resolve) => {
+      observedStateInspection = resolve;
+    });
+    let swapped = false;
+    let externalStateReads = 0;
+    fs.lstat = async (target, ...rest) => {
+      const status = await originalLstat(target, ...rest);
+      if (!swapped && path.basename(String(target)) === "state.json") {
+        observedStateInspection();
+        await stateInspectionReleased;
+      }
+      return status;
+    };
+    fs.readFile = async (target, ...rest) => {
+      if (swapped && target === statePath(root)) {
+        externalStateReads += 1;
+      }
+      return originalReadFile(target, ...rest);
+    };
+
+    try {
+      const append = appendEvidenceObservation({ input: postToolInput(root) }).then(
+        (event) => ({ event }),
+        (error) => ({ error }),
+      );
+      await stateInspected;
+      await fs.rename(selectedTaskRoot, displacedTaskRoot);
+      await fs.symlink(outside, selectedTaskRoot);
+      swapped = true;
+      releaseStateInspection();
+      const result = await append;
+
+      assert.equal(externalStateReads, 0, "observer read state through a replaced parent directory");
+      assert.equal(result.error, undefined, result.error?.message);
+      assert.equal((await fs.readFile(path.join(displacedTaskRoot, "evidence-events.ndjson"), "utf8")).trim().length > 0, true);
+      await assert.rejects(fs.stat(path.join(outside, "evidence-events.ndjson")), { code: "ENOENT" });
+    } finally {
+      swapped = true;
+      releaseStateInspection();
+      fs.lstat = originalLstat;
+      fs.readFile = originalReadFile;
+      await fs.unlink(selectedTaskRoot).catch(() => {});
+      await fs.rename(displacedTaskRoot, selectedTaskRoot).catch(() => {});
+    }
+  });
+});
+
+test("state and ledger leaf replacement races never follow external symlinks", async () => {
+  for (const leafName of ["state.json", "evidence-events.ndjson"]) {
+    await withWorkspace(async (root) => {
+      await prepareTask(root);
+      if (leafName === "evidence-events.ndjson") {
+        await appendEvidenceObservation({ input: postToolInput(root) });
+      }
+      const selectedLeaf = path.join(taskRoot(root), leafName);
+      const displacedLeaf = selectedLeaf + ".displaced";
+      const outsideLeaf = path.join(root, "outside-" + leafName);
+      await fs.writeFile(outsideLeaf, await fs.readFile(selectedLeaf));
+
+      const originalLstat = fs.lstat;
+      let releaseLeafInspection;
+      const leafInspectionReleased = new Promise((resolve) => {
+        releaseLeafInspection = resolve;
+      });
+      let observedLeafInspection;
+      const leafInspected = new Promise((resolve) => {
+        observedLeafInspection = resolve;
+      });
+      let intercepted = false;
+      fs.lstat = async (target, ...rest) => {
+        const status = await originalLstat(target, ...rest);
+        if (!intercepted && path.basename(String(target)) === leafName) {
+          intercepted = true;
+          observedLeafInspection();
+          await leafInspectionReleased;
+        }
+        return status;
+      };
+
+      try {
+        const append = appendEvidenceObservation({ input: postToolInput(root) }).then(
+          () => null,
+          (error) => error,
+        );
+        await leafInspected;
+        await fs.rename(selectedLeaf, displacedLeaf);
+        await fs.symlink(outsideLeaf, selectedLeaf);
+        releaseLeafInspection();
+        const error = await append;
+
+        assert.equal(error?.reasonCode, "state.path_escape");
+        assert.deepEqual(await fs.readFile(outsideLeaf), await fs.readFile(displacedLeaf));
+      } finally {
+        releaseLeafInspection();
+        fs.lstat = originalLstat;
+        await fs.unlink(selectedLeaf).catch(() => {});
+        await fs.rename(displacedLeaf, selectedLeaf).catch(() => {});
+      }
+    });
+  }
 });
 
 test("bounded direct appends stay below the frozen p95 envelope and reject ledger growth beyond the cap", async (context) => {

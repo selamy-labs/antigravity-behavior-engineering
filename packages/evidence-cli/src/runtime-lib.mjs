@@ -1028,109 +1028,25 @@ const observerPayload = ({ eventKind, input }, workspaceRoots) => {
   };
 };
 
-const discoverObserverTask = async (workspacePaths) => {
-  const roots = [];
-  for (const workspacePath of workspacePaths) {
-    let canonicalRoot;
-    try {
-      canonicalRoot = await fs.realpath(workspacePath);
-      if (!(await fs.stat(canonicalRoot)).isDirectory()) {
-        observerFail("observer.workspace_invalid");
-      }
-    } catch (error) {
-      if (error instanceof EvidenceCliError) {
-        throw error;
-      }
-      observerFail("observer.workspace_invalid");
-    }
-    if (!roots.includes(canonicalRoot)) {
-      roots.push(canonicalRoot);
-    }
-  }
-
-  const candidates = [];
-  for (const root of roots) {
-    const abeRoot = path.join(root, ".agents", "abe");
-    let status;
-    try {
-      status = await fs.lstat(abeRoot);
-    } catch (error) {
-      if (error?.code === "ENOENT") {
-        continue;
-      }
-      throw error;
-    }
-    if (status.isSymbolicLink() || !status.isDirectory()) {
-      observerFail("state.path_escape", "$.stateRoot");
-    }
-    const entries = await fs.readdir(abeRoot, { withFileTypes: true });
-    if (entries.length > OBSERVER_LIMITS.maxTaskDirectories) {
-      observerFail("observer.task_limit");
-    }
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith(".")) {
-        continue;
-      }
-      validateTaskId(entry.name);
-      const relativeState = ".agents/abe/" + entry.name + "/state.json";
-      const stateFile = await resolveWorkspaceFile(root, relativeState, "$.stateFile");
-      let stateStatus;
-      try {
-        stateStatus = await fs.stat(stateFile);
-      } catch (error) {
-        if (error?.code === "ENOENT") {
-          observerFail("observer.task_state_invalid");
-        }
-        throw error;
-      }
-      if (!stateStatus.isFile() || stateStatus.size > OBSERVER_LIMITS.maxStateBytes) {
-        observerFail("observer.task_state_invalid");
-      }
-      const state = await readJsonFile(stateFile, "observer.task_state_invalid");
-      parseTaskState(state, { taskId: entry.name });
-      if (state.workflowTier === "substantial" && state.terminalState.activeWork === true) {
-        const taskDirectory = path.dirname(stateFile);
-        const directoryStatus = await fs.lstat(taskDirectory, { bigint: true });
-        if (directoryStatus.isSymbolicLink() || !directoryStatus.isDirectory()) {
-          observerFail("state.path_escape", "$.taskDirectory");
-        }
-        candidates.push({
-          root,
-          taskId: entry.name,
-          taskDirectory,
-          taskDirectoryIdentity: { device: directoryStatus.dev, inode: directoryStatus.ino },
-        });
-      }
-    }
-  }
-  if (candidates.length === 0) {
-    observerFail("observer.task_state_missing");
-  }
-  if (candidates.length !== 1) {
-    observerFail("observer.task_state_ambiguous");
-  }
-  return { ...candidates[0], workspaceRoots: roots };
-};
-
-const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-
-const openAnchoredObserverTask = async (task) => {
+const openObserverDirectory = async (directory, expectedIdentity) => {
   if (!Number.isInteger(fsConstants.O_DIRECTORY) || !Number.isInteger(fsConstants.O_NOFOLLOW)) {
     observerFail("observer.directory_anchor_unsupported");
   }
   let handle;
   try {
     handle = await fs.open(
-      task.taskDirectory,
+      directory,
       fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
     );
     const status = await handle.stat({ bigint: true });
     if (
       !status.isDirectory()
-      || status.dev !== task.taskDirectoryIdentity.device
-      || status.ino !== task.taskDirectoryIdentity.inode
+      || (expectedIdentity !== undefined && (
+        status.dev !== expectedIdentity.device
+        || status.ino !== expectedIdentity.inode
+      ))
     ) {
-      observerFail("state.path_escape", "$.taskDirectory");
+      observerFail("state.path_escape", "$.stateRoot");
     }
     for (const descriptorRoot of ["/proc/self/fd", "/dev/fd"]) {
       const anchoredDirectory = path.join(descriptorRoot, String(handle.fd));
@@ -1157,6 +1073,174 @@ const openAnchoredObserverTask = async (task) => {
     throw error;
   }
 };
+
+const closeObserverDirectory = async (anchor) => {
+  if (anchor) {
+    await anchor.handle.close().catch(() => {});
+  }
+};
+
+const openObserverChildDirectory = async (parent, child, { allowMissing = false } = {}) => {
+  try {
+    return await openObserverDirectory(path.join(parent.directory, child));
+  } catch (error) {
+    if (allowMissing && error?.code === "ENOENT") {
+      return null;
+    }
+    if (["ELOOP", "ENOTDIR"].includes(error?.code)) {
+      observerFail("state.path_escape", "$.stateRoot");
+    }
+    throw error;
+  }
+};
+
+const readObserverFile = async (directory, leafName, { allowMissing = false, maximumBytes, invalidReason }) => {
+  const file = path.join(directory, leafName);
+  try {
+    const initialStatus = await fs.lstat(file);
+    if (initialStatus.isSymbolicLink() || !initialStatus.isFile()) {
+      observerFail("state.path_escape", "$." + leafName);
+    }
+  } catch (error) {
+    if (allowMissing && error?.code === "ENOENT") {
+      return null;
+    }
+    if (error?.code === "ENOENT") {
+      observerFail(invalidReason);
+    }
+    throw error;
+  }
+
+  let handle;
+  try {
+    handle = await fs.open(file, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+    const status = await handle.stat();
+    if (!status.isFile()) {
+      observerFail("state.path_escape", "$." + leafName);
+    }
+    if (status.size > maximumBytes) {
+      observerFail(invalidReason);
+    }
+    return await handle.readFile();
+  } catch (error) {
+    if (["ELOOP", "ENOTDIR"].includes(error?.code)) {
+      observerFail("state.path_escape", "$." + leafName);
+    }
+    if (allowMissing && error?.code === "ENOENT") {
+      return null;
+    }
+    if (error?.code === "ENOENT") {
+      observerFail(invalidReason);
+    }
+    throw error;
+  } finally {
+    if (handle) {
+      await handle.close().catch(() => {});
+    }
+  }
+};
+
+const parseObserverJsonBytes = (bytes, invalidReason) => {
+  try {
+    return JSON.parse(bytes.toString("utf8"));
+  } catch {
+    observerFail(invalidReason);
+  }
+};
+
+const discoverObserverTask = async (workspacePaths) => {
+  const roots = [];
+  for (const workspacePath of workspacePaths) {
+    let canonicalRoot;
+    try {
+      canonicalRoot = await fs.realpath(workspacePath);
+      const status = await fs.lstat(canonicalRoot, { bigint: true });
+      if (status.isSymbolicLink() || !status.isDirectory()) {
+        observerFail("observer.workspace_invalid");
+      }
+    } catch (error) {
+      if (error instanceof EvidenceCliError) {
+        throw error;
+      }
+      observerFail("observer.workspace_invalid");
+    }
+    if (!roots.includes(canonicalRoot)) {
+      roots.push(canonicalRoot);
+    }
+  }
+
+  const candidates = [];
+  try {
+    for (const root of roots) {
+      const rootStatus = await fs.lstat(root, { bigint: true });
+      let rootAnchor;
+      let agentsAnchor;
+      let abeAnchor;
+      try {
+        rootAnchor = await openObserverDirectory(root, { device: rootStatus.dev, inode: rootStatus.ino });
+        agentsAnchor = await openObserverChildDirectory(rootAnchor, ".agents", { allowMissing: true });
+        if (agentsAnchor === null) {
+          continue;
+        }
+        abeAnchor = await openObserverChildDirectory(agentsAnchor, "abe", { allowMissing: true });
+        if (abeAnchor === null) {
+          continue;
+        }
+        const entries = await fs.readdir(abeAnchor.directory, { withFileTypes: true });
+        if (entries.length > OBSERVER_LIMITS.maxTaskDirectories) {
+          observerFail("observer.task_limit");
+        }
+        for (const entry of entries) {
+          if (!entry.isDirectory() || entry.name.startsWith(".")) {
+            continue;
+          }
+          validateTaskId(entry.name);
+          let taskAnchor;
+          let retained = false;
+          try {
+            taskAnchor = await openObserverChildDirectory(abeAnchor, entry.name);
+            const stateBytes = await readObserverFile(taskAnchor.directory, "state.json", {
+              maximumBytes: OBSERVER_LIMITS.maxStateBytes,
+              invalidReason: "observer.task_state_invalid",
+            });
+            const state = parseObserverJsonBytes(stateBytes, "observer.task_state_invalid");
+            parseTaskState(state, { taskId: entry.name });
+            if (state.workflowTier === "substantial" && state.terminalState.activeWork === true) {
+              candidates.push({
+                root,
+                taskId: entry.name,
+                taskDirectory: taskAnchor.directory,
+                taskDirectoryHandle: taskAnchor.handle,
+              });
+              retained = true;
+            }
+          } finally {
+            if (!retained) {
+              await closeObserverDirectory(taskAnchor);
+            }
+          }
+        }
+      } finally {
+        await closeObserverDirectory(abeAnchor);
+        await closeObserverDirectory(agentsAnchor);
+        await closeObserverDirectory(rootAnchor);
+      }
+    }
+  } catch (error) {
+    await Promise.all(candidates.map(({ taskDirectoryHandle }) => taskDirectoryHandle.close().catch(() => {})));
+    throw error;
+  }
+  if (candidates.length === 0) {
+    observerFail("observer.task_state_missing");
+  }
+  if (candidates.length !== 1) {
+    await Promise.all(candidates.map(({ taskDirectoryHandle }) => taskDirectoryHandle.close().catch(() => {})));
+    observerFail("observer.task_state_ambiguous");
+  }
+  return { ...candidates[0], workspaceRoots: roots };
+};
+
+const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const withObserverLock = async (taskDirectory, fn) => {
   const lockFile = path.join(taskDirectory, ".evidence-observer.lock");
@@ -1187,23 +1271,12 @@ const withObserverLock = async (taskDirectory, fn) => {
   }
 };
 
-const readObserverLedger = async (ledgerFile, taskId) => {
-  let status;
-  try {
-    status = await fs.lstat(ledgerFile);
-  } catch (error) {
-    if (error?.code === "ENOENT") {
-      return { bytes: Buffer.alloc(0), events: [] };
-    }
-    throw error;
-  }
-  if (status.isSymbolicLink() || !status.isFile()) {
-    observerFail("state.path_escape", "$.ledgerFile");
-  }
-  if (status.size > OBSERVER_LIMITS.maxLedgerBytes) {
-    observerFail("observer.ledger_limit");
-  }
-  const bytes = await fs.readFile(ledgerFile);
+const readObserverLedger = async (taskDirectory, taskId) => {
+  const bytes = await readObserverFile(taskDirectory, "evidence-events.ndjson", {
+    allowMissing: true,
+    maximumBytes: OBSERVER_LIMITS.maxLedgerBytes,
+    invalidReason: "observer.ledger_limit",
+  }) ?? Buffer.alloc(0);
   if (bytes.length === 0) {
     return { bytes, events: [] };
   }
@@ -1245,21 +1318,18 @@ export const appendEvidenceObservation = async ({ input, occurredAt = new Date()
   const parsed = parseEvidenceObserverInput(input);
   timestamp(occurredAt, "$.occurredAt");
   const task = await discoverObserverTask(parsed.input.workspacePaths);
-  const anchoredTask = await openAnchoredObserverTask(task);
   try {
-    return await withObserverLock(anchoredTask.directory, async () => {
-      const stateFile = path.join(anchoredTask.directory, "state.json");
-      const stateStatus = await fs.lstat(stateFile);
-      if (stateStatus.isSymbolicLink() || !stateStatus.isFile() || stateStatus.size > OBSERVER_LIMITS.maxStateBytes) {
-        observerFail("observer.task_state_invalid");
-      }
-      const state = await readJsonFile(stateFile, "observer.task_state_invalid");
+    return await withObserverLock(task.taskDirectory, async () => {
+      const stateBytes = await readObserverFile(task.taskDirectory, "state.json", {
+        maximumBytes: OBSERVER_LIMITS.maxStateBytes,
+        invalidReason: "observer.task_state_invalid",
+      });
+      const state = parseObserverJsonBytes(stateBytes, "observer.task_state_invalid");
       parseTaskState(state, { taskId: task.taskId });
       if (state.workflowTier !== "substantial" || state.terminalState.activeWork !== true) {
         observerFail("observer.task_state_stale");
       }
-      const ledgerFile = path.join(anchoredTask.directory, "evidence-events.ndjson");
-      const { bytes: ledgerBytes, events } = await readObserverLedger(ledgerFile, task.taskId);
+      const { bytes: ledgerBytes, events } = await readObserverLedger(task.taskDirectory, task.taskId);
       const previousEventDigest = events.length === 0
         ? "genesis"
         : sha256Digest(canonicalBytes(events.at(-1)));
@@ -1288,11 +1358,11 @@ export const appendEvidenceObservation = async ({ input, occurredAt = new Date()
         occurredAt,
       };
       parseEvidenceEvent(event, { taskId: task.taskId });
-      await appendObserverEvent(anchoredTask.directory, event, ledgerBytes);
+      await appendObserverEvent(task.taskDirectory, event, ledgerBytes);
       return event;
     });
   } finally {
-    await anchoredTask.handle.close();
+    await task.taskDirectoryHandle.close();
   }
 };
 
