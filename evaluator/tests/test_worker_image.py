@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import canonical_contract_digest, parse_contract
 
 
@@ -42,6 +43,22 @@ FORBIDDEN_INPUT_KEYS = {
     "graderPath",
     "referenceSolutionPath",
 }
+
+ALLOWED_INVOCATION_KEYS = [
+    "authorityManifestDigest",
+    "cliDigest",
+    "cliPath",
+    "environmentQualificationDigest",
+    "fixtureDigest",
+    "invocationId",
+    "outputPath",
+    "requestDigest",
+    "requestPath",
+    "resourceCaps",
+    "runId",
+    "schemaVersion",
+    "toolPermissionProjection",
+]
 
 FORBIDDEN_PATHS = [
     "/controller",
@@ -156,14 +173,19 @@ def _write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _read_json(path: Path) -> dict[str, object]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _prepare_worker_case(tmp_path: Path, case_name: str, cli_digest: str, image_digest: str) -> dict[str, Path | str]:
     case_root = tmp_path / case_name
     input_root = case_root / "input"
     repo_root = case_root / "repo"
     profile_root = case_root / "profile"
     output_root = case_root / "output"
+    plugin_condition_root = case_root / "plugin-condition"
     controller_root = case_root / "controller-hidden"
-    for directory in (input_root, repo_root, profile_root, output_root, controller_root):
+    for directory in (input_root, repo_root, profile_root, output_root, plugin_condition_root, controller_root):
         directory.mkdir(parents=True)
 
     qualification, qualification_digest = _environment_qualification(cli_digest, image_digest)
@@ -182,6 +204,8 @@ def _prepare_worker_case(tmp_path: Path, case_name: str, cli_digest: str, image_
             "imageDigest": image_digest,
             "noNewPrivileges": True,
             "capabilities": "none",
+            "readOnlyRootFilesystem": True,
+            "rootFilesystemProbePath": "/home/abe/.abe-rootfs-write-probe",
         },
         "forbiddenInputKeys": sorted(FORBIDDEN_INPUT_KEYS),
         "forbiddenPaths": FORBIDDEN_PATHS,
@@ -189,6 +213,7 @@ def _prepare_worker_case(tmp_path: Path, case_name: str, cli_digest: str, image_
             "/workspace/input/worker-invocation.json",
             "/workspace/input/qualification-lock.json",
             "/workspace/input/request.txt",
+            "/workspace/plugin-condition/condition.json",
             "/opt/antigravity/bin/agy",
         ],
         "requiredWritableRoots": [
@@ -201,6 +226,7 @@ def _prepare_worker_case(tmp_path: Path, case_name: str, cli_digest: str, image_
     _write_json(input_root / "qualification-lock.json", lock)
     _write_json(input_root / "worker-invocation.json", invocation)
     (input_root / "request.txt").write_text(f"visible request for {case_name}\n", encoding="utf-8")
+    _write_json(plugin_condition_root / "condition.json", {"schemaVersion": 1, "condition": "none"})
     (repo_root / f"{case_name}-visible-canary.txt").write_text(case_name + "\n", encoding="utf-8")
     (controller_root / f"{case_name}-hidden-canary.txt").write_text(
         f"controller-only hidden canary for {case_name}\n", encoding="utf-8"
@@ -210,13 +236,16 @@ def _prepare_worker_case(tmp_path: Path, case_name: str, cli_digest: str, image_
         "repo": repo_root,
         "profile": profile_root,
         "output": output_root,
+        "pluginCondition": plugin_condition_root,
         "controller": controller_root,
         "qualificationDigest": qualification_digest,
     }
 
 
-def _worker_run_options(case: dict[str, Path | str], cli_path: Path, image_digest: str) -> list[str]:
-    return [
+def _worker_run_options(
+    case: dict[str, Path | str], cli_path: Path, image_digest: str, *, read_only_rootfs: bool = True
+) -> list[str]:
+    args = [
         "run",
         "--rm",
         "--platform",
@@ -228,7 +257,6 @@ def _worker_run_options(case: dict[str, Path | str], cli_path: Path, image_diges
         "ALL",
         "--security-opt",
         "no-new-privileges",
-        "--read-only",
         "--tmpfs",
         "/tmp:rw,noexec,nosuid,nodev,size=64m",
         "--env",
@@ -248,13 +276,20 @@ def _worker_run_options(case: dict[str, Path | str], cli_path: Path, image_diges
         "--mount",
         f"type=bind,source={case['output']},target=/workspace/output",
         "--mount",
+        f"type=bind,source={case['pluginCondition']},target=/workspace/plugin-condition,readonly",
+        "--mount",
         f"type=bind,source={cli_path},target=/opt/antigravity/bin/agy,readonly",
     ]
+    if read_only_rootfs:
+        args.insert(11, "--read-only")
+    return args
 
 
-def _worker_run_args(case: dict[str, Path | str], cli_path: Path, image_digest: str) -> list[str]:
+def _worker_run_args(
+    case: dict[str, Path | str], cli_path: Path, image_digest: str, *, read_only_rootfs: bool = True
+) -> list[str]:
     return [
-        *_worker_run_options(case, cli_path, image_digest),
+        *_worker_run_options(case, cli_path, image_digest, read_only_rootfs=read_only_rootfs),
         IMAGE_TAG,
     ]
 
@@ -287,8 +322,11 @@ def test_worker_image_is_disposable_and_receives_only_visible_projection():
         assert mount_policy["authorizedCli"]["readOnly"] is True
         assert mount_policy["authorizedCli"]["bakedIntoImage"] is False
         assert mount_policy["workerUser"] == {"uid": WORKER_UID, "gid": WORKER_GID, "name": "abe"}
+        assert any(mount["containerPath"] == "/workspace/plugin-condition" for mount in mount_policy["mounts"])
         assert network_policy["behaviorRuns"]["packageManagerNetwork"] == "deny"
         assert network_policy["behaviorRuns"]["hostNetwork"] == "deny"
+        assert network_policy["behaviorRuns"]["inferenceEgress"] == "controller-allowlist-only"
+        assert "registry.npmjs.org" in network_policy["behaviorRuns"]["deniedPackageManagerHosts"]
 
         bare_image = _docker(
             [
@@ -308,13 +346,13 @@ def test_worker_image_is_disposable_and_receives_only_visible_projection():
 
         first = _prepare_worker_case(tmp_path, "first", cli_digest, image_digest)
         second = _prepare_worker_case(tmp_path, "second", cli_digest, image_digest)
+        extra_invocation = _prepare_worker_case(tmp_path, "extra-invocation", cli_digest, image_digest)
+        invalid_qualification = _prepare_worker_case(tmp_path, "invalid-qualification", cli_digest, image_digest)
 
         direct_verify = _docker(
             [
-                *_worker_run_options(first, cli_path, image_digest),
-                "--entrypoint",
+                *_worker_run_args(first, cli_path, image_digest),
                 "node",
-                IMAGE_TAG,
                 "/opt/abe/verify-image.mjs",
                 "--expected",
                 "/workspace/input/qualification-lock.json",
@@ -322,6 +360,73 @@ def test_worker_image_is_disposable_and_receives_only_visible_projection():
             timeout=45,
         )
         assert direct_verify.returncode == 0, direct_verify.stdout + direct_verify.stderr
+
+        rejected_args = _docker(
+            [
+                *_worker_run_args(first, cli_path, image_digest),
+                "--scheduled-attempt",
+                "/controller/scheduled-attempt.json",
+            ],
+            timeout=20,
+        )
+        assert rejected_args.returncode == 64
+
+        open_invocation_path = Path(extra_invocation["input"]) / "worker-invocation.json"
+        open_invocation = _read_json(open_invocation_path)
+        open_invocation["extraControllerMemo"] = "not in the WorkerInvocation contract"
+        _write_json(open_invocation_path, open_invocation)
+        open_invocation_rejected = _docker(
+            [
+                *_worker_run_args(extra_invocation, cli_path, image_digest),
+                "node",
+                "/opt/abe/verify-image.mjs",
+                "--expected",
+                "/workspace/input/qualification-lock.json",
+            ],
+            timeout=45,
+        )
+        assert open_invocation_rejected.returncode != 0
+        assert "WorkerInvocation unknown fields" in open_invocation_rejected.stderr + open_invocation_rejected.stdout
+
+        invalid_lock_path = Path(invalid_qualification["input"]) / "qualification-lock.json"
+        invalid_invocation_path = Path(invalid_qualification["input"]) / "worker-invocation.json"
+        invalid_lock = _read_json(invalid_lock_path)
+        invalid_env = invalid_lock["environmentQualification"]
+        assert isinstance(invalid_env, dict)
+        invalid_env["scope"] = "release_candidate"
+        invalid_env["pluginLifecycleEvidence"] = "not_applicable"
+        invalid_env["customizationConformanceEvidence"] = "not_applicable"
+        invalid_digest = sha256_digest(canonical_bytes(invalid_env))
+        invalid_lock["environmentQualificationDigest"] = invalid_digest
+        _write_json(invalid_lock_path, invalid_lock)
+        invalid_invocation_json = _read_json(invalid_invocation_path)
+        invalid_invocation_json["environmentQualificationDigest"] = invalid_digest
+        _write_json(invalid_invocation_path, invalid_invocation_json)
+        invalid_qualification_rejected = _docker(
+            [
+                *_worker_run_args(invalid_qualification, cli_path, image_digest),
+                "node",
+                "/opt/abe/verify-image.mjs",
+                "--expected",
+                "/workspace/input/qualification-lock.json",
+            ],
+            timeout=45,
+        )
+        assert invalid_qualification_rejected.returncode != 0
+        assert "not_applicable" in invalid_qualification_rejected.stderr + invalid_qualification_rejected.stdout
+
+        writable_rootfs_rejected = _docker(
+            [
+                *_worker_run_args(first, cli_path, image_digest, read_only_rootfs=False),
+                "node",
+                "/opt/abe/verify-image.mjs",
+                "--expected",
+                "/workspace/input/qualification-lock.json",
+            ],
+            timeout=45,
+        )
+        assert writable_rootfs_rejected.returncode != 0
+        assert "root filesystem is writable" in writable_rootfs_rejected.stderr + writable_rootfs_rejected.stdout
 
         first_result = _run_worker(first, cli_path, image_digest)
         second_result = _run_worker(second, cli_path, image_digest)
@@ -332,23 +437,10 @@ def test_worker_image_is_disposable_and_receives_only_visible_projection():
             assert result["runtime"]["gid"] == WORKER_GID
             assert result["runtime"]["home"] == "/workspace/profile"
             assert result["runtime"]["noNewPrivileges"] is True
+            assert result["runtime"]["readOnlyRootFilesystem"] is True
             assert result["runtime"]["capEff"] == "0000000000000000"
             assert result["runtime"]["pid1Comm"] in {"docker-init", "init"}
-            assert result["invocation"]["keys"] == [
-                "authorityManifestDigest",
-                "cliDigest",
-                "cliPath",
-                "environmentQualificationDigest",
-                "fixtureDigest",
-                "invocationId",
-                "outputPath",
-                "requestDigest",
-                "requestPath",
-                "resourceCaps",
-                "runId",
-                "schemaVersion",
-                "toolPermissionProjection",
-            ]
+            assert result["invocation"]["keys"] == ALLOWED_INVOCATION_KEYS
             assert result["invocation"]["forbiddenKeysPresent"] == []
             assert result["qualification"]["digestMatchesInvocation"] is True
             assert result["cli"] == {

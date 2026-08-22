@@ -4,6 +4,42 @@ import os from "node:os";
 import path from "node:path";
 
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const WORKER_INVOCATION_KEYS = [
+  "authorityManifestDigest",
+  "cliDigest",
+  "cliPath",
+  "environmentQualificationDigest",
+  "fixtureDigest",
+  "invocationId",
+  "outputPath",
+  "requestDigest",
+  "requestPath",
+  "resourceCaps",
+  "runId",
+  "schemaVersion",
+  "toolPermissionProjection",
+];
+const RESOURCE_CAPS_KEYS = ["schemaVersion", "tokens", "toolCalls", "wallTimeMs", "subagentCalls"].sort();
+const TOOL_PERMISSION_KEYS = ["allowedTools", "network", "schemaVersion"];
+const ENVIRONMENT_QUALIFICATION_KEYS = [
+  "authorityToolCapabilityEvidence",
+  "cliDigest",
+  "cliVersion",
+  "customizationConformanceEvidence",
+  "imageDigest",
+  "limitations",
+  "modelConfigurationEvidence",
+  "platform",
+  "pluginLifecycleEvidence",
+  "qualificationId",
+  "qualifiedAt",
+  "scope",
+  "schemaVersion",
+  "structuredCaptureEvidence",
+  "supportDecision",
+  "unknownModelFallbackEvidence",
+];
+const PLATFORM_KEYS = ["architecture", "os", "schemaVersion"];
 
 function fail(message) {
   throw new Error(message);
@@ -79,6 +115,40 @@ function canWrite(targetPath) {
   }
 }
 
+function assertExactKeys(value, expectedKeys, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    fail(`${label} must be an object`);
+  }
+  const expected = [...expectedKeys].sort();
+  const actual = Object.keys(value).sort();
+  const missing = expected.filter((key) => !actual.includes(key));
+  const unknown = actual.filter((key) => !expected.includes(key));
+  if (missing.length) {
+    fail(`${label} missing fields: ${missing.join(", ")}`);
+  }
+  if (unknown.length) {
+    fail(`${label} unknown fields: ${unknown.join(", ")}`);
+  }
+}
+
+function assertString(value, label) {
+  if (typeof value !== "string" || value.length === 0 || value.includes("\u0000")) {
+    fail(`${label} must be a non-empty string`);
+  }
+}
+
+function assertDigest(value, label) {
+  if (!DIGEST_PATTERN.test(value)) {
+    fail(`${label} must be a sha256 digest`);
+  }
+}
+
+function assertSafeInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    fail(`${label} must be a non-negative safe integer`);
+  }
+}
+
 function assertNoForbiddenInputKeys(value, forbidden, found = new Set()) {
   if (!value || typeof value !== "object") {
     return found;
@@ -98,33 +168,65 @@ function assertNoForbiddenInputKeys(value, forbidden, found = new Set()) {
   return found;
 }
 
-function assertEnvironmentQualification(qualification) {
-  const required = [
-    "schemaVersion",
-    "qualificationId",
-    "scope",
-    "cliVersion",
-    "cliDigest",
-    "imageDigest",
-    "platform",
-    "modelConfigurationEvidence",
-    "unknownModelFallbackEvidence",
-    "structuredCaptureEvidence",
-    "pluginLifecycleEvidence",
-    "customizationConformanceEvidence",
-    "authorityToolCapabilityEvidence",
-    "supportDecision",
-    "limitations",
-    "qualifiedAt",
-  ];
-  for (const field of required) {
-    if (!Object.hasOwn(qualification, field)) {
-      fail(`missing qualification field ${field}`);
-    }
+function assertWorkerInvocation(invocation) {
+  assertExactKeys(invocation, WORKER_INVOCATION_KEYS, "WorkerInvocation");
+  if (invocation.schemaVersion !== 1) {
+    fail("unsupported WorkerInvocation schemaVersion");
   }
+  for (const field of ["invocationId", "runId"]) {
+    assertString(invocation[field], `WorkerInvocation.${field}`);
+  }
+  for (const field of [
+    "authorityManifestDigest",
+    "cliDigest",
+    "environmentQualificationDigest",
+    "fixtureDigest",
+    "requestDigest",
+  ]) {
+    assertDigest(invocation[field], `WorkerInvocation.${field}`);
+  }
+  if (invocation.cliPath !== "/opt/antigravity/bin/agy") {
+    fail("worker invocation uses an unexpected CLI path");
+  }
+  if (invocation.outputPath !== "/workspace/output") {
+    fail("worker invocation uses an unexpected output path");
+  }
+  if (invocation.requestPath !== "/workspace/input/request.txt") {
+    fail("worker invocation uses an unexpected request path");
+  }
+
+  assertExactKeys(invocation.resourceCaps, RESOURCE_CAPS_KEYS, "WorkerInvocation.resourceCaps");
+  if (invocation.resourceCaps.schemaVersion !== 1) {
+    fail("unsupported ResourceEnvelope schemaVersion");
+  }
+  assertSafeInteger(invocation.resourceCaps.wallTimeMs, "WorkerInvocation.resourceCaps.wallTimeMs");
+  assertSafeInteger(invocation.resourceCaps.toolCalls, "WorkerInvocation.resourceCaps.toolCalls");
+  assertSafeInteger(invocation.resourceCaps.subagentCalls, "WorkerInvocation.resourceCaps.subagentCalls");
+  if (typeof invocation.resourceCaps.tokens !== "string") {
+    fail("WorkerInvocation.resourceCaps.tokens must be a string budget or sentinel");
+  }
+
+  assertExactKeys(invocation.toolPermissionProjection, TOOL_PERMISSION_KEYS, "WorkerInvocation.toolPermissionProjection");
+  if (invocation.toolPermissionProjection.schemaVersion !== 1) {
+    fail("unsupported tool permission projection schemaVersion");
+  }
+  if (
+    !Array.isArray(invocation.toolPermissionProjection.allowedTools) ||
+    !invocation.toolPermissionProjection.allowedTools.every((tool) => typeof tool === "string" && tool.length > 0)
+  ) {
+    fail("allowedTools must be a closed array of strings");
+  }
+  assertString(invocation.toolPermissionProjection.network, "WorkerInvocation.toolPermissionProjection.network");
+}
+
+function assertEnvironmentQualification(qualification) {
+  assertExactKeys(qualification, ENVIRONMENT_QUALIFICATION_KEYS, "EnvironmentQualificationRecord");
   if (qualification.schemaVersion !== 1) {
     fail("unsupported qualification schemaVersion");
   }
+  assertString(qualification.qualificationId, "EnvironmentQualificationRecord.qualificationId");
+  assertString(qualification.cliVersion, "EnvironmentQualificationRecord.cliVersion");
+  assertString(qualification.qualifiedAt, "EnvironmentQualificationRecord.qualifiedAt");
   if (qualification.scope !== "cli_core" && qualification.scope !== "release_candidate") {
     fail("invalid qualification scope");
   }
@@ -135,15 +237,68 @@ function assertEnvironmentQualification(qualification) {
     "structuredCaptureEvidence",
     "authorityToolCapabilityEvidence",
   ]) {
-    if (!DIGEST_PATTERN.test(qualification[field])) {
-      fail(`invalid qualification digest ${field}`);
+    assertDigest(qualification[field], `EnvironmentQualificationRecord.${field}`);
+  }
+  for (const field of ["pluginLifecycleEvidence", "customizationConformanceEvidence"]) {
+    const value = qualification[field];
+    if (value === "not_applicable") {
+      if (qualification.scope !== "cli_core") {
+        fail(`${field} may be not_applicable only for cli_core`);
+      }
+    } else {
+      assertDigest(value, `EnvironmentQualificationRecord.${field}`);
     }
+  }
+  assertExactKeys(qualification.platform, PLATFORM_KEYS, "EnvironmentQualificationRecord.platform");
+  if (qualification.platform.schemaVersion !== 1) {
+    fail("unsupported platform schemaVersion");
   }
   if (qualification.platform?.os !== "linux" || qualification.platform?.architecture !== "x64") {
     fail("qualification platform must be linux/x64");
   }
+  if (
+    !qualification.modelConfigurationEvidence ||
+    typeof qualification.modelConfigurationEvidence !== "object" ||
+    Array.isArray(qualification.modelConfigurationEvidence)
+  ) {
+    fail("modelConfigurationEvidence must be an object");
+  }
+  for (const [key, value] of Object.entries(qualification.modelConfigurationEvidence)) {
+    assertString(key, "modelConfigurationEvidence key");
+    assertDigest(value, `modelConfigurationEvidence.${key}`);
+  }
+  if (!Array.isArray(qualification.limitations) || !qualification.limitations.every((item) => typeof item === "string")) {
+    fail("limitations must be an array of strings");
+  }
   if (qualification.supportDecision !== "qualified") {
     fail("worker requires a qualified environment");
+  }
+}
+
+function assertReadOnlyRootFilesystem(expectedRuntime) {
+  if (!expectedRuntime.readOnlyRootFilesystem) {
+    return false;
+  }
+  const probePath = expectedRuntime.rootFilesystemProbePath;
+  if (typeof probePath !== "string" || !probePath.startsWith("/home/abe/")) {
+    fail("root filesystem probe path must be beneath /home/abe");
+  }
+  try {
+    fs.writeFileSync(probePath, "rootfs write probe\n", { flag: "wx" });
+    try {
+      fs.unlinkSync(probePath);
+    } catch {
+      // Best-effort cleanup before failing closed.
+    }
+    fail(`root filesystem is writable at ${probePath}`);
+  } catch (error) {
+    if (error?.message?.startsWith("root filesystem is writable")) {
+      throw error;
+    }
+    if (error?.code === "EROFS" || error?.code === "EACCES") {
+      return true;
+    }
+    fail(`root filesystem probe failed unexpectedly: ${error?.code ?? error}`);
   }
 }
 
@@ -151,6 +306,7 @@ const expectedPath = requireArgs();
 const lock = readJson(expectedPath);
 const invocation = readJson("/workspace/input/worker-invocation.json");
 const qualification = lock.environmentQualification;
+assertWorkerInvocation(invocation);
 assertEnvironmentQualification(qualification);
 
 const actualQualificationDigest = digestJson(qualification);
@@ -164,16 +320,6 @@ if (invocation.environmentQualificationDigest !== expectedQualificationDigest) {
 if (invocation.cliDigest !== qualification.cliDigest) {
   fail("invocation CLI digest does not match qualification");
 }
-if (invocation.cliPath !== "/opt/antigravity/bin/agy") {
-  fail("worker invocation uses an unexpected CLI path");
-}
-if (invocation.outputPath !== "/workspace/output") {
-  fail("worker invocation uses an unexpected output path");
-}
-if (invocation.requestPath !== "/workspace/input/request.txt") {
-  fail("worker invocation uses an unexpected request path");
-}
-
 const expectedRuntime = lock.expectedRuntime;
 if (process.getuid?.() !== expectedRuntime.uid || process.getgid?.() !== expectedRuntime.gid) {
   fail("worker is not running as the exact non-root uid/gid");
@@ -192,6 +338,7 @@ if (expectedRuntime.noNewPrivileges && status.NoNewPrivs !== "1") {
 if (expectedRuntime.capabilities === "none" && status.CapEff !== "0000000000000000") {
   fail("effective Linux capabilities are not dropped");
 }
+const readOnlyRootFilesystem = assertReadOnlyRootFilesystem(expectedRuntime);
 
 const cliPath = "/opt/antigravity/bin/agy";
 const cliStat = fs.lstatSync(cliPath);
@@ -248,6 +395,7 @@ const verification = {
     home: process.env.HOME,
     platform: `${process.platform}/${process.arch}`,
     noNewPrivileges: status.NoNewPrivs === "1",
+    readOnlyRootFilesystem,
     capEff: status.CapEff,
     pid1Comm: fs.readFileSync("/proc/1/comm", "utf8").trim(),
   },

@@ -44,6 +44,12 @@
       "visibleToAgent": true
     },
     {
+      "containerPath": "/workspace/plugin-condition",
+      "source": "selected-plugin-condition-or-none",
+      "readOnly": true,
+      "visibleToAgent": true
+    },
+    {
       "containerPath": "/workspace/output",
       "source": "evidence-staging",
       "readOnly": false,

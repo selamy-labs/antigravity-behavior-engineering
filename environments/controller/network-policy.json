@@ -4,9 +4,17 @@
     "hostNetwork": "deny",
     "packageManagerNetwork": "deny",
     "dependencyInstallation": "deny",
+    "inferenceEgress": "controller-allowlist-only",
     "allowedEgress": [
       "authenticated-antigravity-inference"
     ],
+    "deniedPackageManagerHosts": [
+      "registry.npmjs.org",
+      "registry.yarnpkg.com",
+      "pypi.org",
+      "files.pythonhosted.org"
+    ],
+    "localDenialTestProfile": "docker-network-none",
     "ambientBrowserOrDesktopState": "deny"
   },
   "qualificationRuns": {
