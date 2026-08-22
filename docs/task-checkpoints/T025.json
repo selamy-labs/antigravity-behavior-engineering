@@ -4,8 +4,8 @@
   "taskTitle": "Earn the `proof-obligation-contract` skill",
   "taskEntryDigest": "sha256:c4458012f7f773bdaf67623d5f89286ba220bbacfa01a8c3a6877903eabc00c8",
   "baseCommit": "59c922b03358321397c97a6793865d6626c18891",
-  "implementationCommit": "36408d20642dda4b875266eadd10e34c1d37f9fc",
-  "treeDigest": "sha256:79f2e208fc16721c59927b0faad3a26133fa27d85215a56e87f852903a0a9c2d",
+  "implementationCommit": "8eb2dd5a73a5e53e3c2a8d8e58fcb93aab58e5d6",
+  "treeDigest": "sha256:87a76d7541c5ffded654763c3680d9200328811ab82feb3af0e870b26ce0d590",
   "outcome": "implemented",
   "files": {
     "evals/formative/proof-obligation-contract.analysis.json": "sha256:c540c238b2a655cfd2c23653b2d19a5696549240b828d26bcc4e60f42b982977",
@@ -14,11 +14,11 @@
     "evaluator/src/abe_eval/qualify.py": "sha256:798a97dae23b85b6b1df12727812541ea239eeafc66727aa052a9670e2da7c12",
     "evaluator/src/abe_eval/skill_ablation.py": "sha256:7af9c2d4a0c87785f28e9bad31a858fdb2292484a2bd2fc2d431454ef1079406",
     "evaluator/tests/test_skill_ablation_formative.py": "sha256:7a4d8c0a97a5f823775ec01611c77493e9b5f72fa087d2717fad06d1065242af",
-    "plugin/behavior-lock.json": "sha256:07ae91c72031cc6ea6a6517b8d6bf21a37d160fcd22263a5adbbdf13369659f9",
+    "plugin/behavior-lock.json": "sha256:9ee61a769a43cf08058d22137a8280ab8f6d8df046973bf15d3f05aafd59a4b6",
     "plugin/skills/proof-obligation-contract/SKILL.md": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379",
     "tests/lifecycle/inert-plugin.test.mjs": "sha256:b9c3a65807f545aef59d2e7c81c036c697a1c53bd54f2ed6d99003b154856b73",
-    "tests/plugin/evidence-first-framing.test.mjs": "sha256:2ee2864c23d7f40b0422bd4943fd460dea46cedb89498e1b039a5cdf6afc7235",
-    "tests/plugin/kernel-rule.test.mjs": "sha256:f242023182b0bccec8f7520afde1f09cde6bf0d6720b3927fd215168568ce5bf",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:f0a389c8ae79fe85daab3bc8d1f2ab939c307863757c6d8b2249948808b90c56",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:cb54484c51d80ac35ade7668d0c480c22ab434b4a2c0ad93bedd8f8651f69295",
     "tests/plugin/proof-obligation-contract.test.mjs": "sha256:cc0e44f6770d3ff20ba6bc8c4f60335997358daa6595cc285d81c073710cfd69"
   },
   "verification": [
@@ -207,6 +207,21 @@
       "expectedExit": 0,
       "actualExit": 0,
       "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "postmerge-source-revision-repair",
+        "node",
+        "--test",
+        "tests/plugin/proof-obligation-contract.test.mjs",
+        "tests/plugin/evidence-first-framing.test.mjs",
+        "tests/plugin/kernel-rule.test.mjs",
+        "packages/evidence-cli/test/task-state.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:12f6f1d509275abdd677c6b555caf9a86cb01834a3d28f029f044b7bb98502cd"
     }
   ],
   "reviews": [
@@ -230,7 +245,7 @@
     "criticalFindings": 0
   },
   "rollback": {
-    "strategy": "Before merge, abandon the T025 branch; after merge, open a T025-linked revert PR without rewriting public history. The proof-obligation skill selection is isolated in the T025 branch, with evaluator replay support isolated in commits d8c0f6d054f7925d0fae0e4c7e5b5e65937af842, 300fe9216ff5dac630842eb4929476d082f6e1b5, 4b972a6fc9cc18786bf01b8fd81c5fcca4f0b81e, and 36408d20642dda4b875266eadd10e34c1d37f9fc for targeted revert if needed.",
+    "strategy": "Before merge, abandon the T025 branch; after merge, open a T025-linked revert PR without rewriting public history. The proof-obligation skill selection is isolated in the T025 branch, with evaluator replay support isolated in commits d8c0f6d054f7925d0fae0e4c7e5b5e65937af842, 300fe9216ff5dac630842eb4929476d082f6e1b5, 4b972a6fc9cc18786bf01b8fd81c5fcca4f0b81e, and 36408d20642dda4b875266eadd10e34c1d37f9fc; the public source-revision repair is isolated in 8eb2dd5a73a5e53e3c2a8d8e58fcb93aab58e5d6.",
     "tested": false
   },
   "createdAt": "2026-08-22T14:00:25Z"
