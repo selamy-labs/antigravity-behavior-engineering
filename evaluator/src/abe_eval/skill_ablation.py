@@ -104,7 +104,7 @@ def load_skill_ablation_matrix(path: Path | str | Mapping[str, object]) -> dict[
     if value.get("repetitionsPerScenario") != 1:
         _fail("skill_ablation.repetitions_mismatch", "$.repetitionsPerScenario")
     scenarios = _assert_list(value.get("scenarioCoverage"), "$.scenarioCoverage")
-    if len(scenarios) != 10:
+    if not scenarios:
         _fail("skill_ablation.scenario_count_mismatch", "$.scenarioCoverage")
     scenario_ids: list[str] = []
     for index, scenario in enumerate(scenarios):
@@ -134,6 +134,8 @@ def _analysis_header(path: Path | str) -> dict[str, object]:
     analysis = _load_json(path)
     if analysis.get("analysisType") != ANALYSIS_TYPE:
         _fail("skill_ablation.invalid_analysis_type", "$.analysisType")
+    _assert_string(analysis.get("analysisId"), "$.analysisId")
+    _assert_string(analysis.get("component"), "$.component")
     return analysis
 
 
@@ -326,6 +328,9 @@ def _metrics_from_runs(runs: list[dict[str, object]]) -> dict[str, object]:
 def _build_report(analysis: Mapping[str, object], raw_root: Path) -> dict[str, object]:
     runs = _read_runs(raw_root)
     index = _read_index(raw_root)
+    run_digests = sorted(str(run["runDigest"]) for run in runs)
+    if index.get("runDigests") != run_digests:
+        _fail("skill_ablation.run_index_mismatch", "$.runIndex.runDigests")
     metrics = _metrics_from_runs(runs)
     return {
         "schemaVersion": 1,
@@ -338,7 +343,7 @@ def _build_report(analysis: Mapping[str, object], raw_root: Path) -> dict[str, o
         "decisionOutput": analysis["decisionOutput"],
         "resourceEnvelope": analysis["resourceEnvelope"],
         "runCount": len(runs),
-        "runDigests": list(index["runDigests"]),
+        "runDigests": run_digests,
     }
 
 
@@ -361,6 +366,21 @@ def grade_skill_ablation(analysis_path: Path | str, raw_root: Path | str) -> dic
     return grade
 
 
+def _assert_fresh_grade(grade: Mapping[str, object], report: Mapping[str, object], analysis: Mapping[str, object]) -> None:
+    if grade.get("schemaVersion") != 1 or grade.get("command") != "grade":
+        _fail("skill_ablation.invalid_grade", "$.grade")
+    expected = {
+        "analysisId": analysis["analysisId"],
+        "phase": report["phase"],
+        "runsGraded": report["runCount"],
+        "metrics": report["metrics"],
+        "runDigests": report["runDigests"],
+    }
+    for key, value in expected.items():
+        if grade.get(key) != value:
+            _fail("skill_ablation.stale_grade", "$.grade." + key)
+
+
 def report_skill_ablation(analysis_path: Path | str, raw_root: Path | str, output: Path | str) -> dict[str, object]:
     analysis = _analysis_header(analysis_path)
     raw_root_path = Path(raw_root)
@@ -368,8 +388,11 @@ def report_skill_ablation(analysis_path: Path | str, raw_root: Path | str, outpu
     if not grade_path.is_file():
         _fail("skill_ablation.missing_grade", "$.grade")
     report = _build_report(analysis, raw_root_path)
+    _assert_fresh_grade(_load_json(grade_path), report, analysis)
+    if report["phase"] == "matched-after" and report["metrics"] != analysis["metrics"]:
+        _fail("skill_ablation.analysis_mismatch", "$.metrics")
     output_path = Path(output)
-    report_path = output_path / "proof-obligation-contract-report.json"
+    report_path = output_path / (_assert_string(analysis["component"], "$.component") + "-report.json")
     report_digest = _write_json(report_path, report, overwrite=True)
     return {
         "schemaVersion": 1,
