@@ -405,11 +405,6 @@ test('published schemas are recursively closed and validate a durable root fixtu
       ...parserOnlySchemaCases.map(([name, value]) => ({ name, value, expected: true })),
     ],
   };
-  const pythonPath = path.resolve(
-    'evaluator',
-    '.venv',
-    process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python',
-  );
   const pythonSource = [
     'import json, sys',
     'from jsonschema import Draft202012Validator, FormatChecker',
@@ -422,7 +417,7 @@ test('published schemas are recursively closed and validate a durable root fixtu
     '    if actual != case["expected"]:',
     '        raise AssertionError(f"schema case {case[\'name\']} expected {case[\'expected\']} got {actual}")',
   ].join('\n');
-  const validation = spawnSync(pythonPath, ['-c', pythonSource], {
+  const validation = spawnSync('uv', ['run', '--project', 'evaluator', '--locked', '--offline', 'python', '-c', pythonSource], {
     cwd: path.resolve('.'),
     encoding: 'utf8',
     input: JSON.stringify(payload),
