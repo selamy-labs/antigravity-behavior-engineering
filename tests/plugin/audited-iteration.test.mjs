@@ -86,10 +86,15 @@ const assertEvaluatorSuccess = (result) => {
   return JSON.parse(result.stdout);
 };
 
-const assertEvaluatorFailure = (result, error, errorPath) => {
+const assertEvaluatorFailure = (result, command, error, errorPath) => {
   assert.equal(result.error, undefined);
   assert.equal(result.status, 2, result.stdout + result.stderr);
-  assert.deepEqual(JSON.parse(result.stderr), { error, path: errorPath });
+  assert.deepEqual(JSON.parse(result.stderr), {
+    schemaVersion: 1,
+    command,
+    error,
+    message: `${error} at ${errorPath}`,
+  });
 };
 
 test("audited-iteration is rejected when replay is synthetic and repair closure is not executable", async () => {
@@ -349,11 +354,13 @@ test("the rejection analysis validates and binds both deterministic replay index
 
   assertEvaluatorFailure(
     runEvaluator("grade", "--analysis", analysisPath, "--raw-root", rawRoot),
+    "grade",
     "skill_ablation.replay_binding_mismatch",
     "$.formativeReplay.matchedAfter.runIndexDigest",
   );
   assertEvaluatorFailure(
     runEvaluator("report", "--analysis", analysisPath, "--raw-root", rawRoot, "--output", outputRoot),
+    "report",
     "skill_ablation.replay_binding_mismatch",
     "$.formativeReplay.matchedAfter.runIndexDigest",
   );

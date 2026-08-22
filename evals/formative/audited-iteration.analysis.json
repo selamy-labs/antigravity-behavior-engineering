@@ -6,13 +6,13 @@
   "matrixPath": "evals/formative/audited-iteration.matrix.json",
   "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
   "evaluatorPath": "evaluator/src/abe_eval/skill_ablation.py",
-  "evaluatorDigest": "sha256:7af9c2d4a0c87785f28e9bad31a858fdb2292484a2bd2fc2d431454ef1079406",
+  "evaluatorDigest": "sha256:f9be6d558f5df048a09ba6b7150aa6b2a5bab5c6b7f94f40f8c7d26101ae0f76",
   "runtimePath": "plugin/scripts/runtime-lib.mjs",
   "runtimeDigest": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
   "decisionOutput": {
     "component": "audited-iteration",
     "decision": "not_selected",
-    "evidenceDigest": "sha256:5c351d193b18d008fc94b7aeb141fec1f85ce797225f317b705eec4f7037d620",
+    "evidenceDigest": "sha256:9278df87a37a75a010f4539b8e5567f119bbb4771bad0c2f81d0da16f8a650de",
     "reason": "The candidate is not retained because T026 has no observed incumbent-versus-treatment long-task ablation, its deterministic replay copies authored outcomes, the T024 CLI cannot close accepted findings or pending obligations, and the required resource and regression gates are unmeasured."
   },
   "metrics": {
@@ -122,7 +122,7 @@
     "supportsSelection": false,
     "protocol": {
       "schemaVersion": 1,
-      "analysisCodeDigest": "sha256:7af9c2d4a0c87785f28e9bad31a858fdb2292484a2bd2fc2d431454ef1079406",
+      "analysisCodeDigest": "sha256:f9be6d558f5df048a09ba6b7150aa6b2a5bab5c6b7f94f40f8c7d26101ae0f76",
       "incumbentPackageDigest": "sha256:9ee61a769a43cf08058d22137a8280ab8f6d8df046973bf15d3f05aafd59a4b6",
       "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
       "modelRequests": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
@@ -134,7 +134,7 @@
       "reasoningRequest": "high",
       "repetitionsPerScenario": 1
     },
-    "protocolDigest": "sha256:3ab49a9f1765f53966b766021350679589fd055fa4b371fada6ffe404da7d6a9",
+    "protocolDigest": "sha256:03651445c3033df146b79b66153b973183670ea6fa1c0024f2fbc5496e8ffb6a",
     "incumbentBefore": {
       "attemptedBeforeCandidateBody": true,
       "conditions": ["incumbent-before"],
