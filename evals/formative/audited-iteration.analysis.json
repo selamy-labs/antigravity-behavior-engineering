@@ -12,8 +12,23 @@
   "decisionOutput": {
     "component": "audited-iteration",
     "decision": "not_selected",
-    "evidenceDigest": "sha256:34abfcb8383e97d616a96e5aa9d537031077d2c020726babb6f49421efeb7bf5",
+    "evidenceDigest": "sha256:43827e3bdb268430854197d0818f0187d45b993492df2eb8c5e386640b816bf0",
     "reason": "The candidate is not retained because T026 has no observed incumbent-versus-treatment long-task ablation, its deterministic replay copies authored outcomes, the T024 CLI cannot close accepted findings or pending obligations, and the required resource and regression gates are unmeasured."
+  },
+  "metrics": {
+    "requirementRetentionRecall": "1.0",
+    "realEvidenceSeamPrecision": "1.0",
+    "freshnessAnchorEnforced": true,
+    "terminalConsistencyEnforced": true,
+    "foreignOrStaleStateRejected": true,
+    "coldRecoveryPreserved": true,
+    "oneCheckNonActivation": true,
+    "criticalFalseCompletionCount": 0,
+    "schemaTheaterRejected": true
+  },
+  "metricsInterpretation": {
+    "evidenceClass": "deterministic_outcome_program_materialization",
+    "supportsSelection": false
   },
   "rejectionReasons": [
     "formative_replay_copies_preprogrammed_outcomes",
@@ -29,10 +44,14 @@
     "materialRegression": "not_measured",
     "reviewRepairClosure": "runtime_update_operation_missing"
   },
-  "declaredCandidateLimits": {
-    "maxPromptBodyCharacters": 12000,
-    "additionalToolsRequired": ["abe-evidence"],
-    "networkRequired": false
+  "resourceEnvelope": {
+    "status": "not_measured",
+    "supportsSelection": false,
+    "declaredCandidateLimits": {
+      "maxPromptBodyCharacters": 12000,
+      "additionalToolsRequired": ["abe-evidence"],
+      "networkRequired": false
+    }
   },
   "measurementBasis": {
     "mode": "rejected-synthetic-formative-replay-plus-live-activation-smoke",
@@ -101,12 +120,37 @@
   "formativeReplay": {
     "evidenceClass": "deterministic_outcome_program_materialization",
     "supportsSelection": false,
+    "protocol": {
+      "schemaVersion": 1,
+      "analysisCodeDigest": "sha256:7af9c2d4a0c87785f28e9bad31a858fdb2292484a2bd2fc2d431454ef1079406",
+      "incumbentPackageDigest": "sha256:9ee61a769a43cf08058d22137a8280ab8f6d8df046973bf15d3f05aafd59a4b6",
+      "matrixDigest": "sha256:cdc63b702658bd909ea6e4dde15ea80ed1c39ba020adb075e44f9f08337822dc",
+      "modelRequests": ["gemini-3.1-pro-high", "gemini-3.7-flash-high"],
+      "phaseConditions": {
+        "incumbentBefore": ["incumbent-before"],
+        "matchedAfter": ["incumbent-minus", "incumbent-plus"]
+      },
+      "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+      "reasoningRequest": "high",
+      "repetitionsPerScenario": 1
+    },
+    "protocolDigest": "sha256:3ab49a9f1765f53966b766021350679589fd055fa4b371fada6ffe404da7d6a9",
     "incumbentBefore": {
       "attemptedBeforeCandidateBody": true,
+      "conditions": ["incumbent-before"],
+      "conditionDigest": "sha256:b56888c29f80a7f4711cff63b493cf6c9b34eed7bdd924db106ff7ae9aa32fc4",
+      "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+      "runIndexDigest": "sha256:5a4a9250e2843fed55a117dd7471c8654d1d55a9fa8da914eb3adf740d5f2034",
+      "runSetDigest": "sha256:a54113900ad818a740beab9e2ade5b12f758f0e31a611354aa0f8a65d1441df4",
       "runsCreated": 16
     },
     "matchedAfter": {
       "attemptedAfterCandidateBody": true,
+      "conditions": ["incumbent-minus", "incumbent-plus"],
+      "conditionDigest": "sha256:75c35cd870555948621e6fd4f8b1916920b54874b523a41a8e46075b68821a1a",
+      "qualificationDigest": "sha256:594148ac15d92f80984d208a1662c7a1e57c442ad515db1d028dbba3ca53428c",
+      "runIndexDigest": "sha256:31ada7df20d5c7d18e44710db6791c420a547aaa57f005e091d9733372efda40",
+      "runSetDigest": "sha256:428a08f1bd07f7099585fca43b9fc9ff13258337498e06f0543b8d7955430110",
       "runsCreated": 32
     }
   },

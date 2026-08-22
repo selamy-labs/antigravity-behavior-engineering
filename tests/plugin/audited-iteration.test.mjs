@@ -180,18 +180,12 @@ test("the frozen intervention card remains expectations rather than observed evi
     networkRequired: false,
     additionalToolsRequired: ["abe-evidence"],
   });
-  assert.deepEqual(analysis.formativeReplay, {
-    evidenceClass: "deterministic_outcome_program_materialization",
-    supportsSelection: false,
-    incumbentBefore: {
-      attemptedBeforeCandidateBody: true,
-      runsCreated: 16,
-    },
-    matchedAfter: {
-      attemptedAfterCandidateBody: true,
-      runsCreated: 32,
-    },
-  });
+  assert.equal(analysis.formativeReplay.evidenceClass, "deterministic_outcome_program_materialization");
+  assert.equal(analysis.formativeReplay.supportsSelection, false);
+  assert.equal(analysis.formativeReplay.incumbentBefore.attemptedBeforeCandidateBody, true);
+  assert.equal(analysis.formativeReplay.incumbentBefore.runsCreated, 16);
+  assert.equal(analysis.formativeReplay.matchedAfter.attemptedAfterCandidateBody, true);
+  assert.equal(analysis.formativeReplay.matchedAfter.runsCreated, 32);
   assert.equal(analysis.liveActivationEvidence.status, "collected");
   assert.equal(analysis.liveActivationEvidence.supportsSelection, false);
   assert.deepEqual(analysis.liveActivationEvidence.models, ["gemini-3.1-pro-high", "gemini-3.7-flash-high"]);
