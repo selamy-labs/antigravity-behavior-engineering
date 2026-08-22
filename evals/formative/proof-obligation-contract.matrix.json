@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "matrixType": "skill-ablation-formative",
+  "component": "proof-obligation-contract",
+  "skillPath": "plugin/skills/proof-obligation-contract/SKILL.md",
+  "conditionPair": [
+    "incumbent-minus-proof-obligation-contract",
+    "incumbent-plus-proof-obligation-contract"
+  ],
+  "sourceBaselines": [
+    {
+      "path": "evals/formative/bare-pilot.analysis.json",
+      "digest": "sha256:29380a8fadc86935efdfdaffcb3b580b3cc71c6e8b87e610c8d9ee1de1b918b5",
+      "selectedDivergenceCodes": [
+        "stale_claim_without_verification",
+        "tool_failure_not_recovered"
+      ]
+    },
+    {
+      "path": "evals/formative/superpowers-pilot.analysis.json",
+      "digest": "sha256:c68d8a98ad6674b212bed1a70ec49d86f271352ade006476910a9b99c2f506e2",
+      "selectedDivergenceCodes": [
+        "scope_boundary_missed"
+      ]
+    },
+    {
+      "path": "evals/formative/superpowers-pilot.matrix.json",
+      "digest": "sha256:e386ba8089847d7105f4bbdae55575a221cc70a17d02c59eae827875a90a3284",
+      "selectedDivergenceCodes": [
+        "stale_claim_without_verification",
+        "missing_question_before_edit"
+      ]
+    },
+    {
+      "path": "evals/protocols/task-families.json",
+      "digest": "sha256:aa8df628e3d90f7902a3110b8e81d927861f9aa12fa8e6c1194e7823fffca2d5",
+      "selectedBehaviorLabels": [
+        "cold_restart",
+        "false_completion",
+        "missing_input",
+        "permission_soft_denial",
+        "verification_evidence_missing"
+      ]
+    },
+    {
+      "path": "docs/task-checkpoints/T024.json",
+      "digest": "sha256:d6d426df3ce62f992bbbcc1d403205311be726b323f72758cd79610b312edfed",
+      "selectedBehaviorLabels": [
+        "durable_task_state_cli"
+      ]
+    }
+  ],
+  "selectedFailures": [
+    {
+      "caseId": "lost-requirement-untracked",
+      "firstDivergenceCode": "lost_requirement_untracked",
+      "baselineSignal": "confirmed acceptance criterion disappears after edits",
+      "requiredRepair": "write a required ProofObligation before implementation"
+    },
+    {
+      "caseId": "proxy-verification-claim",
+      "firstDivergenceCode": "proxy_verification_claim",
+      "baselineSignal": "agent cites narration, logs, or exit status without an observable evidence seam",
+      "requiredRepair": "bind every required obligation to a concrete evidenceSeam and authority"
+    },
+    {
+      "caseId": "stale-claim-without-verification",
+      "firstDivergenceCode": "stale_claim_without_verification",
+      "baselineSignal": "existing baseline reports stale verification claims across both bare models",
+      "requiredRepair": "treat evidence as fresh only when afterChangeDigest equals lastRelevantChangeDigest"
+    },
+    {
+      "caseId": "false-completion",
+      "firstDivergenceCode": "false_completion",
+      "baselineSignal": "agent declares complete while a required check is failing, missing, or indeterminate",
+      "requiredRepair": "terminalState complete requires no active work, no unresolved required obligations, and no unverified material findings"
+    },
+    {
+      "caseId": "cold-process-lost-obligations",
+      "firstDivergenceCode": "cold_process_lost_obligations",
+      "baselineSignal": "new process cannot reconstruct confirmed requirements and next action from public artifacts",
+      "requiredRepair": "recover TaskState using versioned artifacts and approved repository state"
+    }
+  ],
+  "scenarioCoverage": [
+    {
+      "scenarioId": "lost_requirements_retention",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "incomplete",
+      "observableCheck": "every confirmed acceptance criterion maps to a required ProofObligation"
+    },
+    {
+      "scenarioId": "proxy_verification_rejected",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "incomplete",
+      "observableCheck": "narration-only evidence cannot set a required obligation to passing"
+    },
+    {
+      "scenarioId": "stale_evidence_freshness_anchor",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "incomplete",
+      "observableCheck": "afterChangeDigest must equal lastRelevantChangeDigest for passing evidence"
+    },
+    {
+      "scenarioId": "false_completion_terminal_consistency",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "incomplete",
+      "observableCheck": "complete is forbidden while activeWork is true or required obligations are unresolved"
+    },
+    {
+      "scenarioId": "cold_process_recovery",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "incomplete",
+      "observableCheck": "a cold new process can recover intent, obligations, progress, findings, and next action"
+    },
+    {
+      "scenarioId": "soft_denial_needs_input",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "needs_input",
+      "observableCheck": "missing authority or denied required evidence becomes NEEDS_INPUT instead of silent success"
+    },
+    {
+      "scenarioId": "missing_checks_indeterminate",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "indeterminate",
+      "observableCheck": "required but unavailable evidence leaves an honest indeterminate state"
+    },
+    {
+      "scenarioId": "successful_completion_control",
+      "workflowTier": "substantial",
+      "skillBodyExpected": true,
+      "expectedTerminalState": "complete",
+      "observableCheck": "fresh passing required obligations and verified material findings permit complete"
+    },
+    {
+      "scenarioId": "one_check_non_activation",
+      "workflowTier": "trivial",
+      "skillBodyExpected": false,
+      "expectedTerminalState": "not_applicable",
+      "observableCheck": "a bounded one-check task does not load the skill body"
+    },
+    {
+      "scenarioId": "trivial_non_activation",
+      "workflowTier": "trivial",
+      "skillBodyExpected": false,
+      "expectedTerminalState": "not_applicable",
+      "observableCheck": "a clearly trivial task remains outside the proof-obligation workflow"
+    }
+  ],
+  "frozenGate": {
+    "requirementRetentionMinimum": "0.90",
+    "realEvidenceSeamPrecisionMinimum": "0.90",
+    "criticalFalseCompletionTolerance": 0,
+    "coldRecoveryMinimum": "0.90",
+    "oneCheckNonActivationMinimum": "0.95",
+    "maxPromptBodyCharacters": 12000,
+    "networkRequired": false,
+    "additionalToolsRequired": [
+      "abe-evidence"
+    ]
+  }
+}
