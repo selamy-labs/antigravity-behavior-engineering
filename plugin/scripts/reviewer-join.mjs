@@ -6,6 +6,7 @@ import {
   parseReviewRequest,
   parseReviewerVerdict,
 } from "../../packages/contracts/src/runtime-contracts.mjs";
+import { validatePublishedReviewPair } from "./reviewer-package.mjs";
 
 const REVIEW_ROLES = ["requirements", "quality"];
 
@@ -45,13 +46,12 @@ const validateTerminalVerdict = (value, role, request) => {
 
 const separationEvidence = (envelope, requirementsRequest, qualityRequest) => ({
   schemaVersion: 1,
-  reviewPairEnvelopeDigest: envelope.reviewPairEnvelopeDigest,
-  requirementsReviewRequestDigest: requirementsRequest.reviewRequestDigest,
-  requirementsPackageManifestDigest: requirementsRequest.packageManifestDigest,
-  qualityReviewRequestDigest: qualityRequest.reviewRequestDigest,
-  qualityPackageManifestDigest: qualityRequest.packageManifestDigest,
-  packageVisibility: "role-specific package excludes competing request and verdict",
-  invocationIsolation: "reviewers do not communicate",
+  publishedPackageEvidence: validatePublishedReviewPair(
+    envelope,
+    requirementsRequest,
+    qualityRequest,
+  ),
+  invocationIsolation: "distinct role-scoped content-addressed package roots",
   joinTiming: "after both terminal outputs",
 });
 

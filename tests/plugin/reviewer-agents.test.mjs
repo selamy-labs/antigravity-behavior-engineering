@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
-import test from "node:test";
+import test, { after } from "node:test";
 
 import { canonicalBytes, sha256Digest } from "../../packages/contracts/src/canonical-json.mjs";
 import { parseReviewJoinRecord } from "../../packages/contracts/src/runtime-contracts.mjs";
 import { joinReviewerVerdicts } from "../../plugin/scripts/reviewer-join.mjs";
+import {
+  buildReviewPackage,
+  buildReviewPairEnvelope,
+} from "../../plugin/scripts/reviewer-package.mjs";
 
 const repoRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 const joinerPath = path.join(repoRoot, "plugin", "scripts", "reviewer-join.mjs");
@@ -19,36 +24,6 @@ const identityDigest = (value, field) => sha256Digest(canonicalBytes(
 const readJson = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
 const fileDigest = async (file) => sha256Digest(await fs.readFile(file));
 
-const envelope = {
-  schemaVersion: 1,
-  pairId: "pair-t028",
-  artifactDigest: digest("a"),
-  obligationDigest: digest("b"),
-  verificationInterfaceDigest: digest("c"),
-  authorityDigest: digest("d"),
-  sharedPackageManifestDigest: digest("e"),
-  reviewPairEnvelopeDigest: "",
-};
-envelope.reviewPairEnvelopeDigest = identityDigest(envelope, "reviewPairEnvelopeDigest");
-
-const requestFor = (role, character) => {
-  const value = {
-    schemaVersion: 1,
-    requestId: `request-${role}`,
-    reviewerRole: role,
-    reviewPairEnvelopeDigest: envelope.reviewPairEnvelopeDigest,
-    artifactDigest: envelope.artifactDigest,
-    obligationDigest: envelope.obligationDigest,
-    verificationInterfaceDigest: envelope.verificationInterfaceDigest,
-    authorityDigest: envelope.authorityDigest,
-    packageManifestDigest: digest(character),
-    reviewRequestDigest: "",
-  };
-  value.reviewRequestDigest = identityDigest(value, "reviewRequestDigest");
-  return value;
-};
-const requirementsRequest = requestFor("requirements", "1");
-const qualityRequest = requestFor("quality", "2");
 const evidence = {
   schemaVersion: 1,
   kind: "test",
@@ -58,6 +33,70 @@ const evidence = {
   afterChangeDigest: digest("4"),
   result: "fail",
 };
+const packageObligation = {
+  schemaVersion: 1,
+  id: "O-1",
+  requirement: "The implementation must preserve the approved boundary.",
+  evidenceSeam: "node --test test/focused.test.mjs",
+  negativeCases: ["reject foreign bindings"],
+  authority: "read package and run focused verification",
+  required: true,
+  status: "failing",
+  evidence: [evidence],
+  lastRelevantChangeDigest: digest("4"),
+};
+const verificationInterface = {
+  schemaVersion: 1,
+  interfaceId: "reviewer-join-focused",
+  commands: [{
+    schemaVersion: 1,
+    id: "focused",
+    executable: "node",
+    arguments: ["--test", "test/focused.test.mjs"],
+    workingDirectory: ".",
+    timeoutMs: 30_000,
+  }],
+  artifacts: ["test/focused.test.mjs"],
+};
+const authorityManifest = {
+  schemaVersion: 1,
+  manifestId: "reviewer-join-read-only",
+  allowedActions: ["execute_verification", "read", "write_verdict"],
+  allowedResources: ["README.md", "test/focused.test.mjs"],
+  networkPolicyDigest: digest("5"),
+  credentialGrantDigests: [],
+  expiresAt: "not_applicable",
+};
+const buildPublishedPair = async (root) => {
+  const input = {
+    schemaVersion: 1,
+    artifactRoot: "README.md",
+    artifactDigest: await fileDigest(path.join(repoRoot, "README.md")),
+    obligations: [packageObligation],
+    obligationDigest: sha256Digest(canonicalBytes([packageObligation])),
+    verificationInterface,
+    verificationInterfaceDigest: sha256Digest(canonicalBytes(verificationInterface)),
+    authorityManifest,
+    authorityDigest: sha256Digest(canonicalBytes(authorityManifest)),
+  };
+  const envelope = buildReviewPairEnvelope(input);
+  const requirementsRequest = await buildReviewPackage(envelope, "requirements", root);
+  const qualityRequest = await buildReviewPackage(envelope, "quality", root);
+  return {
+    envelope,
+    requirementsRequest,
+    qualityRequest,
+    qualityPackageRoot: path.join(root, `quality-${qualityRequest.reviewRequestDigest.slice(7)}`),
+  };
+};
+const packageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "abe-t028-join-"));
+after(() => fs.rm(packageRoot, { recursive: true, force: true }));
+const {
+  envelope,
+  requirementsRequest,
+  qualityRequest,
+  qualityPackageRoot,
+} = await buildPublishedPair(packageRoot);
 const verdictFor = (role, request, id) => ({
   schemaVersion: 1,
   reviewerRole: role,
@@ -181,6 +220,40 @@ test("joiner rejects crossed roles, replayed envelopes, and mismatched shared su
       qualityVerdict,
     ),
     /(?:binding_mismatch|invalid_digest)/u,
+  );
+});
+
+test("joiner rejects forged package bindings and injected competing-review artifacts", async () => {
+  const forgedRequest = {
+    ...qualityRequest,
+    packageManifestDigest: digest("7"),
+    reviewRequestDigest: "",
+  };
+  forgedRequest.reviewRequestDigest = identityDigest(forgedRequest, "reviewRequestDigest");
+  assert.throws(
+    () => joinReviewerVerdicts(
+      envelope,
+      requirementsRequest,
+      requirementsVerdict,
+      forgedRequest,
+      qualityVerdict,
+    ),
+    /binding_mismatch/u,
+  );
+
+  await fs.writeFile(
+    path.join(qualityPackageRoot, "requirements-verdict.json"),
+    `${JSON.stringify(requirementsVerdict)}\n`,
+  );
+  assert.throws(
+    () => joinReviewerVerdicts(
+      envelope,
+      requirementsRequest,
+      requirementsVerdict,
+      qualityRequest,
+      qualityVerdict,
+    ),
+    /binding_mismatch/u,
   );
 });
 
