@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "antigravity-behavior-engineering",
   "packageVersion": "0.0.0",
-  "sourceRevision": "12d897770da3c095fd65a2cc72bcb0ee7240f4aa",
+  "sourceRevision": "ea2347c1a31fdb511d21a0bfd75ad268edc7ce6d",
   "minimumCliVersion": "1.1.18",
   "supportedPlatforms": [
     {
@@ -62,7 +62,7 @@
     "schemas/review-request.schema.json": "sha256:d0f2d3014b2945cabe38181bc4cb6b4ff8db48d295d86d7bd5bac83f6ac52c5d",
     "schemas/reviewer-join.schema.json": "sha256:05b4a7ce1c6700656505c40f66c6a2ad58ce887593b80c37081e8f3a3513a0ea",
     "schemas/reviewer-verdict.schema.json": "sha256:79b848fa598bd631918022c0f890d16d689568bd04e2220176f2972b44ce77db",
-    "scripts/reviewer-package.mjs": "sha256:48221f53dca495513959191da3dc6b368801794cae4c3e8456d8918ebeff4bc4",
+    "scripts/reviewer-package.mjs": "sha256:ccf9b0302df6dc14c8e6a881bcc34d803534e1f023d1349d6429c56d261e119b",
     "scripts/runtime-lib.mjs": "sha256:1d2cd36a1f2f95beb1f62dc706dac896fd77fd54aec232ee1e7c39a980b81710",
     "skills/evidence-first-framing/SKILL.md": "sha256:f976f5cac112c4a329d3ae02c1abdd8022211923ce718d004920a368764055df",
     "skills/proof-obligation-contract/SKILL.md": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379",
