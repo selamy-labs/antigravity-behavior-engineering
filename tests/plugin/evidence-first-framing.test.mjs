@@ -184,13 +184,14 @@ test("behavior lock keeps framing skill and shipped runtime script locked while 
   const lock = await readJson(lockPath);
   const skillDigest = await fileDigest(skillPath);
   const proofSkillDigest = await fileDigest(path.join(pluginRoot, "skills", "proof-obligation-contract", "SKILL.md"));
+  const auditedSkillDigest = await fileDigest(path.join(pluginRoot, "skills", "audited-iteration", "SKILL.md"));
   const runtimeScriptDigest = await fileDigest(path.join(pluginRoot, "scripts", "runtime-lib.mjs"));
   const pluginFiles = (await collectFiles(pluginRoot))
     .map((file) => path.relative(pluginRoot, file).split(path.sep).join("/"))
     .filter((relativePath) => relativePath !== "behavior-lock.json")
     .sort();
 
-  assert.equal(lock.sourceRevision, "72651577666fca7f56849ec952dad641a31a43ea");
+  assert.equal(lock.sourceRevision, "ac673315d1f3bca47e36ff35555d8b27302c1237");
   assert.deepEqual(lock.components, [
     {
       schemaVersion: 1,
@@ -209,6 +210,15 @@ test("behavior lock keeps framing skill and shipped runtime script locked while 
       claimId: "T025.proof-obligation-contract.workspace-request-bound-obligations",
       defaultEnabled: true,
       digest: proofSkillDigest,
+    },
+    {
+      schemaVersion: 1,
+      kind: "skill",
+      name: "audited-iteration",
+      path: "skills/audited-iteration/SKILL.md",
+      claimId: "T026.audited-iteration.append-only-recoverable-long-work",
+      defaultEnabled: true,
+      digest: auditedSkillDigest,
     },
     {
       schemaVersion: 1,
