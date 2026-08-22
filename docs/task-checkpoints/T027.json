@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T027",
+  "taskTitle": "Earn the conclusion-free requirements reviewer",
+  "taskEntryDigest": "sha256:9deb4ad2341a4d10fd0247946b0b2883d6bc00e5e21e118c18387cb789c41957",
+  "baseCommit": "d46c28e165d97f0493a625f1ac2b53eb74e6c25a",
+  "implementationCommit": "51ed96bec96dde11a6704ed396fcb37fa10d8570",
+  "treeDigest": "sha256:d8d8164efb4e7f39ce3341bdc12670eb74c9a938bfe7c615744d96694124214c",
+  "outcome": "not_selected",
+  "files": {
+    "evals/formative/requirements-reviewer.analysis.json": "sha256:c904f0ce10542615d15d61f17c063242a1a1cce01c50d4a2f8ef85a940b47f9f",
+    "evals/formative/requirements-reviewer.matrix.json": "sha256:bf45a38fd0d2a18b27c4d5e6aa670540663ba55c436f5681c2d0e3f13eeb2bdc",
+    "plugin/behavior-lock.json": "sha256:9e1785ca1dd6f457827334ec4797eea8459d55e7eae30fce0547d0e09404a90f",
+    "plugin/scripts/reviewer-package.mjs": "sha256:458a8a74ccaf0938f8458ece2ff3f5e0dba31c5faae9dfd84c66a2592fefd84b",
+    "tests/plugin/audited-iteration.test.mjs": "sha256:fe1c1fee588fdac35828dfbbc7d62601f38e0c2005070022cf0d042bbfd17106",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:c862e9822c1d82f2f013f9d0248a322af1a62fc85705abdb2cb864386d1fb42d",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:1e74fe7ae74a2267edf40f81f5cc6405a2e1375d8203a59e2aedf29f87062582",
+    "tests/plugin/requirements-falsifier.test.mjs": "sha256:9d2dd31b8981e10594e5824a7903d9259c4a313fd4423c7dc31e0af703548cf4"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/plugin/requirements-falsifier.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:c3a43c0da641e9c95ee00c9d811f9a177b7a5868ca03daa49fe766c9fb77e94e"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "tests/plugin/requirements-falsifier.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:08d7d1a75a41b39b96ca64df29e63ff206ca5eb7bb009c6ef7d5666d95ac86c8"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["node", "--test", "tests/plugin/requirements-falsifier.test.mjs", "tests/plugin/audited-iteration.test.mjs", "tests/plugin/evidence-first-framing.test.mjs", "tests/plugin/kernel-rule.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9123a90a0fffab6dd0761760016c9dfb67980866ed179985e4ece5b21845f2b2"
+    },
+    {
+      "phase": "gate",
+      "argv": ["corepack", "pnpm", "verify:offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9b8f40a41421673e41c558731b8a751e1a5bbc6bc9f4e8d02203fc0d660cd808"
+    },
+    {
+      "phase": "gate",
+      "argv": ["agy", "plugin", "validate", "plugin"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:d9f4e8d71941136afc6f6f891b061fddbbd11a8aee6467c06cfb69bdc7dfa267"
+    },
+    {
+      "phase": "gate",
+      "argv": ["git", "diff", "--check"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": ["scanPublicTree", "T027-changed-public-files"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:3c8c33f666223d382031c292bb8dc525aa34125106583d010516ce4b359a1d25"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:853b1edb052cfa13f370e833d5c0ce59305afe6f1e98974650f51b29e74003e9",
+      "verdictDigest": "sha256:bcc8f1f278eac92ee5a2d6ec7e224433ec0188031b896ad93e89380a1b012c33",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:853b1edb052cfa13f370e833d5c0ce59305afe6f1e98974650f51b29e74003e9",
+      "verdictDigest": "sha256:482a09b260fb8fa2cafd0cdf917d9a4493174335cc7b960157203a306adfdb47",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:64c5d8a2cb473d51a9ff94829de8ac1c982119ea8bca5bdacd5762986659e5ee",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T027 branch without changing main. After merge, open a T027-linked revert PR that removes the rejected formative reviewer analysis and role-neutral package builder, restores the prior behavior lock revision, and refreshes the three lock sentinels without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T22:22:41Z"
+}
