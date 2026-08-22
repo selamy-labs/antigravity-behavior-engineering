@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T021",
+  "taskTitle": "Qualify and capture the Superpowers-only incumbent",
+  "taskEntryDigest": "sha256:13b674e8fe5641b81b3719306f4d1fbb476935066cfc0d387882d7dfd203124e",
+  "baseCommit": "f648393b11a8a244fd5f58ad8175f9cb48309c0a",
+  "implementationCommit": "e1f28231478ddb97c18ed594c0da31c66a8bb27b",
+  "treeDigest": "sha256:463561623068891da1e076d866c112685d47dd8a4e6a5d921b11bfbcd7806b8a",
+  "outcome": "implemented",
+  "files": {
+    "docs/provenance/superpowers-lock.md": "sha256:66f5c25e5e42bf06b543206889531f5b4c06854bb4ed3a9643888c507b43996b",
+    "evals/formative/superpowers-pilot.analysis.json": "sha256:c68d8a98ad6674b212bed1a70ec49d86f271352ade006476910a9b99c2f506e2",
+    "evals/formative/superpowers-pilot.matrix.json": "sha256:e386ba8089847d7105f4bbdae55575a221cc70a17d02c59eae827875a90a3284",
+    "evaluator/src/abe_eval/cli.py": "sha256:e79804545f2fd8339501762091b7a085cb7e57a3f0777ec6916cfc2fb10a5273",
+    "evaluator/src/abe_eval/paired_incumbent.py": "sha256:374eff0e51146e513db79dae61fa83ef668d2a1d1247be0fe02cf593ebd5b9a7",
+    "evaluator/src/abe_eval/qualify.py": "sha256:7a3c4fb90590ac35eb354b81f8422df87f07e19f8679b0066fc3fa26807f13b4",
+    "evaluator/tests/test_paired_incumbent_baseline.py": "sha256:acdb9330fa81df3df862ab7b1e39c82d16215e977ce415304c68227d3030cc63",
+    "packages/plugin-tooling/src/lifecycle.mjs": "sha256:9fe23703a645c1dfdd1ee3e971abaa18fa0f883ae388388a22721ec5660dfe06",
+    "plugin/behavior-lock.json": "sha256:967ac402534e2a64a726974301d0097abed5b0ffb3f1ece2484df2003179f864",
+    "tests/lifecycle/inert-plugin.test.mjs": "sha256:c8288c507fccf58f948a8d90bdfe528beb083a5a50c01dd2349c05ca61b8af5d",
+    "tests/lifecycle/superpowers-upstream.test.mjs": "sha256:09fc55cbed70101b018aafab7a0df0847e6c51cf36f84745baf6b67067db6be1"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "node",
+        "--test",
+        "tests/lifecycle/superpowers-upstream.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:7605e8c0165446d7f246a054e061dd5531da92c9bbe9b0abe58d0ded64b62cff"
+    },
+    {
+      "phase": "red",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests/test_paired_incumbent_baseline.py"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:970fa447934e2cd4b70c3fac312ff887cbe2b2959a4ff03aab8f23dffa3c19ca"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "node",
+        "--test",
+        "tests/lifecycle/superpowers-upstream.test.mjs",
+        "tests/lifecycle/inert-plugin.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:762979d64504836df70521feada21d0f87838604d713761f840c5a11debcdcfc"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests/test_paired_incumbent_baseline.py"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c9a89152b51357c1ae2b5107c797766df8a46782072fda83a71a6e08c38303ec"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "uv",
+        "run",
+        "--project",
+        "evaluator",
+        "--locked",
+        "--offline",
+        "pytest",
+        "evaluator/tests"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:47137826f841b838a2066f7baa69b104ac2a97339762c889c185b30a7fe2dd5f"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "python",
+        "-m",
+        "py_compile",
+        "evaluator/src/abe_eval/paired_incumbent.py",
+        "evaluator/src/abe_eval/cli.py",
+        "evaluator/src/abe_eval/qualify.py"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "f648393b11a8a244fd5f58ad8175f9cb48309c0a"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "jump-clean-checkout",
+        "corepack",
+        "pnpm",
+        "verify"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:c238619ca7d6c8b0fe534c7eb1a34000ac8e5ba106995a9fd38147baf20b5bb0"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "t021-public-boundary-scan",
+        "e1f28231478ddb97c18ed594c0da31c66a8bb27b"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:954eb861867b6268557b91977ee1a41d3bac14bd5aac47b541532d90dbd95d2f"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:883631479b668d7cab24810d88db732f00e270c426369dc920b6a81e3d1b4c8d",
+      "verdictDigest": "sha256:e8d7ae0f335573cbea77c7c6df23c7bb6d13b4a9815d2a9e8fb893bf654443c5",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:883631479b668d7cab24810d88db732f00e270c426369dc920b6a81e3d1b4c8d",
+      "verdictDigest": "sha256:f9c4c737872c13eac4b9402fa5eef834a9215c466f525b6558ec74317490a650",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:954eb861867b6268557b91977ee1a41d3bac14bd5aac47b541532d90dbd95d2f",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T021 branch; after merge, open a T021-linked revert PR without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-22T10:55:43Z"
+}
