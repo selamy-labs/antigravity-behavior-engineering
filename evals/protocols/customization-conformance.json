@@ -4,7 +4,7 @@
   "cliVersionConstraint": "1.1.18",
   "probePluginName": "abe-content-discovery-probe",
   "probeManifestDigest": "sha256:1beed94273793fbb4bc7fb3237693a3f349f2faae7d7fc5663d028abc95fc807",
-  "probeComponentsDigest": "sha256:6ff921eab6908523bc32e99a174a6cf1c79bdf71214f4926726dac5babdd9f0d",
+  "probeComponentsDigest": "sha256:212fcb02681aa1ac1ce053b097e3f55f9e4b5646914c426150fc07c533ba5e61",
   "proposedSupportedProfiles": [
     {
       "schemaVersion": 1,
@@ -105,5 +105,111 @@
     "rule": "disqualified",
     "evidenceDigest": "sha256:895d2648c8687eb8e38bb54e745debddf1cd75cdc2bfc2deac3801dc557c9753"
   },
-  "protocolDigest": "sha256:0eec0a464ed782258c73d22edab484fedda572f4a57b8c0a22f6bbc6ecc19eb9"
+  "executionConformance": {
+    "schemaVersion": 1,
+    "checkpointId": "customization-execution-conformance-2026-08-22",
+    "hooksDigest": "sha256:79875ffac5964304a32ab0bd4a15c241227a8e2b51d8271e13e8dbba1f819e4c",
+    "executionComponentsDigest": "sha256:2f6a2c04e1e9c43e2e5c471c92a1c9c7a9187c72a3c1580967fba9e2de0a4284",
+    "frozenTraceProjection": {
+      "schemaVersion": 1,
+      "hook": {
+        "schemaVersion": 1,
+        "cliVersion": "1.1.18",
+        "pluginName": "abe-t016-hook-live",
+        "validateExitCode": 0,
+        "installExitCode": 0,
+        "reportedComponents": [
+          "hooks"
+        ],
+        "command": "node hooks/pre-invocation.mjs",
+        "pluginRoot": "/home/dev/.gemini/config/plugins/abe-t016-hook-live",
+        "commandCwd": "/home/dev/.gemini/config/plugins/abe-t016-hook-live",
+        "promptContainedHookMarker": false,
+        "injectedMarker": "ABE_T016_HOOK_CANARY_f32b51",
+        "agentResponse": "ABE_T016_HOOK_CANARY_f32b51",
+        "eventOrder": [
+          "user_input",
+          "unknown",
+          "checkpoint",
+          "agent_response"
+        ],
+        "hookInputFields": [
+          "artifactDirectoryPath",
+          "conversationId",
+          "initialNumSteps",
+          "invocationNum",
+          "modelName",
+          "transcriptPath",
+          "workspacePaths"
+        ],
+        "timeout": false,
+        "malformedOutput": false
+      },
+      "agent": {
+        "schemaVersion": 1,
+        "cliVersion": "1.1.18",
+        "pluginName": "abe-t016-agent-live",
+        "validateExitCode": 0,
+        "installExitCode": 0,
+        "reportedComponents": [
+          "agents"
+        ],
+        "subagentTypeName": "abe-t016-agent",
+        "subagentTool": "invoke_subagent",
+        "responseMarker": "ABE_T016_AGENT_CANARY_c7a901",
+        "promptContainedAgentMarker": false,
+        "tools": [],
+        "permissionMode": "always-proceed",
+        "idle": "unknown",
+        "kill": "unknown",
+        "invalidTools": false
+      },
+      "cleanup": {
+        "schemaVersion": 1,
+        "hookPluginDirectoryRemoved": true,
+        "agentPluginDirectoryRemoved": true,
+        "pluginDirectoryRemoved": true,
+        "importManifestEntryRemoved": true,
+        "configEntryRemoved": true
+      },
+      "limitations": [
+        "Hook timeout and malformed-output runtime effects are classifier-checked from synthetic traces but not promoted from this live pass.",
+        "Agent idle and kill semantics were not observable from the bounded print-mode probe and remain unknown.",
+        "Execution proof used separate hook and agent live probe plugins, then uninstalled both exact plugin names."
+      ]
+    },
+    "probeResult": {
+      "schemaVersion": 1,
+      "hookResolution": "plugin-root",
+      "agentInheritance": "explicit",
+      "evidenceDigest": "sha256:01e136e67e08f15889e4e777932544a4e5c7993ffe7de1ff8e4d987b575cba7d"
+    },
+    "unknowns": [
+      "agent_idle_state",
+      "agent_kill_semantics",
+      "hook_timeout_runtime_policy",
+      "hook_malformed_failure_policy"
+    ]
+  },
+  "aggregateConformance": {
+    "schemaVersion": 1,
+    "contentEvidenceDigest": "sha256:895d2648c8687eb8e38bb54e745debddf1cd75cdc2bfc2deac3801dc557c9753",
+    "executionEvidenceDigest": "sha256:01e136e67e08f15889e4e777932544a4e5c7993ffe7de1ff8e4d987b575cba7d",
+    "qualifiedSurfaces": [
+      "skill",
+      "hook",
+      "agent"
+    ],
+    "disqualifiedSurfaces": [
+      "rule"
+    ],
+    "unknowns": [
+      "agent_idle_state",
+      "agent_kill_semantics",
+      "hook_timeout_runtime_policy",
+      "hook_malformed_failure_policy"
+    ],
+    "supportDecision": "qualified_surfaces_only"
+  },
+  "protocolDigest": "sha256:54da5e29a4bb144b441d06ff71d3655843faa54c905ce1e3020ab3f7f155035a"
 }

@@ -1,0 +1,11 @@
+{
+  "abe-t016-preinvocation": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node hooks/pre-invocation.mjs",
+        "timeout": 10
+      }
+    ]
+  }
+}

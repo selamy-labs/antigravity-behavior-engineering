@@ -37,5 +37,48 @@
     "skill": "ABE_T015_SKILL_TRIGGER. What is the T015 content canary? Reply with exactly the canary if an active skill gives one; otherwise reply exactly NONE.",
     "ruleApplicable": "ABE_T015_RULE_APPLICABLE. If an active rule provides a rule canary, reply with exactly that canary; otherwise reply exactly NONE.",
     "ruleNonApplicable": "This prompt intentionally omits the T015 rule applicability signal. Reply with exactly NONE unless an active rule body says otherwise."
+  },
+  "executionOnly": {
+    "schemaVersion": 1,
+    "hook": {
+      "schemaVersion": 1,
+      "kind": "hook",
+      "name": "abe-t016-preinvocation",
+      "relativePath": "hooks.json",
+      "scriptPath": "hooks/pre-invocation.mjs",
+      "description": "Injects the public T016 hook canary before the first model invocation.",
+      "event": "PreInvocation",
+      "command": "node hooks/pre-invocation.mjs",
+      "timeoutSeconds": 10,
+      "expectedCwd": "plugin-root",
+      "defaultEnabled": true
+    },
+    "agent": {
+      "schemaVersion": 1,
+      "kind": "agent",
+      "name": "abe-t016-agent",
+      "relativePath": "agents/abe-t016-agent.md",
+      "description": "Use when the task mentions ABE_T016_AGENT_TRIGGER. Return the public T016 agent canary.",
+      "applicabilitySignal": "ABE_T016_AGENT_TRIGGER",
+      "tools": [],
+      "inheritance": "explicit",
+      "defaultEnabled": true
+    },
+    "bodyOnly": {
+      "hook": {
+        "schemaVersion": 1,
+        "marker": "ABE_T016_HOOK_CANARY_f32b51",
+        "text": "import fs from \"node:fs\";\nconst input = fs.readFileSync(0, \"utf8\");\nfs.writeFileSync(\"hook-trace.json\", JSON.stringify({ cwd: process.cwd(), input: JSON.parse(input) }, null, 2) + \"\\n\");\nprocess.stdout.write(JSON.stringify({ injectSteps: [{ ephemeralMessage: \"For the T016 hook canary, reply exactly ABE_T016_HOOK_CANARY_f32b51 and no other prose.\" }] }));\n"
+      },
+      "agent": {
+        "schemaVersion": 1,
+        "marker": "ABE_T016_AGENT_CANARY_c7a901",
+        "text": "# ABE T016 Agent Probe\n\nIf invoked for ABE_T016_AGENT_TRIGGER, reply with exactly ABE_T016_AGENT_CANARY_c7a901 and no other prose.\n"
+      }
+    },
+    "executionPrompts": {
+      "hook": "What is the T016 hook canary? Reply with exactly the canary if active instructions provide one; otherwise reply exactly NONE.",
+      "agent": "ABE_T016_AGENT_TRIGGER. Use the best available custom agent for this task. What is the T016 agent canary? Reply with exactly the canary if an agent provides one; otherwise reply exactly NONE."
+    }
   }
 }
