@@ -206,7 +206,13 @@ test("formative matrix selects obligation-contract gaps and rejects one-check ac
   const matrix = await readJson(matrixPath);
   const analysis = await readJson(analysisPath);
   const skillDigest = await fileDigest(skillPath);
-  const runtimeDigest = await fileDigest(runtimeScriptPath);
+  const historicalRuntime = spawnSync(
+    "git",
+    ["show", "7393ff45165e52139a9647442931bf6dabd5095e:plugin/scripts/runtime-lib.mjs"],
+    { cwd: repoRoot, shell: false },
+  );
+  assert.equal(historicalRuntime.status, 0, historicalRuntime.stderr.toString("utf8"));
+  const runtimeDigest = digestBytes(historicalRuntime.stdout);
   const matrixDigest = sha256Digest(canonicalBytes(matrix));
 
   for (const report of Object.values(bare.modelReports)) {
@@ -422,7 +428,11 @@ test("behavior lock registers the proof obligation skill and covers every plugin
     .sort();
 
   assert.match(lock.sourceRevision, /^[0-9a-f]{40}$/u);
-  assert.deepEqual(lock.components, [
+  assert.deepEqual(lock.components.filter(({ name }) => [
+    "evidence-first-framing",
+    "proof-obligation-contract",
+    "abe-evidence-runtime",
+  ].includes(name)), [
     {
       schemaVersion: 1,
       kind: "skill",

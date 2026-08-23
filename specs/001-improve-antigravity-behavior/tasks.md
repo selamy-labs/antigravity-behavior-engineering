@@ -1486,9 +1486,17 @@ Plan Phase 7A
 
 - Create: `plugin/hooks.json`
 - Modify: `plugin/scripts/runtime-lib.mjs`
+- Modify (byte-identical packaged runtime): `packages/evidence-cli/src/runtime-lib.mjs`
 - Create: `plugin/scripts/evidence-observer.mjs`
 - Test: `tests/hooks/evidence-observer.test.mjs`
+- Modify (selected-component lifecycle sentinel): `tests/lifecycle/inert-plugin.test.mjs`
+- Modify (historical-runtime sentinel): `tests/plugin/audited-iteration.test.mjs`
+- Modify (advancing-lock sentinel): `tests/plugin/evidence-first-framing.test.mjs`
+- Modify (advancing-lock sentinel): `tests/plugin/kernel-rule.test.mjs`
+- Modify (historical-runtime and advancing-lock sentinel): `tests/plugin/proof-obligation-contract.test.mjs`
 - Create: `evals/formative/evidence-observer.matrix.json`
+- Create (corrective runtime ablation): `evals/formative/evidence-observer.repair-matrix.json`
+- Create (installed live-hook corrective ablation): `evals/formative/evidence-observer.live-hook-repair-matrix.json`
 - Create: `evals/formative/evidence-observer.analysis.json`
 - Modify: `plugin/behavior-lock.json`
 

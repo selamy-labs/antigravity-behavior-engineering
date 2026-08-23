@@ -193,6 +193,7 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
   const framingSkillDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "skills", "evidence-first-framing", "SKILL.md")));
   const proofSkillDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "skills", "proof-obligation-contract", "SKILL.md")));
   const runtimeScriptDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs")));
+  const hooksDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "hooks.json")));
 
   assert.deepEqual(Object.keys(manifest).sort(), ["name"]);
   assert.equal(manifest.name, "antigravity-behavior-engineering");
@@ -227,6 +228,15 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
       claimId: "T024.durable-evidence-cli.safe-task-state-mechanics",
       defaultEnabled: true,
       digest: runtimeScriptDigest,
+    },
+    {
+      schemaVersion: 1,
+      kind: "hook",
+      name: "evidence-observer",
+      path: "hooks.json",
+      claimId: "T029.evidence-observer.redacted-hash-chained-lifecycle-facts",
+      defaultEnabled: true,
+      digest: hooksDigest,
     },
   ]);
   assert.deepEqual(lock.dependencies, [

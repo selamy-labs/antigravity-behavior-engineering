@@ -200,8 +200,12 @@ test("behavior lock keeps framing skill and shipped runtime script locked while 
     .filter((relativePath) => relativePath !== "behavior-lock.json")
     .sort();
 
-  assert.equal(lock.sourceRevision, "7393ff45165e52139a9647442931bf6dabd5095e");
-  assert.deepEqual(lock.components, [
+  assert.match(lock.sourceRevision, /^[0-9a-f]{40}$/u);
+  assert.deepEqual(lock.components.filter(({ name }) => [
+    "evidence-first-framing",
+    "proof-obligation-contract",
+    "abe-evidence-runtime",
+  ].includes(name)), [
     {
       schemaVersion: 1,
       kind: "skill",

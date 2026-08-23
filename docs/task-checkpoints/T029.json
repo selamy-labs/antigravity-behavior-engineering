@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T029",
+  "taskTitle": "Earn the deterministic `evidence-observer` hook",
+  "taskEntryDigest": "sha256:55cfa551b7c49173d780d1776f335514eb45505196623a7264c01e0d6980d85e",
+  "baseCommit": "370fcff2ccdb5d0c71a9a049e3cb4df296c4fc65",
+  "implementationCommit": "7216b54f58f83b350b6e094daeeac25fa7695a8b",
+  "treeDigest": "sha256:28045da6a733cf91bf853eb979a807c2debbd60fbf69d54a684b7513e5921a56",
+  "outcome": "implemented",
+  "files": {
+    "evals/formative/evidence-observer.analysis.json": "sha256:99029a1affeb7804fe3f30bb1e79dafe02ae3be2dae43fc131fa17874343a85d",
+    "evals/formative/evidence-observer.live-hook-repair-matrix.json": "sha256:b1243fe2a6e12a82ccdb77176ceb8381cb4ed0082f687e747a7db78b62235b01",
+    "evals/formative/evidence-observer.matrix.json": "sha256:eab8e403e899ce1de148e069d1fba4dd08ff9aefede463bd3b46a9e26eed69dc",
+    "evals/formative/evidence-observer.repair-matrix.json": "sha256:0f56efa61cf6ed732cfbe2eae7327f9358e1cb9e5478fa3e35b4dee9965d23fb",
+    "handoff/artifact-manifest.sha256": "sha256:85eb4ca80bbf7a6a701aa66deec3dab619a283f60390fccd0d08b664a0c2e75e",
+    "packages/evidence-cli/src/runtime-lib.mjs": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
+    "plugin/behavior-lock.json": "sha256:ed385ffe37190d661496604acdd49306b36fe5696eb91030949197d671e34d3e",
+    "plugin/hooks.json": "sha256:47045a810ed84db6143cf05822f7de9054a592d0ae2ad0f72a67394acf390b7d",
+    "plugin/scripts/evidence-observer.mjs": "sha256:8b11bf8e9dd98b506e6def3ebbbaf94e7e475e0950bd84bed310aa2c67025319",
+    "plugin/scripts/runtime-lib.mjs": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
+    "specs/001-improve-antigravity-behavior/tasks.md": "sha256:d338e36e5e4e247190c9587f3d140409360efa7acc45400df1bbdaf8a6a61bff",
+    "tests/hooks/evidence-observer.test.mjs": "sha256:0069e0aaf386293aa97afd4e675ac1622b9a12d2b3dc33d7d39d7413316ea493",
+    "tests/lifecycle/inert-plugin.test.mjs": "sha256:9b08f5d68dc087700ba0c32d39e5097ed06e2381905db23d94339389f1c39d5e",
+    "tests/plugin/audited-iteration.test.mjs": "sha256:2a93e4bc74ea6abeb04648a29a8cef6ec63ed5378d24673ccffaada4e48af85c",
+    "tests/plugin/evidence-first-framing.test.mjs": "sha256:1b106110d1f73edd22b16591f53705f42804b4458c93a733e3688d8fa832dba8",
+    "tests/plugin/kernel-rule.test.mjs": "sha256:518bbbb5cf37d2cacfd612da6d6f08dd4c9ce7836cb402db3069fed73f2e12f6",
+    "tests/plugin/proof-obligation-contract.test.mjs": "sha256:bec988579aa3b6722a33a8242de0b2105a077f56d840981cf58bec8cbd9f4800"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/hooks/evidence-observer.test.mjs", "--test-name-pattern", "task-directory replacement"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:df48cad34d3a42b2151a6f2f6b06687fd46270a7aa42b6b21e36c11db45d7cb2"
+    },
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/hooks/evidence-observer.test.mjs", "--test-name-pattern", "parent and leaf replacement"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:31672b8a45c0db26900e740bb848cfc91fde7b3f61fdd25107a4fd1081c6254b"
+    },
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/hooks/evidence-observer.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:93a5542977aedae059af4a768310f5b502da09cb69bbc7d5526dc42f8c643404"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "tests/hooks/evidence-observer.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:8922d6240f85b5038e38262bf59574b5e6b61915c7c752cb978c20f6ddf934dc"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["node", "--test", "packages/contracts/test/runtime-contracts.test.mjs", "tests/lifecycle/inert-plugin.test.mjs", "tests/plugin/audited-iteration.test.mjs", "tests/plugin/evidence-first-framing.test.mjs", "tests/plugin/kernel-rule.test.mjs", "tests/plugin/proof-obligation-contract.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:32cd4da982620cd58ca83955bc8d2f571e281154797dc90401c39db6381be680"
+    },
+    {
+      "phase": "gate",
+      "argv": ["corepack", "pnpm", "verify:offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:40d404afb77a4526d63b14bd3bb81e09e4931df3f04fe3df45b455fa1f405518"
+    },
+    {
+      "phase": "gate",
+      "argv": ["agy", "plugin", "validate", "plugin"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:74ec4f80706288fc78045af7fef92df59d55d76491a726d840fe0bdfbc78f512"
+    },
+    {
+      "phase": "gate",
+      "argv": ["diff", "-qr", "plugin", "installed-plugin"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["shasum", "-a", "256", "-c", "handoff/artifact-manifest.sha256"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9e4b914991cd7d475c6a9c1c470a303fa74bc31fe215340df5c378a9dfcabc80"
+    },
+    {
+      "phase": "gate",
+      "argv": ["scanPublicTree", "T029-changed-public-files"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e048567af2f355a8d2d2c5861c4bdb50e569375bcff9c783302a6942253e59aa"
+    },
+    {
+      "phase": "gate",
+      "argv": ["git", "diff", "--check"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:6160fa0190f75cba66d01a034f7bf2979c55f017c7008341c2a297a5b0f22ed3",
+      "verdictDigest": "sha256:7e899d4b1be85672b91ddfd3ab17c0a6d6453b763a09b2a86d80f2454b0b11b9",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:6160fa0190f75cba66d01a034f7bf2979c55f017c7008341c2a297a5b0f22ed3",
+      "verdictDigest": "sha256:43a23d3952c7d10022ae2bcdfe997a610ac37fdd1272007771e223e61912ac3f",
+      "verdict": "fail",
+      "openMaterialFindings": 1
+    },
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:4662327df80b1d2e49d12d4348fc11921030407d31f4c005afc7a754bbef67de",
+      "verdictDigest": "sha256:b0605a3e40fdbb7ed2b54c35132eede685f897afe44bdd3915cd065cb3f5fdff",
+      "verdict": "fail",
+      "openMaterialFindings": 2
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:4662327df80b1d2e49d12d4348fc11921030407d31f4c005afc7a754bbef67de",
+      "verdictDigest": "sha256:16be8e69e8f9b24eb532a359f7055a77d471994f0967853023055df3a5f57b2b",
+      "verdict": "fail",
+      "openMaterialFindings": 1
+    },
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:f99d9fd2e918f3f82a1b1429c3d1307526ba1610dff5d98da00765d24d3c0bdc",
+      "verdictDigest": "sha256:37feb6777595c0f027921211c4f09e0f3029abffed1e092160dd3ca7231ae14b",
+      "verdict": "fail",
+      "openMaterialFindings": 1
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:f99d9fd2e918f3f82a1b1429c3d1307526ba1610dff5d98da00765d24d3c0bdc",
+      "verdictDigest": "sha256:3884e624853d2d6ee9f62c48feafb21431d0590197f52415a86ce9c2deb227e5",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:1c9b411946f2c09dd0785b30560cb154718d24853f6415e5e9c9b27a8191236b",
+      "verdictDigest": "sha256:5f5b6d090b51197e208e846033ebc15adab698b82f5972d1c79d314414d7d91c",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:1c9b411946f2c09dd0785b30560cb154718d24853f6415e5e9c9b27a8191236b",
+      "verdictDigest": "sha256:33d75cfa109ca23533fbd65d3b171775ab7bef9d64dd1596d825517a302107d2",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:3fb01e746a4cdfe0cae4647772cb8ff7984eb1fbd18c823e28200787c758529e",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T029 branch without changing main. After merge, open a T029-linked revert PR that removes the observer hook, script, matrices, and analysis; restores the T028 packaged runtime and behavior lock; and refreshes the historical lock sentinels and task manifest without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-23T00:35:04Z"
+}
