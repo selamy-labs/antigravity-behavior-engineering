@@ -61,9 +61,18 @@ import fs from "node:fs/promises";
 import path from "node:path";
 const args = process.argv.slice(2);
 const mode = ${JSON.stringify(mode)};
-if (args[0] === "--version") { process.stdout.write("1.1.19\\n"); process.exit(0); }
-if (args[0] !== "plugin") { process.exit(2); }
 const profile = process.env.HOME;
+if (args[0] === "--version") {
+  if (mode === "version-mutate-success" || mode === "version-mutate-failure") {
+    const settings = path.join(profile, ".gemini", "config", "user-settings.json");
+    await fs.mkdir(path.dirname(settings), { recursive: true });
+    await fs.writeFile(settings, JSON.stringify({ editor: "changed-by-version" }) + "\\n");
+    if (mode === "version-mutate-failure") process.exit(17);
+  }
+  process.stdout.write("1.1.19\\n");
+  process.exit(0);
+}
+if (args[0] !== "plugin") { process.exit(2); }
 const configRoot = path.join(profile, ".gemini", "config");
 const pluginsRoot = path.join(configRoot, "plugins");
 const configPath = path.join(configRoot, "config.json");
@@ -94,6 +103,7 @@ if (command === "install") {
   }
   await fs.rm(destination, { recursive: true, force: true });
   await fs.cp(source, destination, { recursive: true });
+  if (mode === "copy-without-discovery") process.exit(0);
   const imports = await readJson(importsPath, { imports: [] });
   imports.imports = (imports.imports || []).filter((entry) => entry.name !== manifest.name);
   imports.imports.push({ name: manifest.name, source: "antigravity", importedAt: "2026-08-23T00:00:00Z", components: ["skills", "hooks"] });
@@ -206,6 +216,38 @@ test("lifecycle restores the exact baseline when installation fails after mutati
       (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.command_failed",
     );
     assert.deepEqual(await snapshotProfile(profile), before);
+  });
+});
+
+test("lifecycle rejects installed package bytes that are not discoverable", async () => {
+  await withTemporaryRoot("abe-release-missing-discovery-", async (root) => {
+    const fakeCli = await makeFakeCli(root, "copy-without-discovery");
+    const profile = path.join(root, "profile");
+    await materializeProfileFixture(profile, { schemaVersion: 1, fixtureId: "clean", files: {} });
+    const before = await snapshotProfile(profile);
+
+    await assert.rejects(
+      () => runReleaseLifecycle({ cliPath: fakeCli, pluginRoot, profileRoot: profile, profileFixture: "clean" }),
+      (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.discovery_missing",
+    );
+    assert.deepEqual(await snapshotProfile(profile), before);
+  });
+});
+
+test("lifecycle restores version-probe mutations before failing closed", async () => {
+  await withTemporaryRoot("abe-release-version-mutation-", async (root) => {
+    const fixture = await readJson(customizedFixture);
+    for (const mode of ["version-mutate-success", "version-mutate-failure"]) {
+      const fakeCli = await makeFakeCli(path.join(root, mode), mode);
+      const profile = path.join(root, mode + "-profile");
+      await materializeProfileFixture(profile, fixture);
+      const before = await snapshotProfile(profile);
+      await assert.rejects(
+        () => runReleaseLifecycle({ cliPath: fakeCli, pluginRoot, profileRoot: profile, profileFixture: "customized" }),
+        (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.version_profile_mutation",
+      );
+      assert.deepEqual(await snapshotProfile(profile), before);
+    }
   });
 });
 
