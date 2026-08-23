@@ -20,15 +20,5 @@
         "timeout": 10
       }
     ]
-  },
-  "bounded-completion-gate": {
-    "enabled": true,
-    "Stop": [
-      {
-        "type": "command",
-        "command": "node scripts/bounded-completion-gate.mjs",
-        "timeout": 10
-      }
-    ]
   }
 }

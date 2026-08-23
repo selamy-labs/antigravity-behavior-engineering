@@ -142,10 +142,12 @@ test("hook manifest binds both qualified observation events to the shipped scrip
     timeout: 10,
   };
 
-  assert.deepEqual(hooks["evidence-observer"], {
-    enabled: true,
-    PostToolUse: [{ matcher: "*", hooks: [handler] }],
-    PostInvocation: [handler],
+  assert.deepEqual(hooks, {
+    "evidence-observer": {
+      enabled: true,
+      PostToolUse: [{ matcher: "*", hooks: [handler] }],
+      PostInvocation: [handler],
+    },
   });
   assert.equal((await fs.stat(observerPath)).isFile(), true, "missing observer script must fail closed in packaging");
 });
@@ -520,7 +522,7 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
   assert.equal(analysis.currentRuntimeControl.hookResolution.hookFilesLoaded, 0);
   assert.equal(analysis.matchedTreatment.hookResolution.namedHooksLoaded, 1);
   assert.equal(analysis.matchedTreatment.hookResolution.hookFilesLoaded, 1);
-  assert.match(analysis.implementation.hooksDigest, /^sha256:[0-9a-f]{64}$/u);
+  assert.equal(analysis.implementation.hooksDigest, sha256Digest(await fs.readFile(hooksPath)));
   assert.equal(analysis.implementation.observerScriptDigest, sha256Digest(await fs.readFile(observerPath)));
   assert.equal(analysis.implementation.runtimeDigest, sha256Digest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs"))));
   assert.equal(analysis.incumbentReplay.candidateBodyPresent, false);
