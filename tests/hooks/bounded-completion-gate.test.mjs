@@ -19,6 +19,10 @@ const repoRoot = path.resolve(new URL("../..", import.meta.url).pathname);
 const pluginRoot = path.join(repoRoot, "plugin");
 const hooksPath = path.join(pluginRoot, "hooks.json");
 const gatePath = path.join(pluginRoot, "scripts", "bounded-completion-gate.mjs");
+const matrixPath = path.join(repoRoot, "evals", "formative", "completion-gate.matrix.json");
+const repairMatrixPath = path.join(repoRoot, "evals", "formative", "completion-gate.repair-matrix.json");
+const analysisPath = path.join(repoRoot, "evals", "formative", "completion-gate.analysis.json");
+const lockPath = path.join(pluginRoot, "behavior-lock.json");
 const taskId = "T030-fixture";
 const workspaceDigest = "sha256:" + "0".repeat(64);
 const requestDigest = "sha256:" + "1".repeat(64);
@@ -381,6 +385,32 @@ test("foreign TaskState identity fails open", async () => {
   });
 });
 
+test("TaskState replacement between discovery and the locked decision fails open as stale", async () => {
+  await withWorkspace(async (root) => {
+    await prepareTask(root, {
+      terminal: {
+        schemaVersion: 1,
+        declared: "incomplete",
+        reason: "Work is active.",
+        unresolvedObligationIds: [],
+        activeWork: true,
+      },
+    });
+    const lockFile = path.join(taskRoot(root), ".completion-gate.lock");
+    await fs.writeFile(lockFile, "test barrier\n");
+    const pending = runGate(stopInput(root));
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    const state = await readJson(statePath(root));
+    state.updatedAt = "2026-08-23T01:00:01Z";
+    await writeCanonicalAtomic(root, ".agents/abe/T030-fixture/state.json", state);
+    await fs.rm(lockFile);
+    const result = await pending;
+    assertAllow(result);
+    assert.match(result.stderr, /task_state_stale/u);
+    assert.equal((await readLedger(root)).length, 1);
+  });
+});
+
 test("missing, empty, malformed, foreign, stale, locked, and unwritable ledgers fail open", async (context) => {
   const cases = [
     ["missing", async (root) => fs.rm(ledgerPath(root))],
@@ -463,4 +493,52 @@ test("focused decisions stay inside the 250 ms p95 budget", async () => {
     const p95 = durations[Math.ceil(durations.length * 0.95) - 1];
     assert.ok(p95 < 250, `p95 ${p95.toFixed(1)} ms exceeded 250 ms`);
   });
+});
+
+test("frozen ablations select bound one and bind the shipped implementation", async () => {
+  const matrix = await readJson(matrixPath);
+  const repairMatrix = await readJson(repairMatrixPath);
+  const analysis = await readJson(analysisPath);
+  const lock = await readJson(lockPath);
+
+  assert.equal(matrix.frozenBeforeTreatment, true);
+  assert.equal(matrix.candidateBodyPresentAtFreeze, false);
+  assert.equal(matrix.resourceEnvelope.initialCandidateBound, 1);
+  assert.equal(repairMatrix.frozenBeforeRepairTreatment, true);
+  assert.equal(repairMatrix.repairAppliedAtFreeze, false);
+  assert.equal(repairMatrix.rejectedCandidateScriptDigest, "sha256:7d0e7f7a7f61d4d22d07c7379f5acddb52ae1db83ee9749b4bc036b24f074c58");
+  assert.equal(analysis.matrixDigest, sha256Digest(await fs.readFile(matrixPath)));
+  assert.equal(analysis.repairMatrixDigest, sha256Digest(await fs.readFile(repairMatrixPath)));
+  assert.equal(analysis.implementation.hooksDigest, sha256Digest(await fs.readFile(hooksPath)));
+  assert.equal(analysis.implementation.gateScriptDigest, sha256Digest(await fs.readFile(gatePath)));
+  assert.equal(analysis.incumbentReplay.negativeCriticalFalseCompletions, 4);
+  assert.equal(analysis.rejectedTreatment.decision, "rejected");
+  assert.equal(analysis.selectedTreatment.negativeHonestConclusions, 4);
+  assert.equal(analysis.selectedTreatment.positiveSuccesses, 4);
+  assert.equal(analysis.selectedTreatment.productFailureRuns, 0);
+  assert.equal(analysis.selectedTreatment.postContinuationToolCalls, 0);
+  assert.equal(analysis.resourceReport.envelopeResult, "pass");
+  assert.deepEqual(analysis.selectionDecision, {
+    decision: "selected",
+    retained: true,
+    bound: 1,
+    smallestPassingBound: 1,
+    claimId: "T030.bounded-completion-gate.mechanical-finite-completion-check",
+    reason: "Bound zero preserved four critical false completions. The repaired bound-one gate reduced them to zero for both models, retained four of four positive completions, used no post-continuation tools, preserved every TaskState byte, terminated every valid run, and remained within the frozen token and duration envelopes.",
+  });
+
+  const component = lock.components.find(({ name }) => name === "bounded-completion-gate");
+  assert.deepEqual(component, {
+    schemaVersion: 1,
+    kind: "hook",
+    name: "bounded-completion-gate",
+    path: "hooks.json",
+    claimId: "T030.bounded-completion-gate.mechanical-finite-completion-check",
+    defaultEnabled: true,
+    digest: sha256Digest(await fs.readFile(hooksPath)),
+  });
+  assert.equal(lock.files["scripts/bounded-completion-gate.mjs"], sha256Digest(await fs.readFile(gatePath)));
+
+  const publicAnalysis = await fs.readFile(analysisPath, "utf8");
+  assert.doesNotMatch(publicAnalysis, /\/home\/|\/private\/|codex-dispatch|\.gemini\/antigravity-cli\/brain/u);
 });
