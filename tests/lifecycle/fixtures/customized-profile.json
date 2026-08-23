@@ -3,8 +3,10 @@
   "fixtureId": "customized",
   "files": {
     ".abe/dependencies/superpowers.json": {
+      "artifactDigest": "sha256:9673864d81cbe8d798b29c8c53fbffd7e5c0a71dc24f14dc1dffee4360ae94e9",
       "schemaVersion": 1,
       "name": "superpowers",
+      "sourceUrl": "https://github.com/obra/superpowers",
       "revision": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
       "ownership": "user"
     },
@@ -33,6 +35,10 @@
     ".gemini/config/plugins/superpowers/plugin.json": {
       "name": "superpowers",
       "version": "4.2.0"
+    },
+    ".gemini/config/plugins/superpowers/revision.json": {
+      "revision": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "sourceUrl": "https://github.com/obra/superpowers"
     },
     ".gemini/config/user-settings.json": {
       "editor": "vim",

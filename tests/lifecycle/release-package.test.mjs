@@ -53,12 +53,14 @@ const writeJson = async (file, value) => {
   await fs.writeFile(file, JSON.stringify(value, null, 2) + "\n", "utf8");
 };
 
-const makeFakeCli = async (root) => {
+const makeFakeCli = async (root, mode = "normal") => {
+  await fs.mkdir(root, { recursive: true });
   const script = path.join(root, "fake-agy.mjs");
   await fs.writeFile(script, `#!/usr/bin/env node
 import fs from "node:fs/promises";
 import path from "node:path";
 const args = process.argv.slice(2);
+const mode = ${JSON.stringify(mode)};
 if (args[0] === "--version") { process.stdout.write("1.1.19\\n"); process.exit(0); }
 if (args[0] !== "plugin") { process.exit(2); }
 const profile = process.env.HOME;
@@ -78,6 +80,18 @@ if (command === "install") {
   if (process.env.ABE_FAKE_CONFLICT_NAME === manifest.name) process.exit(13);
   if (process.env.ABE_FAKE_PRECEDENCE_CONFLICT_NAME === manifest.name) process.exit(14);
   const destination = path.join(pluginsRoot, manifest.name);
+  if (mode === "partial-install-failure") {
+    await fs.mkdir(destination, { recursive: true });
+    await fs.writeFile(path.join(destination, "partial.txt"), "partial\\n");
+    const partialImports = await readJson(importsPath, { imports: [] });
+    partialImports.imports = [...(partialImports.imports || []), { name: manifest.name, source: "antigravity", components: ["skills"] }];
+    await writeJson(importsPath, partialImports);
+    const partialConfig = await readJson(configPath, { plugins: {} });
+    partialConfig.plugins ||= {};
+    partialConfig.plugins[manifest.name] = { enabled: true };
+    await writeJson(configPath, partialConfig);
+    process.exit(12);
+  }
   await fs.rm(destination, { recursive: true, force: true });
   await fs.cp(source, destination, { recursive: true });
   const imports = await readJson(importsPath, { imports: [] });
@@ -103,6 +117,14 @@ if (command === "uninstall") {
 }
 process.exit(2);
 `, "utf8");
+  if (mode === "hang-validate" || mode === "flood-validate") {
+    const validateNeedle = 'if (command === "validate") { await fs.access(path.join(args[2], "plugin.json")); process.exit(0); }';
+    const replacement = mode === "hang-validate"
+      ? 'if (command === "validate") { await new Promise((resolve) => setTimeout(resolve, 250)); process.exit(0); }'
+      : 'if (command === "validate") { process.stdout.write("x".repeat(65536)); process.exit(0); }';
+    const source = await fs.readFile(script, "utf8");
+    await fs.writeFile(script, source.replace(validateNeedle, replacement), "utf8");
+  }
   await fs.chmod(script, 0o755);
   return script;
 };
@@ -136,12 +158,78 @@ test("customized fixture is exact, user-owned, and dependency-verifiable", async
       (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.dependency_mismatch",
     );
 
+    for (const [kind, mutate, code] of [
+      ["marker-only", (candidate) => {
+        candidate.files = Object.fromEntries(Object.entries(candidate.files).filter(([file]) => file.startsWith(".abe/")));
+      }, "lifecycle.dependency_artifact_missing"],
+      ["artifact-drift", (candidate) => {
+        candidate.files[".gemini/config/plugins/superpowers/plugin.json"].version = "4.2.1";
+      }, "lifecycle.dependency_artifact_mismatch"],
+      ["discovery-missing", (candidate) => {
+        delete candidate.files[".gemini/config/import_manifest.json"];
+      }, "lifecycle.dependency_discovery_missing"],
+      ["ownership-mismatch", (candidate) => {
+        candidate.files[".gemini/config/import_manifest.json"].imports[0].source = "release";
+      }, "lifecycle.dependency_ownership_mismatch"],
+    ]) {
+      const candidate = structuredClone(fixture);
+      mutate(candidate);
+      const candidateProfile = path.join(root, kind);
+      await materializeProfileFixture(candidateProfile, candidate);
+      await assert.rejects(
+        () => verifyProfileDependencies(candidateProfile, lock),
+        (error) => error instanceof LifecycleValidationError && error.code === code,
+      );
+    }
+
     const requiredLock = structuredClone(lock);
     requiredLock.dependencies[0].required = true;
     await assert.rejects(
       () => verifyProfileDependencies(path.join(root, "missing"), requiredLock),
       (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.required_dependency_missing",
     );
+  });
+});
+
+test("lifecycle restores the exact baseline when installation fails after mutation", async () => {
+  await withTemporaryRoot("abe-release-partial-failure-", async (root) => {
+    const fakeCli = await makeFakeCli(root, "partial-install-failure");
+    const profile = path.join(root, "profile");
+    const fixture = await readJson(customizedFixture);
+    await materializeProfileFixture(profile, fixture);
+    const before = await snapshotProfile(profile);
+
+    await assert.rejects(
+      () => runReleaseLifecycle({ cliPath: fakeCli, pluginRoot, profileRoot: profile, profileFixture: "customized" }),
+      (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.command_failed",
+    );
+    assert.deepEqual(await snapshotProfile(profile), before);
+  });
+});
+
+test("lifecycle enforces command deadlines and bounded output", async () => {
+  await withTemporaryRoot("abe-release-bounds-", async (root) => {
+    for (const [mode, code] of [
+      ["hang-validate", "lifecycle.command_timeout"],
+      ["flood-validate", "lifecycle.command_output_limit"],
+    ]) {
+      const fakeCli = await makeFakeCli(path.join(root, mode), mode);
+      const profile = path.join(root, mode + "-profile");
+      await materializeProfileFixture(profile, { schemaVersion: 1, fixtureId: "clean", files: {} });
+      const before = await snapshotProfile(profile);
+      await assert.rejects(
+        () => runReleaseLifecycle({
+          cliPath: fakeCli,
+          pluginRoot,
+          profileRoot: profile,
+          profileFixture: "clean",
+          maximumCountedMs: 100,
+          maximumCommandOutputBytes: 1024,
+        }),
+        (error) => error instanceof LifecycleValidationError && error.code === code,
+      );
+      assert.deepEqual(await snapshotProfile(profile), before);
+    }
   });
 });
 
