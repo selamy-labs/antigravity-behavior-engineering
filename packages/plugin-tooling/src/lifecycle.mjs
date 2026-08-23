@@ -16,6 +16,7 @@ const PACKAGE_LOCK_KEYS = new Set([
   "minimumCliVersion",
   "supportedPlatforms",
   "components",
+  "rejectedComponents",
   "dependencies",
   "files",
   "lifecycle",
@@ -23,6 +24,7 @@ const PACKAGE_LOCK_KEYS = new Set([
 ]);
 const PLATFORM_KEYS = new Set(["schemaVersion", "os", "architecture", "nodeRange"]);
 const COMPONENT_KEYS = new Set(["schemaVersion", "kind", "name", "path", "claimId", "defaultEnabled", "digest"]);
+const REJECTED_COMPONENT_KEYS = new Set(["schemaVersion", "taskId", "kind", "name", "decision", "evidencePath", "evidenceDigest"]);
 const COMPONENT_KINDS = new Set(["skill", "rule", "agent", "hook", "script"]);
 const DEPENDENCY_KEYS = new Set(["schemaVersion", "name", "sourceUrl", "revision", "license", "consumption", "required", "qualificationEvidence"]);
 const DEPENDENCY_CONSUMPTIONS = new Set(["runtime", "development", "research"]);
@@ -126,6 +128,21 @@ const validateComponent = (component, index) => {
   assertDigest(component.digest, "$.components[" + index + "].digest");
 };
 
+const validateRejectedComponent = (component, index) => {
+  const fieldPath = "$.rejectedComponents[" + index + "]";
+  assertObject(component, fieldPath);
+  assertKnownKeys(component, REJECTED_COMPONENT_KEYS, fieldPath);
+  if (component.schemaVersion !== 1 || !/^T[0-9]{3}$/u.test(component.taskId) || !COMPONENT_KINDS.has(component.kind)) {
+    fail("lifecycle.invalid_field", fieldPath);
+  }
+  assertNonEmptyString(component.name, fieldPath + ".name");
+  if (component.decision !== "not_selected") {
+    fail("lifecycle.invalid_field", fieldPath + ".decision");
+  }
+  assertRelativePath(component.evidencePath, fieldPath + ".evidencePath");
+  assertDigest(component.evidenceDigest, fieldPath + ".evidenceDigest");
+};
+
 const validateDependency = (dependency, index) => {
   assertObject(dependency, "$.dependencies[" + index + "]");
   assertKnownKeys(dependency, DEPENDENCY_KEYS, "$.dependencies[" + index + "]");
@@ -202,6 +219,18 @@ const validateLock = (lock) => {
       fail("lifecycle.invalid_field", "$.components");
     }
     components.add(key);
+  });
+  if (!Array.isArray(lock.rejectedComponents)) {
+    fail("lifecycle.invalid_field", "$.rejectedComponents");
+  }
+  const rejectedComponents = new Set();
+  lock.rejectedComponents.forEach((component, index) => {
+    validateRejectedComponent(component, index);
+    const key = component.kind + "\n" + component.name;
+    if (components.has(key) || rejectedComponents.has(key)) {
+      fail("lifecycle.invalid_field", "$.rejectedComponents");
+    }
+    rejectedComponents.add(key);
   });
   if (!Array.isArray(lock.dependencies)) {
     fail("lifecycle.invalid_field", "$.dependencies");
@@ -363,6 +392,9 @@ export const inspectInstall = async (profileRoot, expectedLock) => {
   if (manifest.name !== lock.packageName) {
     fail("lifecycle.plugin_name_mismatch", "plugin.json");
   }
+  if (manifest.version !== lock.packageVersion) {
+    fail("lifecycle.plugin_version_mismatch", "plugin.json");
+  }
 
   const packageFiles = [];
   for (const [relativePath, expectedDigest] of Object.entries(lock.files).sort(([left], [right]) => left.localeCompare(right))) {
@@ -395,6 +427,7 @@ export const inspectInstall = async (profileRoot, expectedLock) => {
     enabled: typeof enabledValue === "boolean" ? enabledValue : true,
     discovery,
     components: [...lock.components],
+    rejectedComponents: [...lock.rejectedComponents],
     packageFiles,
     installedFiles,
     manifestDigest: packageFiles.find((file) => file.packagePath === "plugin.json").digest,

@@ -35,6 +35,7 @@ const packageLockFor = (files, overrides = {}) => ({
   minimumCliVersion: "0.1.0",
   supportedPlatforms: [{ schemaVersion: 1, os: "linux", architecture: "x64", nodeRange: ">=22 <25" }],
   components: [],
+  rejectedComponents: [],
   dependencies: fixtures.pinnedDependencies,
   files: fileLockFor(files),
   generatedAt: "2026-08-18T00:00:00Z",

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "antigravity-behavior-engineering",
   "packageVersion": "0.0.0",
-  "sourceRevision": "d0c4dabac5be78bf7b2b7e7094abc0c3377c03ac",
+  "sourceRevision": "96a7dca2a258b3f38cb8c6a3bd237c841f286ada",
   "minimumCliVersion": "1.1.18",
   "supportedPlatforms": [
     {
@@ -50,6 +50,53 @@
       "digest": "sha256:47045a810ed84db6143cf05822f7de9054a592d0ae2ad0f72a67394acf390b7d"
     }
   ],
+  "rejectedComponents": [
+    {
+      "schemaVersion": 1,
+      "taskId": "T022",
+      "kind": "rule",
+      "name": "engineering-evidence-kernel",
+      "decision": "not_selected",
+      "evidencePath": "evals/formative/kernel-rule.analysis.json",
+      "evidenceDigest": "sha256:7e8866f3ebd7407c160fc4d485b9217220d43f271358fb962c64f0bb627a3c74"
+    },
+    {
+      "schemaVersion": 1,
+      "taskId": "T026",
+      "kind": "skill",
+      "name": "audited-iteration",
+      "decision": "not_selected",
+      "evidencePath": "evals/formative/audited-iteration.analysis.json",
+      "evidenceDigest": "sha256:ece906d9d915bb95b686c49f293853c9598bdf1f4b92862961a16aabeb357505"
+    },
+    {
+      "schemaVersion": 1,
+      "taskId": "T027",
+      "kind": "agent",
+      "name": "requirements-falsifier",
+      "decision": "not_selected",
+      "evidencePath": "evals/formative/requirements-reviewer.analysis.json",
+      "evidenceDigest": "sha256:c904f0ce10542615d15d61f17c063242a1a1cce01c50d4a2f8ef85a940b47f9f"
+    },
+    {
+      "schemaVersion": 1,
+      "taskId": "T028",
+      "kind": "agent",
+      "name": "quality-falsifier-and-paired-review",
+      "decision": "not_selected",
+      "evidencePath": "evals/formative/reviewer-topology.analysis.json",
+      "evidenceDigest": "sha256:6d8343027b34a14e21a1085addbdb0d047ed0255f967e203039d86f38552168d"
+    },
+    {
+      "schemaVersion": 1,
+      "taskId": "T030",
+      "kind": "hook",
+      "name": "bounded-completion-gate",
+      "decision": "not_selected",
+      "evidencePath": "evals/formative/completion-gate.analysis.json",
+      "evidenceDigest": "sha256:c81fe9448aa917aa1e22370c649f654ffb6018f40e6b18eda07b12881de76287"
+    }
+  ],
   "dependencies": [
     {
       "schemaVersion": 1,
@@ -64,7 +111,7 @@
   ],
   "files": {
     "hooks.json": "sha256:47045a810ed84db6143cf05822f7de9054a592d0ae2ad0f72a67394acf390b7d",
-    "plugin.json": "sha256:72cb82d159e4cd53acdcf4ab2b98318037a84c9917e827f7898f7c570ed6aa45",
+    "plugin.json": "sha256:e860e2f88747c8272e295f2e8e4718e40bd414f4a85a786eb3c94997be7df37e",
     "schemas/completion-gate-event.schema.json": "sha256:56e300ae674a3629ed46ecf0c80e16ceed20f04c48cfc3514cbb87656db7cbf0",
     "schemas/evidence-event.schema.json": "sha256:3472b8868fcd0aba73f2db94fc8b9c311eed86cc3b3a70b0a6bd85c6c6ebc79c",
     "schemas/review-package-input.schema.json": "sha256:9d616a3b7ce9c67f6d37e641f1f82f3a7bb6f1947d03b86b13ea0137723e0170",
@@ -72,13 +119,13 @@
     "schemas/review-request.schema.json": "sha256:d0f2d3014b2945cabe38181bc4cb6b4ff8db48d295d86d7bd5bac83f6ac52c5d",
     "schemas/reviewer-join.schema.json": "sha256:05b4a7ce1c6700656505c40f66c6a2ad58ce887593b80c37081e8f3a3513a0ea",
     "schemas/reviewer-verdict.schema.json": "sha256:79b848fa598bd631918022c0f890d16d689568bd04e2220176f2972b44ce77db",
+    "schemas/task-state.schema.json": "sha256:8d62a0a890d16f2087ff21dfad3df8a886049bddf39cd6d6c8476931b2e59b2a",
+    "scripts/evidence-observer.mjs": "sha256:8b11bf8e9dd98b506e6def3ebbbaf94e7e475e0950bd84bed310aa2c67025319",
     "scripts/reviewer-join.mjs": "sha256:c3ca9269a123ecde7be9c45108b02751b1e99e01203426c35d06033b587d4e76",
     "scripts/reviewer-package.mjs": "sha256:623e4d8cc878c3d5ce008716fc8e7e620d643220c9900a74c844824c23095aa6",
-    "scripts/evidence-observer.mjs": "sha256:8b11bf8e9dd98b506e6def3ebbbaf94e7e475e0950bd84bed310aa2c67025319",
     "scripts/runtime-lib.mjs": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
     "skills/evidence-first-framing/SKILL.md": "sha256:f976f5cac112c4a329d3ae02c1abdd8022211923ce718d004920a368764055df",
-    "skills/proof-obligation-contract/SKILL.md": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379",
-    "schemas/task-state.schema.json": "sha256:8d62a0a890d16f2087ff21dfad3df8a886049bddf39cd6d6c8476931b2e59b2a"
+    "skills/proof-obligation-contract/SKILL.md": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379"
   },
   "lifecycle": {
     "requiredCommands": [
