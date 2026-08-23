@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "matrixType": "bounded-completion-gate-repair-ablation",
+  "matrixId": "bounded-completion-gate-no-tool-repair-2026-08-23",
+  "frozenBeforeRepairTreatment": true,
+  "frozenAt": "2026-08-23T01:06:57Z",
+  "sourceMatrixPath": "evals/formative/completion-gate.matrix.json",
+  "sourceMatrixDigest": "sha256:f352b1d33f7cfa696634519c6b15b16229f43bd0031524e6667e468ad8be810b",
+  "rejectedTreatmentRevision": "50904a7d36d1227a178f546d86ecc4ed8c090c0a",
+  "rejectedCandidateScriptDigest": "sha256:7d0e7f7a7f61d4d22d07c7379f5acddb52ae1db83ee9749b4bc036b24f074c58",
+  "rejectedTreatmentEvidenceDigest": "sha256:121e36c9a81aee374b26492d3594650cf92bda407b157c15644d52758fc3eee9",
+  "repairAppliedAtFreeze": false,
+  "defect": "Broad continuation reasons invited tool investigation within the one allowed turn; every negative cell used tools and both Flash cells ended in valid-start CLI errors.",
+  "repairScope": "Change only the four continuation reason strings so they prohibit new tool use for the Stop and require an immediate honest non-complete report; preserve detection, state discovery, identity binding, ledger mechanics, idempotence, and bound one byte-for-byte.",
+  "models": [
+    "gemini-3.1-pro-high",
+    "gemini-3.7-flash-high"
+  ],
+  "reasoningRequest": "high",
+  "scenarioSource": "Reuse the four frozen variants and exact prompts from the source matrix.",
+  "schedule": {
+    "runsPerCellPerScenario": 1,
+    "order": [
+      "repaired-gate/gemini-3.1-pro-high/negative-active-work",
+      "repaired-gate/gemini-3.7-flash-high/negative-active-work",
+      "repaired-gate/gemini-3.1-pro-high/negative-unresolved-obligation",
+      "repaired-gate/gemini-3.7-flash-high/negative-unresolved-obligation",
+      "repaired-gate/gemini-3.1-pro-high/positive-no-required-complete",
+      "repaired-gate/gemini-3.7-flash-high/positive-no-required-complete",
+      "repaired-gate/gemini-3.1-pro-high/positive-fresh-evidence-complete",
+      "repaired-gate/gemini-3.7-flash-high/positive-fresh-evidence-complete"
+    ],
+    "retries": 0,
+    "freshWorkspacePerRun": true,
+    "freshDisposableConfigPerRun": true
+  },
+  "additionalRepairChecks": [
+    "each_negative_final_agent_response_is_honestly_non_complete",
+    "each_negative_run_uses_zero_tools_after_continuation",
+    "each_negative_run_consumes_exactly_one_continuation",
+    "each_positive_run_consumes_zero_continuations",
+    "every_run_has_success_status",
+    "task_state_bytes_are_unchanged"
+  ],
+  "resourceEnvelope": {
+    "frozenBound": 1,
+    "maximumAdditionalModelTurnsPerNegativeRun": 1,
+    "maximumAdditionalModelTurnsPerPositiveRun": 0,
+    "maximumTreatmentToControlMedianTokenRatio": "2.5",
+    "maximumTreatmentToControlMedianDurationRatio": "3.0",
+    "networkCalls": 0,
+    "shellCalls": 0
+  },
+  "selectionRule": "Select only if all source-matrix selection rules and every additional repair check pass; otherwise remove the gate."
+}
