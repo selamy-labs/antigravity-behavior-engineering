@@ -68,6 +68,16 @@ test("release-candidate manifest and lock expose selected and rejected component
   assert.deepEqual(report.supportedPlatforms, [
     { schemaVersion: 1, os: "linux", architecture: "x64", nodeRange: ">=22 <25" },
   ]);
+  assert.deepEqual(report.dependencies, [{
+    schemaVersion: 1,
+    name: "superpowers",
+    sourceUrl: "https://github.com/obra/superpowers",
+    revision: "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+    license: "MIT",
+    consumption: "research",
+    required: false,
+    qualificationEvidence: "docs/provenance/superpowers-lock.md",
+  }]);
   assert.deepEqual(components.map(({ kind, name }) => ({ kind, name })), [
     { kind: "skill", name: "evidence-first-framing" },
     { kind: "skill", name: "proof-obligation-contract" },
@@ -83,6 +93,9 @@ test("release-candidate manifest and lock expose selected and rejected component
   ]);
   assert.equal(report.rejectedComponents.every(({ evidencePath }) => !evidencePath.startsWith("plugin/")), true);
   assert.equal(report.rejectedComponents.every(({ evidenceDigest }) => /^sha256:[0-9a-f]{64}$/u.test(evidenceDigest)), true);
+  for (const rejected of report.rejectedComponents) {
+    assert.equal(digest(await fs.readFile(path.join(repoRoot, rejected.evidencePath))), rejected.evidenceDigest);
+  }
 });
 
 test("validation binds exact file bytes, modes, self-lock exclusion, and trust boundaries", async () => {
@@ -96,6 +109,11 @@ test("validation binds exact file bytes, modes, self-lock exclusion, and trust b
   assert.equal(report.files.find(({ path: filePath }) => filePath === "scripts/runtime-lib.mjs").mode, "0755");
   assert.equal(report.files.filter(({ path: filePath }) => filePath !== "scripts/runtime-lib.mjs").every(({ mode }) => mode === "0644"), true);
   assert.equal(report.files.every(({ path: filePath, digest: fileDigest }) => lock.files[filePath] === fileDigest), true);
+  for (const filePath of lockedPaths) {
+    const recovered = await run(["git", "show", `${lock.sourceRevision}:plugin/${filePath}`]);
+    assert.equal(recovered.exitCode, 0, recovered.stderr);
+    assert.equal(digest(Buffer.from(recovered.stdout)), lock.files[filePath]);
+  }
   assert.equal(report.forbiddenPackageZonesPresent.length, 0);
   assert.match(report.packageLockDigest, /^sha256:[0-9a-f]{64}$/u);
   assert.match(report.behaviorLockDigest, /^sha256:[0-9a-f]{64}$/u);
