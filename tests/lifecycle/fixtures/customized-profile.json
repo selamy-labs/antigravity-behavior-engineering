@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "customized",
+  "files": {
+    ".abe/dependencies/superpowers.json": {
+      "schemaVersion": 1,
+      "name": "superpowers",
+      "revision": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "ownership": "user"
+    },
+    ".gemini/config/config.json": {
+      "plugins": {
+        "superpowers": {
+          "enabled": true
+        }
+      },
+      "user": {
+        "theme": "dark"
+      }
+    },
+    ".gemini/config/import_manifest.json": {
+      "imports": [
+        {
+          "components": [
+            "skills"
+          ],
+          "importedAt": "2026-08-22T00:00:00Z",
+          "name": "superpowers",
+          "source": "user"
+        }
+      ]
+    },
+    ".gemini/config/plugins/superpowers/plugin.json": {
+      "name": "superpowers",
+      "version": "4.2.0"
+    },
+    ".gemini/config/user-settings.json": {
+      "editor": "vim",
+      "keep": "byte-identical"
+    }
+  }
+}
