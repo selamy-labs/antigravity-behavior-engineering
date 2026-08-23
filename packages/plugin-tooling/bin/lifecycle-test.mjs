@@ -29,29 +29,31 @@ const loadFixture = async (value) => {
   return JSON.parse(await fs.readFile(fixturePath, "utf8"));
 };
 
-let temporaryProfile = null;
-try {
-  const args = parseArgs(process.argv.slice(2));
-  const pluginRoot = await fs.realpath(args["--plugin"]);
-  const fixture = await loadFixture(args["--profile-fixture"]);
-  const profileRoot = args["--profile-root"]
-    ? path.resolve(args["--profile-root"])
-    : (temporaryProfile = await fs.mkdtemp(path.join(os.tmpdir(), "abe-release-profile-")));
-  await materializeProfileFixture(profileRoot, fixture);
-  await ensureOutputOutsideRoot(profileRoot, args["--record-timing"]);
-  const report = await runReleaseLifecycle({
-    cliPath: args["--cli"] || "agy",
-    pluginRoot,
-    profileRoot,
-    profileFixture: fixture.fixtureId,
-  });
-  await writeCanonicalRecord(args["--record-timing"], report, pluginRoot);
-  process.stdout.write(Buffer.from(canonicalBytes(report)).toString("utf8") + "\n");
-  if (!report.valid) process.exitCode = 2;
-} catch (error) {
-  process.stderr.write(usage);
-  process.stderr.write(String(error?.message || error) + "\n");
-  process.exitCode = 2;
-} finally {
-  if (temporaryProfile) await fs.rm(temporaryProfile, { recursive: true, force: true });
+if (!(process.env.NODE_TEST_CONTEXT && process.argv.length === 2)) {
+  let temporaryProfile = null;
+  try {
+    const args = parseArgs(process.argv.slice(2));
+    const pluginRoot = await fs.realpath(args["--plugin"]);
+    const fixture = await loadFixture(args["--profile-fixture"]);
+    const profileRoot = args["--profile-root"]
+      ? path.resolve(args["--profile-root"])
+      : (temporaryProfile = await fs.mkdtemp(path.join(os.tmpdir(), "abe-release-profile-")));
+    await materializeProfileFixture(profileRoot, fixture);
+    await ensureOutputOutsideRoot(profileRoot, args["--record-timing"]);
+    const report = await runReleaseLifecycle({
+      cliPath: args["--cli"] || "agy",
+      pluginRoot,
+      profileRoot,
+      profileFixture: fixture.fixtureId,
+    });
+    await writeCanonicalRecord(args["--record-timing"], report, pluginRoot);
+    process.stdout.write(Buffer.from(canonicalBytes(report)).toString("utf8") + "\n");
+    if (!report.valid) process.exitCode = 2;
+  } catch (error) {
+    process.stderr.write(usage);
+    process.stderr.write(String(error?.message || error) + "\n");
+    process.exitCode = 2;
+  } finally {
+    if (temporaryProfile) await fs.rm(temporaryProfile, { recursive: true, force: true });
+  }
 }
