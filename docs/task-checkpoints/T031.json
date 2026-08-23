@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T031",
+  "taskTitle": "Assemble the inspectable release-candidate package",
+  "taskEntryDigest": "sha256:24968bb2d5a932ebfba414d9e6a6944be68a4f03b90cf6f67af3f0aa6edf23d2",
+  "baseCommit": "f6825a141d70ee91363e6f7b6ba0c02ccb460690",
+  "implementationCommit": "eb070fc161dd9c5c3f3580373fa7466ce24d28f9",
+  "treeDigest": "sha256:74571bfd1f387a005259d8a78995276fc4b05b845d44c41af6652621afb6826b",
+  "outcome": "implemented",
+  "files": {
+    "packages/plugin-tooling/bin/pack-plugin.mjs": "sha256:a399f6a159f69bf987503d2c3ecb2db6ee8a897e9657983f3705f909b4f177af",
+    "packages/plugin-tooling/bin/validate-plugin.mjs": "sha256:b47cc1f2dd3d0cbbb09da92e6c1c4d655127e7ee1c2cb78d288cd88aabd0bff7",
+    "packages/plugin-tooling/src/lifecycle.mjs": "sha256:af21bc025dc540ec8c681fd8711d76b5f9434a0a3605050f18963d359a591874",
+    "packages/plugin-tooling/src/package-lock.mjs": "sha256:7b386c45307928da8c9c641cbe89ec42ffd9e50bbe159d5a32c5ae464a965f1a",
+    "packages/plugin-tooling/src/provenance.mjs": "sha256:e86236f0d99148ffbb01cd2941b4ee3fb32a78449a84edc31ecaf34b30689e5a",
+    "packages/plugin-tooling/test/provenance.test.mjs": "sha256:077d801fc6bafc5f367466f103dac78132ad63d24096e547b3f1cd7a925b2698",
+    "plugin/behavior-lock.json": "sha256:697c2556ca922dbda8d81737dc873d8c9261765e44cec99e51ad3c6866c4d624",
+    "plugin/plugin.json": "sha256:e860e2f88747c8272e295f2e8e4718e40bd414f4a85a786eb3c94997be7df37e",
+    "tests/lifecycle/inert-plugin.test.mjs": "sha256:56edd0c33ca2fcf594f9f1cd63119d9835d5e9bd07977a2927e5b484126111a8",
+    "tests/plugin/package-integrity.test.mjs": "sha256:3fd40b37782880e4e07e9af19dc76a18aa626d22f241161382f02a3584099488"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/plugin/package-integrity.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:716aa6c87e87ec853d9aec46ce1799935241f94633c6ae0039b5f5d39322ca40"
+    },
+    {
+      "phase": "red",
+      "argv": ["review-repair-regressions", "node", "--test", "tests/plugin/package-integrity.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:c489103ce1427cf98d050897f465c945860c11eeefb7c57dfd994ebc014c42ac"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "tests/plugin/package-integrity.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:2433d1a7b7ce5d22217835dcca7bb31ceff8d665f4f81a11b1cebd93a83375c4"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["node", "--test", "tests/plugin/package-integrity.test.mjs", "tests/lifecycle/inert-plugin.test.mjs", "packages/plugin-tooling/test/provenance.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:ceacff613e7002dc3811ea16c36139db56ec530fb4ff2e30787f838a35ccffac"
+    },
+    {
+      "phase": "gate",
+      "argv": ["corepack", "pnpm", "verify:offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:ca2352ff72edb9677d17f363ea6a404f38ec7e40f0826086bf84ab864b2fffbb"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["extract-validate-repack-compare", "evidence/raw/package-candidates/t031/antigravity-behavior.tgz"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:71ce154b78d2209f6a6eff7682059d4c44e0e3851780c2b299b4cce8225400aa"
+    },
+    {
+      "phase": "gate",
+      "argv": ["agy", "plugin", "validate", "plugin"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:74ec4f80706288fc78045af7fef92df59d55d76491a726d840fe0bdfbc78f512"
+    },
+    {
+      "phase": "gate",
+      "argv": ["git", "diff", "--check"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:2d4c431fb32dec61eb06aa12f3a0524d3dca92b7a46953c7bf5e2ba3de777087",
+      "verdictDigest": "sha256:ca7e10fee4b4181d7db7ec06416503cc97f9e21278ce27e61b0db4a40c86b46d",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:2d4c431fb32dec61eb06aa12f3a0524d3dca92b7a46953c7bf5e2ba3de777087",
+      "verdictDigest": "sha256:d48e75e778b3de3a49c3b5e078342b8dae4b07273c87ac0f5a2a4ca4d2f196a2",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:59e858bde82d8a53c44014f9987aaefb17e8629a313869544c7f268e5a5cc979",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T031 branch without changing main. After merge, open a T031-linked revert PR that removes the package tooling and checkpoint and restores the prior manifest, behavior lock, lifecycle, provenance, and test files without rewriting public history; discard the protected temporary candidate archive separately.",
+    "tested": false
+  },
+  "createdAt": "2026-08-23T02:19:40Z"
+}
