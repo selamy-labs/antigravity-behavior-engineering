@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T032",
+  "taskTitle": "Prove installation, coexistence, timing, and clean removal",
+  "taskEntryDigest": "sha256:2f90c7ed46168201e6a15a408c987b9611d59d691b5d1feab194e530d74f4fbc",
+  "baseCommit": "71f2b0458e14fbfd636c88e99e68b86693a4d788",
+  "implementationCommit": "d7ded5fe10c1346c67be26698efd1dfd914ef467",
+  "treeDigest": "sha256:fa1a316f58261d81986ca5c6f9dc82c65aafa03b0934174a9326fcbec83da033",
+  "outcome": "implemented",
+  "files": {
+    "docs/release/installation.md": "sha256:992219602cc07cb4cf9af3b18f80cb4f098e812dd6547cf2d0fbbc4f86f6ce63",
+    "packages/plugin-tooling/bin/compare-profile.mjs": "sha256:6eface318ad146876547cb60940a3f8cd3ecb5e36d60012a941acd43e34e81ae",
+    "packages/plugin-tooling/bin/lifecycle-test.mjs": "sha256:ffe26ebadb9268b9bcf5e95ec9121b2000597f143b331e3bf5fd194a5856ac6f",
+    "packages/plugin-tooling/src/lifecycle.mjs": "sha256:28d0e52b697b093275b2b6b76ad013a6c5c3764a5e655116f48239b54669ea33",
+    "tests/lifecycle/fixtures/customized-profile.json": "sha256:734cc9e79937e8ff72e03ee9aeb9d981f7eaae1d4387845f6f966f48fa31bf05",
+    "tests/lifecycle/inert-plugin.test.mjs": "sha256:2642c94a068efb561421e4f4b0266cdd033bb572f3c52b7215e682b00b74c3a1",
+    "tests/lifecycle/release-package.test.mjs": "sha256:8eba2262ee47b2dc87af4f299aa65b200e6ca1246f5f61daf87cb9b88f0ebdd7"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["node", "--test", "tests/lifecycle/release-package.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:bd87f1c27b2dbacd9ad44de0ec1ae94cc9d2da1393cc52b6279af0d07bccc83c"
+    },
+    {
+      "phase": "red",
+      "argv": ["review-repair-1", "node", "--test", "tests/lifecycle/release-package.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:be495bfdb9c1d4b149cca4d2b03db24964dcaf46fc76d4cc1e5733e1ca64c89f"
+    },
+    {
+      "phase": "red",
+      "argv": ["review-repair-2", "node", "--test", "tests/lifecycle/release-package.test.mjs"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:f3d8f9b678447694e0c333226f809567389a74c45de6dd2a620f87290eedea5b"
+    },
+    {
+      "phase": "green",
+      "argv": ["node", "--test", "tests/lifecycle/release-package.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:d35496b70a42c49c7226163f3214487504a65aefd8cc9a5a5e6e9d0272aead94"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["node", "--test", "tests/lifecycle/release-package.test.mjs", "tests/lifecycle/inert-plugin.test.mjs", "tests/lifecycle/superpowers-upstream.test.mjs", "tests/plugin/package-integrity.test.mjs"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:da37ea5271541973e35d9e5dbc14df5f4766de376a1544b9645d3b73075f247a"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["node", "packages/plugin-tooling/bin/lifecycle-test.mjs", "--plugin", "plugin", "--profile-fixture", "clean", "--record-timing", "evidence/raw/lifecycle/clean-timing.json"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:deaee794448cef0fd61f5fda1dffac97ac7de88b63781d5d30e74b8dd5eb53c6"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["node", "packages/plugin-tooling/bin/lifecycle-test.mjs", "--plugin", "plugin", "--profile-fixture", "customized", "--record-timing", "evidence/raw/lifecycle/customized-timing.json"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:0f0b7a93827cfd5a489839f12cc6b5451be546dc3247d5f76b7f86fb45b18100"
+    },
+    {
+      "phase": "gate",
+      "argv": ["corepack", "pnpm", "verify:offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:8ba85f33337a432c20fffe6339bde4be24130cf3304123cffe5b45d4aef39f7e"
+    },
+    {
+      "phase": "gate",
+      "argv": ["git", "diff", "--check"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:ff37d492451e3bd358b875b0935d966b9352a9a8a2e49ceec9287c3e3b1fd08b",
+      "verdictDigest": "sha256:cae7ab174eecc116ac01c662328006b4366333cc4fb56277c6cb64bfc199d285",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:ff37d492451e3bd358b875b0935d966b9352a9a8a2e49ceec9287c3e3b1fd08b",
+      "verdictDigest": "sha256:f5240658640fb5e5a85fe40e9b5e12f4d5a8cd49466b8d39aaba7e6466b4873e",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:a206955ea0e00981eda06fa9aba96a879b119c8be665912a334477c1359b9328",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T032 branch without changing main. After merge, open a T032-linked revert PR that removes the lifecycle binaries, fixture, installation guide, and checkpoint and restores the prior lifecycle implementation and inert-plugin tests without rewriting public history; discard the protected timing records separately.",
+    "tested": false
+  },
+  "createdAt": "2026-08-23T03:13:27Z"
+}
