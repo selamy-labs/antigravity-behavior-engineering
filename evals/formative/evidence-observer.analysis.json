@@ -46,9 +46,16 @@
     "observedGap": "The current incumbent preserved the artifact outcome but emitted no task-owned EvidenceEvent for either model."
   },
   "currentRuntimeControl": {
-    "matrixPath": "evals/formative/evidence-observer.repair-matrix.json",
-    "matrixDigest": "sha256:0f56efa61cf6ed732cfbe2eae7327f9358e1cb9e5478fa3e35b4dee9965d23fb",
-    "conditionId": "repaired-runtime-observer-off",
+    "matrixPath": "evals/formative/evidence-observer.live-hook-repair-matrix.json",
+    "matrixDigest": "sha256:b1243fe2a6e12a82ccdb77176ceb8381cb4ed0082f687e747a7db78b62235b01",
+    "conditionId": "installed-live-observer-off",
+    "hookResolution": {
+      "pluginImported": true,
+      "configuredEnabled": false,
+      "namedHooksLoaded": 0,
+      "hookFilesLoaded": 0,
+      "installedInventoryDigest": "sha256:44a79a87d2578e878c13e2f8fd1a3934f9f286289b5b338902a8250f20a0dcdb"
+    },
     "models": [
       {
         "model": "gemini-3.1-pro-high",
@@ -56,11 +63,11 @@
         "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
         "artifactMatches": true,
         "completionConclusion": "complete",
-        "durationSeconds": "11.949111014",
-        "totalTokens": 35156,
+        "durationSeconds": "10.798780932",
+        "totalTokens": 17757,
         "toolCalls": 1,
         "observerEvents": 0,
-        "runRecordDigest": "sha256:482fe6a84d1f4f3ca9972c1862bb190caa0b480a29237b181ffdefbd500e20aa"
+        "runRecordDigest": "sha256:47905038d4a8bc5742240dc8ab82eb43e86a807f30235668b378a3690e9be4d0"
       },
       {
         "model": "gemini-3.7-flash-high",
@@ -68,21 +75,31 @@
         "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
         "artifactMatches": true,
         "completionConclusion": "complete",
-        "durationSeconds": "7.423521323",
-        "totalTokens": 40603,
+        "durationSeconds": "5.213474281",
+        "totalTokens": 45533,
         "toolCalls": 2,
         "observerEvents": 0,
-        "runRecordDigest": "sha256:5772fe52c567a4077a4edfc21fea3a6835904f859ff98b1553f33d3032e087f1"
+        "runRecordDigest": "sha256:7aceb3ca10566e201e2ae643fa3f45bd0037e948c5da1934e623a4f5cbea3e84"
       }
     ]
   },
   "matchedTreatment": {
-    "matrixPath": "evals/formative/evidence-observer.repair-matrix.json",
-    "matrixDigest": "sha256:0f56efa61cf6ed732cfbe2eae7327f9358e1cb9e5478fa3e35b4dee9965d23fb",
-    "conditionId": "repaired-runtime-observer-on",
-    "cliVersion": "1.1.18",
+    "matrixPath": "evals/formative/evidence-observer.live-hook-repair-matrix.json",
+    "matrixDigest": "sha256:b1243fe2a6e12a82ccdb77176ceb8381cb4ed0082f687e747a7db78b62235b01",
+    "conditionId": "installed-live-observer-on",
+    "cliVersion": "1.1.19",
     "reasoningRequest": "high",
     "workspaceQualification": "Each run used a fresh task-owned state and an explicit CLI add-directory binding so the documented workspacePaths field identified the disposable workspace.",
+    "hookResolution": {
+      "pluginImported": true,
+      "configuredEnabled": true,
+      "namedHooksLoaded": 1,
+      "hookFilesLoaded": 1,
+      "installedInventoryDigest": "sha256:e0cfb00dcc26b708dc70234705f7003c1ede2851f4cba0e58e47f1b00cea5dfb",
+      "startupDiagnostic": "The initial pre-registration manager reports zero personal hook files; the preserved process trace then records the installed hooks.json reads and the observer script execution.",
+      "processTraceDigest": "sha256:4d42b051bdc0086ba9e70167691f2972ac3f4fb368c75daec983207589d204fd",
+      "deliveryProbeResult": "one installed PostInvocation delivery recorded"
+    },
     "models": [
       {
         "model": "gemini-3.1-pro-high",
@@ -90,15 +107,15 @@
         "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
         "artifactMatches": true,
         "completionConclusion": "complete",
-        "durationSeconds": "13.805056542",
-        "durationDeltaSeconds": "1.855945528",
-        "totalTokens": 27307,
-        "tokenDelta": -7849,
+        "durationSeconds": "14.714905534",
+        "durationDeltaSeconds": "3.916124602",
+        "totalTokens": 10247,
+        "tokenDelta": -7510,
         "toolCalls": 1,
         "toolCallDelta": 0,
         "observerEvents": 3,
-        "ledgerDigest": "sha256:e94058f7493ec3c65d64071ce4b3c39989e524d882f5e2643263af25c1d95849",
-        "runRecordDigest": "sha256:67ec130db1e440ac61e9f2605dacb8e20d30b331b48e854ad55675e5fcbb34d2"
+        "ledgerDigest": "sha256:fa8c9116fea27eab46b3ab75be274063eda5f184d4e079b842aaba8ae5e67317",
+        "runRecordDigest": "sha256:dab349c699ff55ce7c5d3553d68befa0244a2fe09fe54bf73ce2909739f997d2"
       },
       {
         "model": "gemini-3.7-flash-high",
@@ -106,15 +123,15 @@
         "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
         "artifactMatches": true,
         "completionConclusion": "complete",
-        "durationSeconds": "7.006386637",
-        "durationDeltaSeconds": "-0.417134686",
-        "totalTokens": 40479,
-        "tokenDelta": -124,
+        "durationSeconds": "7.01599895",
+        "durationDeltaSeconds": "1.802524669",
+        "totalTokens": 45534,
+        "tokenDelta": 1,
         "toolCalls": 2,
         "toolCallDelta": 0,
         "observerEvents": 5,
-        "ledgerDigest": "sha256:af5a210028c17b20f2e19625a63d537b6053780abbb58ba21051bfe51f3861e3",
-        "runRecordDigest": "sha256:3d155e4cba41c2e4ba50a734d8bd396ef0dab879d3ed0f4f339ea6d897c3e957"
+        "ledgerDigest": "sha256:9af65aef25a0edb7074ff4ba8023a811dec162f55fd6f62e7b29213df43a9c51",
+        "runRecordDigest": "sha256:c82b5fe3f5f2d41ed6363dc2f648fd2ba802c8facdb7cc6551c5f190d2ca283e"
       }
     ],
     "artifactOutcomeAgreement": "2/2",
@@ -127,16 +144,16 @@
   },
   "resourceReport": {
     "runCountPerCell": 1,
-    "observerOffMedianDurationSeconds": "9.6863161685",
-    "observerOnMedianDurationSeconds": "10.4057215895",
-    "medianDurationDeltaSeconds": "0.719405421",
-    "observerOffP90DurationSeconds": "11.949111014",
-    "observerOnP90DurationSeconds": "13.805056542",
-    "observerOffMedianTokens": "37879.5",
-    "observerOnMedianTokens": "33893",
-    "medianTokenDelta": "-3986.5",
-    "observerOffP90Tokens": 40603,
-    "observerOnP90Tokens": 40479,
+    "observerOffMedianDurationSeconds": "8.0061276065",
+    "observerOnMedianDurationSeconds": "10.865452242",
+    "medianDurationDeltaSeconds": "2.8593246355",
+    "observerOffP90DurationSeconds": "10.798780932",
+    "observerOnP90DurationSeconds": "14.714905534",
+    "observerOffMedianTokens": "31645",
+    "observerOnMedianTokens": "27890.5",
+    "medianTokenDelta": "-3754.5",
+    "observerOffP90Tokens": 45533,
+    "observerOnP90Tokens": 45534,
     "directAppendSamples": 40,
     "directAppendP95Milliseconds": "26.217",
     "directAppendP95LimitMilliseconds": 250,
@@ -145,7 +162,9 @@
   },
   "liveHookConformance": {
     "pluginValidation": "pass_one_hook_processed",
-    "resolution": "plugin_root",
+    "resolution": "installed_plugin_in_disposable_mount_namespace",
+    "installedConditionDifference": "The installed package inventories differ only at hooks.json, where evidence-observer.enabled is false for control and true for treatment.",
+    "deliveryQualification": "A preserved process trace records successful reads of the installed hooks.json followed by execve of node scripts/evidence-observer.mjs and reads of the installed observer and runtime modules. Each scheduled enabled run independently emitted a schema-valid task-owned chain; disabled runs emitted no ledger.",
     "eventOrder": "post_tool_use precedes the corresponding post_invocation event and sequence is strictly increasing",
     "failureIsolation": {
       "probeStatus": "SUCCESS",
@@ -179,12 +198,13 @@
     "missingScript": "packaging_test_fails"
   },
   "correctiveRepairValidation": {
-    "acceptedFindingIds": ["Q-T029-001", "Q-T029-002", "R-T029-001", "R-T029-002"],
-    "repairCommit": "e9b296932bd784a22f3ecefd0a5405e0665c96be",
+    "acceptedFindingIds": ["Q-T029-001", "Q-T029-002", "R-T029-001", "R-T029-002", "R-T029-003"],
+    "repairCommit": "f3d4968e6f7b631d00baa6a871bbd3434bf960fc",
     "repairRuntimeDigest": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
     "redTestDigests": [
       "sha256:df48cad34d3a42b2151a6f2f6b06687fd46270a7aa42b6b21e36c11db45d7cb2",
-      "sha256:31672b8a45c0db26900e740bb848cfc91fde7b3f61fdd25107a4fd1081c6254b"
+      "sha256:31672b8a45c0db26900e740bb848cfc91fde7b3f61fdd25107a4fd1081c6254b",
+      "sha256:93a5542977aedae059af4a768310f5b502da09cb69bbc7d5526dc42f8c643404"
     ],
     "greenTestDigests": [
       "sha256:4b0150b097bd5d89ebe870495c7bf089a9135874596a1dfd251d072a86cb0b54",
@@ -212,12 +232,17 @@
         "runRecordDigest": "sha256:43c25e4f3ec55b6e2931910740feb3e7a1882aa8e7bcd721c509375ebe6e76a0"
       }
     ],
-    "evidenceDisposition": "The unscheduled first-repair smoke remains disclosed and was not retried. The separately frozen repaired-runtime matrix replaces it for selection: all four scheduled cells used fresh state without retries, both observer-off and observer-on models completed with exact artifacts and matching tool-call counts, and only observer-on emitted chained events."
+    "supersededZeroHookAblation": {
+      "matrixDigest": "sha256:0f56efa61cf6ed732cfbe2eae7327f9358e1cb9e5478fa3e35b4dee9965d23fb",
+      "disposition": "not_used_for_selection",
+      "reason": "Its CLI logs showed no installed hooks file was loaded in either condition; its reported events therefore did not qualify as live installed-hook delivery."
+    },
+    "evidenceDisposition": "The unscheduled first-repair smoke and the zero-hook repaired-runtime matrix remain disclosed and are not used for selection. The later frozen installed live-hook matrix used four fresh workspaces and four fresh mounted config directories without retries. Both models completed with exact artifacts and matching tool-call counts; only the installed enabled condition emitted chained events."
   },
   "privacyReview": {
     "liveEventCount": 8,
     "liveLedgerBytes": 3251,
-    "maximumCanonicalEventBytes": 424,
+    "maximumCanonicalEventBytes": 423,
     "credentialPatternsFound": 0,
     "absolutePrivatePathsFound": 0,
     "transcriptContentFound": 0,
@@ -229,10 +254,11 @@
     "decision": "selected",
     "retained": true,
     "claimId": "T029.evidence-observer.redacted-hash-chained-lifecycle-facts",
-    "reason": "The current repaired-runtime ablation closes the lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope."
+    "reason": "The installed live-hook ablation closes the lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope."
   },
   "limitations": [
     "The matched live ablation is formative with one run per model and does not establish a release-scale latency distribution.",
+    "The CLI's initial personal-hook manager diagnostic reports zero files before plugin registration; qualification therefore binds the later installed hooks.json reads, observer subprocess execution, and task-owned event ledgers instead of treating that startup line as the delivery count.",
     "CLI print mode supplied an empty workspacePaths array until the documented add-directory binding was used; the observer rejects that unqualified input rather than guessing a workspace.",
     "An unscheduled first-repair Flash smoke produced the exact artifact and eight observer events but ended ERROR after an invalid extra tool call; it remains disclosed as a product failure and was neither retried nor substituted for the later frozen current-runtime ablation.",
     "EvidenceEvent records mechanical lifecycle facts only; correctness, obligation completion, and release readiness remain external judgments."

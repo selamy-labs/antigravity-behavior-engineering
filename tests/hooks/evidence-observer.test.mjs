@@ -518,8 +518,8 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
   assert.equal(analysis.matrixDigest, sha256Digest(await fs.readFile(matrixPath)));
   assert.equal(analysis.currentRuntimeControl.matrixDigest, sha256Digest(await fs.readFile(liveHookRepairMatrixPath)));
   assert.equal(analysis.matchedTreatment.matrixDigest, sha256Digest(await fs.readFile(liveHookRepairMatrixPath)));
-  assert.equal(analysis.currentRuntimeControl.hookResolution.namedHooksLoaded, 1);
-  assert.equal(analysis.currentRuntimeControl.hookResolution.hookFilesLoaded, 1);
+  assert.equal(analysis.currentRuntimeControl.hookResolution.namedHooksLoaded, 0);
+  assert.equal(analysis.currentRuntimeControl.hookResolution.hookFilesLoaded, 0);
   assert.equal(analysis.matchedTreatment.hookResolution.namedHooksLoaded, 1);
   assert.equal(analysis.matchedTreatment.hookResolution.hookFilesLoaded, 1);
   assert.equal(analysis.implementation.hooksDigest, sha256Digest(await fs.readFile(hooksPath)));
@@ -532,7 +532,7 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
   assert.deepEqual(analysis.privacyReview, {
     liveEventCount: 8,
     liveLedgerBytes: 3251,
-    maximumCanonicalEventBytes: 424,
+    maximumCanonicalEventBytes: 423,
     credentialPatternsFound: 0,
     absolutePrivatePathsFound: 0,
     transcriptContentFound: 0,
@@ -544,7 +544,7 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
     decision: "selected",
     retained: true,
     claimId: "T029.evidence-observer.redacted-hash-chained-lifecycle-facts",
-    reason: "The current repaired-runtime ablation closes the lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope.",
+    reason: "The installed live-hook ablation closes the lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope.",
   });
   const analysisBytes = await fs.readFile(analysisPath, "utf8");
   for (const forbidden of ["/home/", "/tmp/", "codex-dispatch", "conversationId"]) {
