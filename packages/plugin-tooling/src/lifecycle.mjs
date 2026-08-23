@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 
 import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json.mjs";
@@ -30,6 +32,8 @@ const DEPENDENCY_KEYS = new Set(["schemaVersion", "name", "sourceUrl", "revision
 const DEPENDENCY_CONSUMPTIONS = new Set(["runtime", "development", "research"]);
 const LIFECYCLE_KEYS = new Set(["requiredCommands", "volatilityPolicy"]);
 const VOLATILITY_KEYS = new Set(["ignoredPaths"]);
+const PROFILE_KEYS = new Set(["schemaVersion", "profileDigest", "entries"]);
+const PROFILE_ENTRY_KEYS = new Set(["path", "digest", "byteLength"]);
 
 export class LifecycleValidationError extends TypeError {
   constructor(code, fieldPath = "$") {
@@ -253,14 +257,6 @@ const validateLock = (lock) => {
   return lock;
 };
 
-const toPosixRelative = (root, absolutePath) => {
-  const relativePath = path.relative(root, absolutePath).split(path.sep).join("/");
-  if (relativePath === "" || relativePath.startsWith("../") || path.isAbsolute(relativePath)) {
-    fail("lifecycle.profile_escape", "$.profileRoot");
-  }
-  return relativePath;
-};
-
 const ignored = (relativePath, volatilityPolicy = {}) => {
   const ignoredPaths = Array.isArray(volatilityPolicy.ignoredPaths) ? volatilityPolicy.ignoredPaths : [];
   return ignoredPaths.some((pattern) => {
@@ -284,21 +280,22 @@ const readJsonFile = async (file, fallback) => {
 };
 
 const profileFiles = async (profileRoot, volatilityPolicy) => {
-  const canonicalRoot = await fs.realpath(profileRoot).catch((error) => {
+  const resolvedRoot = path.resolve(profileRoot);
+  const canonicalRoot = await fs.realpath(resolvedRoot).catch((error) => {
     if (error?.code === "ENOENT") {
       fail("lifecycle.profile_not_found", "$.profileRoot");
     }
     throw error;
   });
-  const pending = [canonicalRoot];
+  if (canonicalRoot !== resolvedRoot) fail("lifecycle.profile_symlink", "$.profileRoot");
   const entries = [];
-  while (pending.length > 0) {
-    const directory = pending.pop();
-    const children = await fs.readdir(directory, { withFileTypes: true });
+  const scanDirectory = async (directoryHandle, prefix) => {
+    const descriptorRoot = `/proc/self/fd/${directoryHandle.fd}`;
+    const children = await fs.readdir(descriptorRoot, { withFileTypes: true });
     children.sort((left, right) => left.name.localeCompare(right.name));
     for (const child of children) {
-      const absolutePath = path.join(directory, child.name);
-      const relativePath = toPosixRelative(canonicalRoot, absolutePath);
+      const relativePath = prefix.length === 0 ? child.name : prefix + "/" + child.name;
+      const descriptorPath = descriptorRoot + "/" + child.name;
       if (ignored(relativePath, volatilityPolicy)) {
         continue;
       }
@@ -306,12 +303,42 @@ const profileFiles = async (profileRoot, volatilityPolicy) => {
         fail("lifecycle.profile_symlink", relativePath);
       }
       if (child.isDirectory()) {
-        pending.push(absolutePath);
+        const childHandle = await fs.open(
+          descriptorPath,
+          fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
+        ).catch(() => fail("lifecycle.profile_symlink", relativePath));
+        try {
+          await scanDirectory(childHandle, relativePath);
+        } finally {
+          await childHandle.close();
+        }
       } else if (child.isFile()) {
-        const bytes = await fs.readFile(absolutePath);
-        entries.push({ path: relativePath, digest: digestBytes(bytes), byteLength: bytes.byteLength });
+        const fileHandle = await fs.open(
+          descriptorPath,
+          fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
+        ).catch(() => fail("lifecycle.profile_symlink", relativePath));
+        try {
+          const status = await fileHandle.stat();
+          if (!status.isFile()) fail("lifecycle.invalid_profile_file", relativePath);
+          const bytes = await fileHandle.readFile();
+          entries.push({ path: relativePath, digest: digestBytes(bytes), byteLength: bytes.byteLength });
+        } finally {
+          await fileHandle.close();
+        }
+      } else {
+        fail("lifecycle.invalid_profile_file", relativePath);
       }
     }
+  };
+
+  const rootHandle = await fs.open(
+    canonicalRoot,
+    fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
+  ).catch(() => fail("lifecycle.profile_symlink", "$.profileRoot"));
+  try {
+    await scanDirectory(rootHandle, "");
+  } finally {
+    await rootHandle.close();
   }
   entries.sort((left, right) => left.path.localeCompare(right.path));
   return entries;
@@ -326,9 +353,31 @@ export const snapshotProfile = async (profileRoot, volatilityPolicy = {}) => {
   };
 };
 
-export const diffProfileSnapshots = (before, after) => {
-  const beforeEntries = new Map((before.entries || []).map((entry) => [entry.path, entry]));
-  const afterEntries = new Map((after.entries || []).map((entry) => [entry.path, entry]));
+export const validateProfileSnapshot = (snapshot, fieldPath = "$") => {
+  assertObject(snapshot, fieldPath);
+  assertKnownKeys(snapshot, PROFILE_KEYS, fieldPath);
+  if (snapshot.schemaVersion !== 1 || !Array.isArray(snapshot.entries)) fail("lifecycle.invalid_profile_manifest", fieldPath);
+  assertDigest(snapshot.profileDigest, fieldPath + ".profileDigest");
+  let previous = null;
+  for (const [index, entry] of snapshot.entries.entries()) {
+    const entryPath = fieldPath + `.entries[${index}]`;
+    assertObject(entry, entryPath);
+    assertKnownKeys(entry, PROFILE_ENTRY_KEYS, entryPath);
+    assertRelativePath(entry.path, entryPath + ".path");
+    assertDigest(entry.digest, entryPath + ".digest");
+    if (!Number.isSafeInteger(entry.byteLength) || entry.byteLength < 0) fail("lifecycle.invalid_profile_manifest", entryPath + ".byteLength");
+    if (previous !== null && previous.localeCompare(entry.path) >= 0) fail("lifecycle.invalid_profile_manifest", entryPath + ".path");
+    previous = entry.path;
+  }
+  if (digestObject(snapshot.entries) !== snapshot.profileDigest) fail("lifecycle.profile_digest_mismatch", fieldPath + ".profileDigest");
+  return snapshot;
+};
+
+export const diffProfileSnapshots = (beforeInput, afterInput) => {
+  const before = validateProfileSnapshot(beforeInput, "$.before");
+  const after = validateProfileSnapshot(afterInput, "$.after");
+  const beforeEntries = new Map(before.entries.map((entry) => [entry.path, entry]));
+  const afterEntries = new Map(after.entries.map((entry) => [entry.path, entry]));
   const addedPaths = [...afterEntries.keys()].filter((entryPath) => !beforeEntries.has(entryPath)).sort();
   const removedPaths = [...beforeEntries.keys()].filter((entryPath) => !afterEntries.has(entryPath)).sort();
   const modifiedPaths = [...afterEntries.keys()]
@@ -348,23 +397,39 @@ export const diffProfileSnapshots = (before, after) => {
 const installedPluginRoot = (profileRoot, packageName) => path.join(profileRoot, ".gemini", "config", "plugins", packageName);
 
 const listInstalledPackageFiles = async (root) => {
-  const pending = [root];
   const files = [];
-  while (pending.length > 0) {
-    const directory = pending.pop();
-    const children = await fs.readdir(directory, { withFileTypes: true });
+  const scanDirectory = async (directoryHandle, prefix) => {
+    const descriptorRoot = `/proc/self/fd/${directoryHandle.fd}`;
+    const children = await fs.readdir(descriptorRoot, { withFileTypes: true });
     children.sort((left, right) => left.name.localeCompare(right.name));
     for (const child of children) {
-      const absolutePath = path.join(directory, child.name);
-      const relativePath = path.relative(root, absolutePath).split(path.sep).join("/");
+      const relativePath = prefix.length === 0 ? child.name : prefix + "/" + child.name;
+      const descriptorPath = descriptorRoot + "/" + child.name;
       if (child.isDirectory()) {
-        pending.push(absolutePath);
+        const childHandle = await fs.open(
+          descriptorPath,
+          fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
+        ).catch(() => fail("lifecycle.package_symlink", relativePath));
+        try {
+          await scanDirectory(childHandle, relativePath);
+        } finally {
+          await childHandle.close();
+        }
       } else if (child.isFile()) {
         files.push(relativePath);
-      } else if (child.isSymbolicLink()) {
+      } else {
         fail("lifecycle.package_symlink", relativePath);
       }
     }
+  };
+  const rootHandle = await fs.open(
+    root,
+    fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
+  ).catch(() => fail("lifecycle.package_symlink", root));
+  try {
+    await scanDirectory(rootHandle, "");
+  } finally {
+    await rootHandle.close();
   }
   files.sort();
   return files;
@@ -501,3 +566,295 @@ export const runPluginCommand = async (cliPath, args, { profileRoot, cwd, env = 
 };
 
 export const loadBehaviorLock = async (file) => validateLock(JSON.parse(await fs.readFile(file, "utf8")));
+
+const FIXTURE_KEYS = new Set(["schemaVersion", "fixtureId", "files"]);
+const DEPENDENCY_STATE_KEYS = new Set(["schemaVersion", "name", "revision", "ownership"]);
+const PROFILE_METADATA_PATHS = [
+  ".gemini/config/config.json",
+  ".gemini/config/import_manifest.json",
+];
+
+const canonicalJsonLine = (value) => Buffer.concat([Buffer.from(canonicalBytes(value)), Buffer.from("\n")]);
+
+const readOptionalBytes = async (file) => fs.readFile(file).catch((error) => {
+  if (error?.code === "ENOENT") return null;
+  throw error;
+});
+
+const writeFixtureFile = async (root, relativePath, value) => {
+  assertRelativePath(relativePath, "$.files." + relativePath);
+  const target = path.join(root, ...relativePath.split("/"));
+  const parent = path.dirname(target);
+  await fs.mkdir(parent, { recursive: true });
+  const canonicalParent = await fs.realpath(parent);
+  if (canonicalParent !== parent || !canonicalParent.startsWith(root + path.sep)) {
+    fail("lifecycle.profile_escape", relativePath);
+  }
+  await fs.writeFile(target, canonicalJsonLine(value), { flag: "wx", mode: 0o600 });
+};
+
+export const materializeProfileFixture = async (profileRoot, fixture) => {
+  assertObject(fixture, "$");
+  assertKnownKeys(fixture, FIXTURE_KEYS, "$");
+  if (fixture.schemaVersion !== 1 || !["clean", "customized"].includes(fixture.fixtureId)) {
+    fail("lifecycle.invalid_fixture", "$.fixtureId");
+  }
+  assertObject(fixture.files, "$.files");
+  const absoluteRoot = path.resolve(profileRoot);
+  await fs.mkdir(absoluteRoot, { recursive: true });
+  if (await fs.realpath(absoluteRoot) !== absoluteRoot) fail("lifecycle.profile_symlink", absoluteRoot);
+  if ((await fs.readdir(absoluteRoot)).length > 0) fail("lifecycle.profile_not_empty", absoluteRoot);
+  for (const [relativePath, value] of Object.entries(fixture.files).sort(([left], [right]) => left.localeCompare(right))) {
+    assertObject(value, "$.files." + relativePath);
+    await writeFixtureFile(absoluteRoot, relativePath, value);
+  }
+  return snapshotProfile(absoluteRoot);
+};
+
+export const verifyProfileDependencies = async (profileRoot, lockInput) => {
+  const lock = validateLock(lockInput);
+  const records = [];
+  for (const dependency of lock.dependencies) {
+    if (!/^[0-9A-Za-z][0-9A-Za-z._-]*$/u.test(dependency.name)) {
+      fail("lifecycle.invalid_field", "$.dependencies.name");
+    }
+    const statePath = path.join(path.resolve(profileRoot), ".abe", "dependencies", dependency.name + ".json");
+    const state = await readJsonFile(statePath, null);
+    if (state === null) {
+      if (dependency.required) fail("lifecycle.required_dependency_missing", dependency.name);
+      records.push({
+        schemaVersion: 1,
+        name: dependency.name,
+        required: false,
+        expectedRevision: dependency.revision,
+        observedRevision: null,
+        ownership: "none",
+        status: "absent_optional",
+      });
+      continue;
+    }
+    assertObject(state, dependency.name);
+    assertKnownKeys(state, DEPENDENCY_STATE_KEYS, dependency.name);
+    if (state.schemaVersion !== 1 || state.name !== dependency.name || !["user", "release"].includes(state.ownership)) {
+      fail("lifecycle.invalid_dependency_state", dependency.name);
+    }
+    if (state.revision !== dependency.revision) fail("lifecycle.dependency_mismatch", dependency.name);
+    records.push({
+      schemaVersion: 1,
+      name: dependency.name,
+      required: dependency.required,
+      expectedRevision: dependency.revision,
+      observedRevision: state.revision,
+      ownership: state.ownership,
+      status: state.ownership === "user" ? "user_owned_verified" : "release_owned_verified",
+    });
+  }
+  return records;
+};
+
+const normalizedLifecycleSnapshot = async (profileRoot, volatilityPolicy) => {
+  const snapshot = await snapshotProfile(profileRoot, volatilityPolicy);
+  const entries = [];
+  for (const entry of snapshot.entries) {
+    if (entry.path !== ".gemini/config/import_manifest.json") {
+      entries.push(entry);
+      continue;
+    }
+    const manifest = await readJsonFile(path.join(profileRoot, ...entry.path.split("/")), { imports: [] });
+    const normalized = structuredClone(manifest);
+    if (Array.isArray(normalized.imports)) {
+      for (const imported of normalized.imports) {
+        if (imported && typeof imported === "object" && Object.hasOwn(imported, "importedAt")) imported.importedAt = "<volatile>";
+      }
+    }
+    const bytes = canonicalJsonLine(normalized);
+    entries.push({ path: entry.path, digest: digestBytes(bytes), byteLength: bytes.byteLength });
+  }
+  entries.sort((left, right) => left.path.localeCompare(right.path));
+  return { schemaVersion: 1, profileDigest: digestObject(entries), entries };
+};
+
+const parseVersion = (value, fieldPath) => {
+  const match = /(?:^|\s)([0-9]+)\.([0-9]+)\.([0-9]+)(?:\s|$)/u.exec(value);
+  if (!match) fail("lifecycle.invalid_cli_version", fieldPath);
+  return match.slice(1).map(Number);
+};
+
+const versionAtLeast = (observed, minimum) => {
+  for (let index = 0; index < 3; index += 1) {
+    if (observed[index] !== minimum[index]) return observed[index] > minimum[index];
+  }
+  return true;
+};
+
+const commandEnvironment = (profileRoot, extra = {}) => ({
+  PATH: process.env.PATH || "/usr/bin:/bin:/usr/sbin:/sbin",
+  LANG: process.env.LANG || "C.UTF-8",
+  HOME: profileRoot,
+  ...extra,
+});
+
+const createUpgradeVariant = async (pluginRoot) => {
+  const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "abe-lifecycle-upgrade-"));
+  const variantRoot = path.join(temporaryRoot, "plugin");
+  await fs.cp(pluginRoot, variantRoot, { recursive: true, dereference: false, verbatimSymlinks: true });
+  const manifestPath = path.join(variantRoot, "plugin.json");
+  const lockPath = path.join(variantRoot, "behavior-lock.json");
+  const manifest = await readJsonFile(manifestPath, null);
+  const lock = await loadBehaviorLock(lockPath);
+  const versionParts = manifest.version.split(".").map(Number);
+  manifest.version = [versionParts[0], versionParts[1], versionParts[2] + 1].join(".");
+  const manifestBytes = canonicalJsonLine(manifest);
+  lock.packageVersion = manifest.version;
+  lock.files = { ...lock.files, "plugin.json": digestBytes(manifestBytes) };
+  await fs.writeFile(manifestPath, manifestBytes);
+  await fs.writeFile(lockPath, canonicalJsonLine(lock));
+  return { temporaryRoot, variantRoot, lock };
+};
+
+const restoreMetadata = async (profileRoot, baseline) => {
+  for (const relativePath of PROFILE_METADATA_PATHS) {
+    const target = path.join(profileRoot, ...relativePath.split("/"));
+    const bytes = baseline.get(relativePath);
+    if (bytes === null) {
+      await fs.unlink(target).catch((error) => {
+        if (error?.code !== "ENOENT") throw error;
+      });
+    } else {
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      await fs.writeFile(target, bytes);
+    }
+  }
+  for (const relativePath of [
+    ".gemini/config/plugins",
+    ".gemini/config",
+    ".gemini",
+  ]) {
+    await fs.rmdir(path.join(profileRoot, ...relativePath.split("/"))).catch((error) => {
+      if (!["ENOENT", "ENOTEMPTY"].includes(error?.code)) throw error;
+    });
+  }
+};
+
+const packageResidue = async (profileRoot, packageName) => {
+  const residue = [];
+  const installedRoot = installedPluginRoot(profileRoot, packageName);
+  if (await fs.lstat(installedRoot).then(() => true, (error) => (error?.code === "ENOENT" ? false : Promise.reject(error)))) residue.push("installed-package-root");
+  const discovery = await readDiscovery(profileRoot, packageName);
+  if (discovery.imported) residue.push("import-manifest-entry");
+  const config = await readJsonFile(path.join(profileRoot, ".gemini", "config", "config.json"), {});
+  if (config?.plugins && Object.hasOwn(config.plugins, packageName)) residue.push("plugin-config-entry");
+  return residue;
+};
+
+export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, profileFixture }) => {
+  const totalStarted = process.hrtime.bigint();
+  const lock = await loadBehaviorLock(path.join(pluginRoot, "behavior-lock.json"));
+  if (!lock.supportedPlatforms.some((platform) => platform.os === process.platform && platform.architecture === process.arch)) {
+    fail("lifecycle.unsupported_platform", process.platform + "/" + process.arch);
+  }
+  const versionResult = await runProcess([cliPath, "--version"], {
+    cwd: pluginRoot,
+    env: commandEnvironment(profileRoot),
+  });
+  if (versionResult.exitCode !== 0) fail("lifecycle.cli_version_failed", "$.cliPath");
+  const observedVersion = parseVersion(versionResult.stdout, "$.cliVersion");
+  if (!versionAtLeast(observedVersion, parseVersion(lock.minimumCliVersion, "$.minimumCliVersion"))) {
+    fail("lifecycle.cli_version_mismatch", "$.cliVersion");
+  }
+
+  const rejectedPaths = lock.lifecycle.volatilityPolicy.ignoredPaths.filter((entry) => PROFILE_METADATA_PATHS.includes(entry));
+  const acceptedPaths = lock.lifecycle.volatilityPolicy.ignoredPaths.filter((entry) => !PROFILE_METADATA_PATHS.includes(entry));
+  const effectivePolicy = { ignoredPaths: acceptedPaths };
+  const baselineMetadata = new Map(await Promise.all(PROFILE_METADATA_PATHS.map(async (relativePath) => [
+    relativePath,
+    await readOptionalBytes(path.join(profileRoot, ...relativePath.split("/"))),
+  ])));
+  const before = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
+  const dependenciesBefore = await verifyProfileDependencies(profileRoot, lock);
+  const dependencyDigests = new Map();
+  for (const dependency of dependenciesBefore) {
+    const file = path.join(profileRoot, ".abe", "dependencies", dependency.name + ".json");
+    dependencyDigests.set(dependency.name, await readOptionalBytes(file).then((bytes) => (bytes ? digestBytes(bytes) : null)));
+  }
+
+  const operations = [];
+  const timedCommand = async (name, args) => {
+    const start = process.hrtime.bigint();
+    const result = await runPluginCommand(cliPath, args, { profileRoot, cwd: pluginRoot, volatilityPolicy: effectivePolicy });
+    const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
+    operations.push({ schemaVersion: 1, name, command: String(args[0]), exitCode: result.exitCode, durationMs, touchedPaths: result.touchedPaths });
+    if (result.exitCode !== 0) fail("lifecycle.command_failed", name);
+    return { result, durationMs };
+  };
+  const timedInspection = async (name, expectedLock) => {
+    const start = process.hrtime.bigint();
+    await inspectInstall(profileRoot, expectedLock);
+    const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
+    operations.push({ schemaVersion: 1, name, command: "inspect-install", exitCode: 0, durationMs, touchedPaths: [] });
+    return durationMs;
+  };
+
+  let upgrade;
+  try {
+    const validation = await timedCommand("validate", ["validate", pluginRoot]);
+    const installation = await timedCommand("install", ["install", pluginRoot]);
+    const verificationMs = await timedInspection("verify", lock);
+    const installed = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
+    await timedCommand("repeat_install", ["install", pluginRoot]);
+    const repeated = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
+    if (diffProfileSnapshots(installed, repeated).changedPaths.length > 0) fail("lifecycle.non_idempotent", "repeat_install");
+    await timedCommand("disable", ["disable", lock.packageName]);
+    if ((await inspectInstall(profileRoot, lock)).enabled !== false) fail("lifecycle.disable_failed", lock.packageName);
+    await timedCommand("enable", ["enable", lock.packageName]);
+    if ((await inspectInstall(profileRoot, lock)).enabled !== true) fail("lifecycle.enable_failed", lock.packageName);
+    upgrade = await createUpgradeVariant(pluginRoot);
+    await timedCommand("upgrade", ["install", upgrade.variantRoot]);
+    await inspectInstall(profileRoot, upgrade.lock);
+    await timedCommand("rollback", ["install", pluginRoot]);
+    await inspectInstall(profileRoot, lock);
+    await timedCommand("uninstall", ["uninstall", lock.packageName]);
+    const cliResidueBeforeCleanup = await packageResidue(profileRoot, lock.packageName);
+    await restoreMetadata(profileRoot, baselineMetadata);
+    const after = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
+    const diff = diffProfileSnapshots(before, after);
+    const packageOwnedResiduePaths = await packageResidue(profileRoot, lock.packageName);
+    const dependenciesAfter = await verifyProfileDependencies(profileRoot, lock);
+    const dependencies = [];
+    for (const dependency of dependenciesAfter) {
+      const file = path.join(profileRoot, ".abe", "dependencies", dependency.name + ".json");
+      const afterDigest = await readOptionalBytes(file).then((bytes) => (bytes ? digestBytes(bytes) : null));
+      dependencies.push({ ...dependency, preserved: dependencyDigests.get(dependency.name) === afterDigest });
+    }
+    const countedInstallVerifyMs = validation.durationMs + installation.durationMs + verificationMs;
+    const totalDurationMs = Number((process.hrtime.bigint() - totalStarted) / 1_000_000n);
+    return {
+      schemaVersion: 1,
+      valid: packageOwnedResiduePaths.length === 0 && diff.changedPaths.length === 0 && countedInstallVerifyMs < 600_000,
+      profileFixture,
+      packageName: lock.packageName,
+      packageVersion: lock.packageVersion,
+      cliVersion: observedVersion.join("."),
+      platform: { schemaVersion: 1, os: process.platform, architecture: process.arch, nodeVersion: process.version },
+      dependencies,
+      operations,
+      totalDurationMs,
+      countedInstallVerifyMs,
+      maximumCountedMs: 600_000,
+      excludedIntervals: [
+        { schemaVersion: 1, kind: "authentication", counted: false, durationMs: 0, reason: "prequalified local CLI" },
+        { schemaVersion: 1, kind: "dependency_download", counted: false, durationMs: 0, reason: "local package; no dependency download" },
+      ],
+      idempotent: true,
+      cliResidueBeforeCleanup,
+      cleanupApplied: cliResidueBeforeCleanup.length > 0,
+      packageOwnedResiduePaths,
+      unintendedUnrelatedChanges: diff.changedPaths,
+      beforeProfileDigest: before.profileDigest,
+      afterProfileDigest: after.profileDigest,
+      volatilityReview: { schemaVersion: 1, acceptedPaths, rejectedPaths },
+    };
+  } finally {
+    if (upgrade) await fs.rm(upgrade.temporaryRoot, { recursive: true, force: true });
+  }
+};

@@ -8,6 +8,7 @@ import test from "node:test";
 import {
   LifecycleValidationError,
   materializeProfileFixture,
+  runPluginCommand,
   snapshotProfile,
   verifyProfileDependencies,
 } from "../../packages/plugin-tooling/src/lifecycle.mjs";
@@ -71,6 +72,9 @@ if (command === "install") {
   const source = args[2];
   const manifest = await readJson(path.join(source, "plugin.json"), null);
   if (!manifest) process.exit(1);
+  if (process.env.ABE_FAKE_INTERRUPT_INSTALL === "1") process.exit(12);
+  if (process.env.ABE_FAKE_CONFLICT_NAME === manifest.name) process.exit(13);
+  if (process.env.ABE_FAKE_PRECEDENCE_CONFLICT_NAME === manifest.name) process.exit(14);
   const destination = path.join(pluginsRoot, manifest.name);
   await fs.rm(destination, { recursive: true, force: true });
   await fs.cp(source, destination, { recursive: true });
@@ -144,10 +148,14 @@ test("compare-profile emits an exact stable diff and fails on changed state", as
     const beforePath = path.join(root, "before.json");
     const samePath = path.join(root, "same.json");
     const changedPath = path.join(root, "changed.json");
-    const before = { schemaVersion: 1, profileDigest: "sha256:" + "1".repeat(64), entries: [{ path: "keep.txt", digest: "sha256:" + "2".repeat(64), byteLength: 4 }] };
+    const profile = path.join(root, "profile");
+    await fs.mkdir(profile);
+    await fs.writeFile(path.join(profile, "keep.txt"), "keep\n");
+    const before = await snapshotProfile(profile);
     await writeJson(beforePath, before);
     await writeJson(samePath, before);
-    await writeJson(changedPath, { ...before, profileDigest: "sha256:" + "3".repeat(64), entries: [{ ...before.entries[0], digest: "sha256:" + "4".repeat(64) }] });
+    await fs.writeFile(path.join(profile, "keep.txt"), "changed\n");
+    await writeJson(changedPath, await snapshotProfile(profile));
 
     const same = await run([process.execPath, compareBin, "--before", beforePath, "--after", samePath]);
     assert.equal(same.exitCode, 0, same.stderr);
@@ -156,6 +164,34 @@ test("compare-profile emits an exact stable diff and fails on changed state", as
     const changed = await run([process.execPath, compareBin, "--before", beforePath, "--after", changedPath]);
     assert.equal(changed.exitCode, 2);
     assert.deepEqual(JSON.parse(changed.stdout).modifiedPaths, ["keep.txt"]);
+
+    await writeJson(changedPath, {});
+    const invalid = await run([process.execPath, compareBin, "--before", beforePath, "--after", changedPath]);
+    assert.equal(invalid.exitCode, 2);
+    assert.match(invalid.stderr, /lifecycle\.invalid_profile_manifest|lifecycle\.invalid_field/u);
+  });
+});
+
+test("name, precedence, and interruption controls fail before profile mutation", async () => {
+  await withTemporaryRoot("abe-release-controls-", async (root) => {
+    const fakeCli = await makeFakeCli(root);
+    const lock = await readJson(path.join(pluginRoot, "behavior-lock.json"));
+    for (const [variable, exitCode] of [
+      ["ABE_FAKE_CONFLICT_NAME", 13],
+      ["ABE_FAKE_PRECEDENCE_CONFLICT_NAME", 14],
+      ["ABE_FAKE_INTERRUPT_INSTALL", 12],
+    ]) {
+      const profile = path.join(root, variable.toLowerCase());
+      await materializeProfileFixture(profile, { schemaVersion: 1, fixtureId: "clean", files: {} });
+      const result = await runPluginCommand(fakeCli, ["install", pluginRoot], {
+        profileRoot: profile,
+        env: variable === "ABE_FAKE_INTERRUPT_INSTALL"
+          ? { [variable]: "1" }
+          : { [variable]: lock.packageName },
+      });
+      assert.equal(result.exitCode, exitCode);
+      assert.deepEqual(result.touchedPaths, []);
+    }
   });
 });
 
@@ -180,6 +216,7 @@ test("release lifecycle is timed, idempotent, reversible, and preserves user-own
       assert.equal(report.valid, true);
       assert.equal(report.profileFixture, fixture);
       assert.equal(report.countedInstallVerifyMs < 600_000, true);
+      assert.equal(report.totalDurationMs >= report.countedInstallVerifyMs, true);
       assert.equal(report.idempotent, true);
       assert.deepEqual(report.packageOwnedResiduePaths, []);
       assert.deepEqual(report.unintendedUnrelatedChanges, []);
