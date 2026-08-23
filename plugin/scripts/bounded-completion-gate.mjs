@@ -25,6 +25,7 @@ const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 const TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/u;
 const allow = Object.freeze({ decision: "" });
 const canonicalLine = (value) => Buffer.from(canonicalBytes(value)).toString("utf8") + "\n";
+const immediateHonestReport = "Do not use tools or perform more work in response to this Stop; immediately report an honest non-complete terminal state and name this condition.";
 
 class InvalidInputError extends Error {}
 class FailOpenError extends Error {
@@ -266,20 +267,20 @@ const mechanicalCondition = (candidate) => {
   if (staleIds.length > 0) {
     return {
       reasonCode: "stale_passing_evidence",
-      reason: `Completion evidence is stale for required obligation(s) ${staleIds.join(", ")}; run or record fresh evidence, or report an honest non-complete terminal state.`,
+      reason: `Completion evidence is stale for required obligation(s) ${staleIds.join(", ")}. ${immediateHonestReport}`,
     };
   }
   if (candidate.invalid) {
     return {
       reasonCode: "invalid_task_state",
-      reason: `TaskState schema is invalid for ${candidate.taskId}; repair the state or report an honest non-complete terminal state.`,
+      reason: `TaskState schema is invalid for ${candidate.taskId}. ${immediateHonestReport}`,
     };
   }
   const state = candidate.state;
   if (state.terminalState.activeWork) {
     return {
       reasonCode: "active_work",
-      reason: "TaskState reports active work; continue the task or report an honest non-complete terminal state.",
+      reason: `TaskState reports active work. ${immediateHonestReport}`,
     };
   }
   const unresolvedIds = state.obligations
@@ -289,7 +290,7 @@ const mechanicalCondition = (candidate) => {
   if (unresolvedIds.length > 0) {
     return {
       reasonCode: "unresolved_required_obligation",
-      reason: `Required obligation(s) ${unresolvedIds.join(", ")} remain unresolved; satisfy them or report an honest non-complete terminal state.`,
+      reason: `Required obligation(s) ${unresolvedIds.join(", ")} remain unresolved. ${immediateHonestReport}`,
     };
   }
   const acceptedIds = state.reviewFindings
@@ -299,7 +300,7 @@ const mechanicalCondition = (candidate) => {
   if (acceptedIds.length > 0) {
     return {
       reasonCode: "accepted_finding_unverified",
-      reason: `Accepted material finding(s) ${acceptedIds.join(", ")} are not freshly verified; repair and verify them or report an honest non-complete terminal state.`,
+      reason: `Accepted material finding(s) ${acceptedIds.join(", ")} are not freshly verified. ${immediateHonestReport}`,
     };
   }
   return null;
