@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "customized",
+  "files": {
+    ".abe/dependencies/superpowers.json": {
+      "artifactDigest": "sha256:7b91dce0b846d7e5632e1f6fddbcaa7b4de473b7cf3c86ec008d3bdddb2e143a",
+      "schemaVersion": 1,
+      "name": "superpowers",
+      "sourceUrl": "https://github.com/obra/superpowers",
+      "revision": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "ownership": "user"
+    },
+    ".gemini/config/config.json": {
+      "plugins": {
+        "superpowers": {
+          "enabled": true
+        }
+      },
+      "user": {
+        "theme": "dark"
+      }
+    },
+    ".gemini/config/import_manifest.json": {
+      "imports": [
+        {
+          "components": [
+            "skills"
+          ],
+          "importedAt": "2026-08-22T00:00:00Z",
+          "name": "superpowers",
+          "source": "user"
+        }
+      ]
+    },
+    ".gemini/config/plugins/superpowers/plugin.json": {
+      "name": "superpowers",
+      "version": "6.3.0"
+    },
+    ".gemini/config/plugins/superpowers/revision.json": {
+      "revision": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "sourceUrl": "https://github.com/obra/superpowers"
+    },
+    ".gemini/config/user-settings.json": {
+      "editor": "vim",
+      "keep": "byte-identical"
+    }
+  }
+}
