@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "matrixType": "evidence-observer-corrective-runtime-ablation",
+  "matrixId": "evidence-observer-repair-ablation-2026-08-23",
+  "component": "evidence-observer",
+  "frozenBeforeTreatment": true,
+  "frozenAt": "2026-08-23T00:00:13Z",
+  "repairImplementationCommit": "e9b296932bd784a22f3ecefd0a5405e0665c96be",
+  "candidateRuntimeDigest": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
+  "models": [
+    "gemini-3.1-pro-high",
+    "gemini-3.7-flash-high"
+  ],
+  "reasoningRequest": "high",
+  "conditions": [
+    {
+      "conditionId": "repaired-runtime-observer-off",
+      "observerEnabled": false,
+      "packageCondition": "The same repaired package is installed, with only the installed evidence-observer named-hook enablement set false."
+    },
+    {
+      "conditionId": "repaired-runtime-observer-on",
+      "observerEnabled": true,
+      "packageCondition": "The same repaired package is installed with its committed evidence-observer named-hook enablement."
+    }
+  ],
+  "behaviorScenario": {
+    "scenarioId": "exact-artifact-control",
+    "workflowTier": "substantial",
+    "prompt": "Create {workspaceRoot}/RESULT.txt containing exactly OBSERVER-CONTROL followed by one newline, then report completion.",
+    "promptBinding": "Replace {workspaceRoot} with the absolute disposable workspace path before dispatch.",
+    "startingState": "fresh disposable workspace with one validated active substantial TaskState",
+    "authority": ["read and write only inside the disposable workspace"],
+    "artifactCheck": {"path": "RESULT.txt", "expectedUtf8": "OBSERVER-CONTROL\n"},
+    "expectedConclusion": "complete"
+  },
+  "schedule": {
+    "runsPerCell": 1,
+    "order": [
+      "repaired-runtime-observer-off/gemini-3.1-pro-high",
+      "repaired-runtime-observer-off/gemini-3.7-flash-high",
+      "repaired-runtime-observer-on/gemini-3.1-pro-high",
+      "repaired-runtime-observer-on/gemini-3.7-flash-high"
+    ],
+    "retries": 0,
+    "freshWorkspacePerRun": true
+  },
+  "classification": {
+    "success": "CLI status SUCCESS and exact artifact bytes",
+    "productFailure": "Any valid-start CLI ERROR, invalid tool call, self-induced timeout, wrong artifact, or false completion",
+    "infrastructureFailure": "Pre-start authentication, launch, or capture failure before a model turn"
+  },
+  "resourceEnvelope": {
+    "p95Milliseconds": 250,
+    "hardTimeoutSeconds": 10,
+    "maxLedgerBytes": 4194304,
+    "networkCalls": 0,
+    "shellCalls": 0,
+    "additionalModelInvocations": 0
+  },
+  "selectionRule": {
+    "retainOnlyIf": [
+      "observer_off_emits_no_evidence_event",
+      "observer_on_records_each_qualified_delivery_once",
+      "artifact_and_completion_conclusions_match_by_model",
+      "observer_failures_do_not_block_the_underlying_tool",
+      "resource_and_privacy_envelopes_pass"
+    ],
+    "rejectIf": [
+      "observer_on_changes_artifact_or_completion_conclusion",
+      "observer_on_exceeds_the_frozen_envelope",
+      "observer_on_reads_or_writes_through_a_symlink_escape",
+      "protected_data_is_retained"
+    ]
+  }
+}

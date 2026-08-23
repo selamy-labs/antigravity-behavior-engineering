@@ -1495,6 +1495,7 @@ Plan Phase 7A
 - Modify (advancing-lock sentinel): `tests/plugin/kernel-rule.test.mjs`
 - Modify (historical-runtime and advancing-lock sentinel): `tests/plugin/proof-obligation-contract.test.mjs`
 - Create: `evals/formative/evidence-observer.matrix.json`
+- Create (corrective runtime ablation): `evals/formative/evidence-observer.repair-matrix.json`
 - Create: `evals/formative/evidence-observer.analysis.json`
 - Modify: `plugin/behavior-lock.json`
 
