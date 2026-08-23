@@ -151,7 +151,7 @@ def test_task_family_registry_freezes_pre_treatment_protocols_not_instances():
         _assert_no_worker_readable_hidden_material(protocol)
 
 
-def test_partition_registries_reserve_seeds_and_record_contamination_without_instances():
+def test_partition_registries_reserve_seeds_and_keep_materialization_partitioned():
     registries = {
         "formative": _load(FORMATIVE_REGISTRY),
         "regression": _load(REGRESSION_REGISTRY),
@@ -169,8 +169,16 @@ def test_partition_registries_reserve_seeds_and_record_contamination_without_ins
         assert registry["contaminationHistory"]
         assert all(entry["source"] == "pre_treatment_registry" for entry in registry["contaminationHistory"])
         assert all(entry["event"] in {"registry_created", "contamination_check"} for entry in registry["contaminationHistory"])
-        assert "scenarioId" not in _text_blob(registry)
-        assert "agentInput" not in _text_blob(registry)
+        if partition == "formative":
+            assert "scenarioId" not in _text_blob(registry)
+            assert "agentInput" not in _text_blob(registry)
+        else:
+            assert registry["variants"]
+            assert all(variant["scenarioCard"]["partition"] == "regression" for variant in registry["variants"])
+            assert all(
+                variant["scenarioCard"]["agentInput"].startswith("protected/scenarios/regression/")
+                for variant in registry["variants"]
+            )
         assert '"partition":"sealed"' not in _text_blob(registry)
         _assert_no_worker_readable_hidden_material(registry)
         partition_commitments[partition] = set(registry["reservedSeedCommitments"])
