@@ -36,6 +36,12 @@ const LIFECYCLE_KEYS = new Set(["requiredCommands", "volatilityPolicy"]);
 const VOLATILITY_KEYS = new Set(["ignoredPaths"]);
 const PROFILE_KEYS = new Set(["schemaVersion", "profileDigest", "entries"]);
 const PROFILE_ENTRY_KEYS = new Set(["path", "digest", "byteLength"]);
+const DISCOVERY_COMPONENT_BY_KIND = new Map([
+  ["agent", "agents"],
+  ["hook", "hooks"],
+  ["rule", "rules"],
+  ["skill", "skills"],
+]);
 
 export class LifecycleValidationError extends TypeError {
   constructor(code, fieldPath = "$") {
@@ -467,6 +473,21 @@ export const inspectInstall = async (profileRoot, expectedLock) => {
   const config = await readJsonFile(path.join(profileRoot, ".gemini", "config", "config.json"), { plugins: {} });
   const enabledValue = config?.plugins?.[lock.packageName]?.enabled;
   const discovery = await readDiscovery(profileRoot, lock.packageName);
+  if (!discovery.imported) fail("lifecycle.discovery_missing", lock.packageName);
+  if (discovery.source !== "antigravity") fail("lifecycle.discovery_source_mismatch", lock.packageName);
+  const expectedDiscoveryComponents = [...new Set(lock.components
+    .map((component) => DISCOVERY_COMPONENT_BY_KIND.get(component.kind))
+    .filter(Boolean))].sort();
+  const observedDiscoveryComponents = Array.isArray(discovery.components)
+    && discovery.components.every((component) => typeof component === "string")
+    ? [...discovery.components].sort()
+    : [];
+  if (
+    observedDiscoveryComponents.length !== expectedDiscoveryComponents.length
+    || observedDiscoveryComponents.some((component, index) => component !== expectedDiscoveryComponents[index])
+  ) {
+    fail("lifecycle.discovery_components_mismatch", lock.packageName);
+  }
   return {
     schemaVersion: 1,
     pluginName: lock.packageName,
@@ -628,6 +649,19 @@ const PROFILE_METADATA_PATHS = [
 ];
 
 const canonicalJsonLine = (value) => Buffer.concat([Buffer.from(canonicalBytes(value)), Buffer.from("\n")]);
+
+const captureExactProfile = async (profileRoot, volatilityPolicy) => {
+  const files = await profileFiles(profileRoot, volatilityPolicy, { includeBytes: true });
+  const entries = files.map(({ path: relativePath, digest, byteLength }) => ({ path: relativePath, digest, byteLength }));
+  return {
+    files,
+    snapshot: {
+      schemaVersion: 1,
+      profileDigest: digestObject(entries),
+      entries,
+    },
+  };
+};
 
 const readOptionalBytes = async (file) => fs.readFile(file).catch((error) => {
   if (error?.code === "ENOENT") return null;
@@ -817,6 +851,62 @@ const restoreMetadata = async (profileRoot, baseline) => {
   }
 };
 
+const restoreCapturedProfile = async (profileRoot, baseline, volatilityPolicy) => {
+  const root = path.resolve(profileRoot);
+  if (await fs.realpath(root) !== root) fail("lifecycle.profile_symlink", "$.profileRoot");
+  const current = await captureExactProfile(root, volatilityPolicy);
+  const baselineByPath = new Map(baseline.files.map((file) => [file.path, file]));
+  const currentByPath = new Map(current.files.map((file) => [file.path, file]));
+  const addedPaths = [...currentByPath.keys()]
+    .filter((relativePath) => !baselineByPath.has(relativePath))
+    .sort((left, right) => right.split("/").length - left.split("/").length || right.localeCompare(left));
+
+  for (const relativePath of addedPaths) {
+    assertRelativePath(relativePath, "$.profileRestore");
+    await fs.unlink(path.join(root, ...relativePath.split("/"))).catch((error) => {
+      if (error?.code !== "ENOENT") throw error;
+    });
+  }
+
+  for (const [relativePath, file] of baselineByPath) {
+    const currentFile = currentByPath.get(relativePath);
+    if (currentFile?.digest === file.digest && currentFile.byteLength === file.byteLength) continue;
+    const target = path.join(root, ...relativePath.split("/"));
+    const parent = path.dirname(target);
+    await fs.mkdir(parent, { recursive: true });
+    const canonicalParent = await fs.realpath(parent);
+    if (canonicalParent !== parent || (canonicalParent !== root && !canonicalParent.startsWith(root + path.sep))) {
+      fail("lifecycle.profile_escape", relativePath);
+    }
+    const temporary = target + ".abe-restore-" + process.pid;
+    try {
+      await fs.writeFile(temporary, file.bytes, { flag: "wx", mode: 0o600 });
+      await fs.rename(temporary, target);
+    } catch (error) {
+      await fs.unlink(temporary).catch(() => {});
+      throw error;
+    }
+  }
+
+  const parentPaths = new Set();
+  for (const relativePath of addedPaths) {
+    const segments = relativePath.split("/");
+    for (let length = segments.length - 1; length > 0; length -= 1) {
+      parentPaths.add(segments.slice(0, length).join("/"));
+    }
+  }
+  for (const relativePath of [...parentPaths].sort((left, right) => right.split("/").length - left.split("/").length || right.localeCompare(left))) {
+    await fs.rmdir(path.join(root, ...relativePath.split("/"))).catch((error) => {
+      if (!["ENOENT", "ENOTEMPTY"].includes(error?.code)) throw error;
+    });
+  }
+
+  const restored = await captureExactProfile(root, volatilityPolicy);
+  if (diffProfileSnapshots(baseline.snapshot, restored.snapshot).changedPaths.length > 0) {
+    fail("lifecycle.cleanup_failed", "version_probe");
+  }
+};
+
 const packageResidue = async (profileRoot, packageName) => {
   const residue = [];
   const installedRoot = installedPluginRoot(profileRoot, packageName);
@@ -872,27 +962,15 @@ export const runReleaseLifecycle = async ({
   if (!lock.supportedPlatforms.some((platform) => platform.os === process.platform && platform.architecture === process.arch)) {
     fail("lifecycle.unsupported_platform", process.platform + "/" + process.arch);
   }
-  const versionResult = await runProcess([cliPath, "--version"], {
-    cwd: pluginRoot,
-    env: commandEnvironment(profileRoot),
-    timeoutMs: maximumCountedMs,
-    maximumOutputBytes: maximumCommandOutputBytes,
-  });
-  if (versionResult.terminationReason === "timeout") fail("lifecycle.command_timeout", "cli_version");
-  if (versionResult.terminationReason === "output_limit") fail("lifecycle.command_output_limit", "cli_version");
-  if (versionResult.exitCode !== 0) fail("lifecycle.cli_version_failed", "$.cliPath");
-  const observedVersion = parseVersion(versionResult.stdout, "$.cliVersion");
-  if (!versionAtLeast(observedVersion, parseVersion(lock.minimumCliVersion, "$.minimumCliVersion"))) {
-    fail("lifecycle.cli_version_mismatch", "$.cliVersion");
-  }
-
   const rejectedPaths = lock.lifecycle.volatilityPolicy.ignoredPaths.filter((entry) => PROFILE_METADATA_PATHS.includes(entry));
   const acceptedPaths = lock.lifecycle.volatilityPolicy.ignoredPaths.filter((entry) => !PROFILE_METADATA_PATHS.includes(entry));
   const effectivePolicy = { ignoredPaths: acceptedPaths };
-  const baselineMetadata = new Map(await Promise.all(PROFILE_METADATA_PATHS.map(async (relativePath) => [
+  const exactBaseline = await captureExactProfile(profileRoot, effectivePolicy);
+  const exactBaselineByPath = new Map(exactBaseline.files.map((file) => [file.path, file.bytes]));
+  const baselineMetadata = new Map(PROFILE_METADATA_PATHS.map((relativePath) => [
     relativePath,
-    await readOptionalBytes(path.join(profileRoot, ...relativePath.split("/"))),
-  ])));
+    exactBaselineByPath.get(relativePath) ?? null,
+  ]));
   const before = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
   const dependenciesBefore = await verifyProfileDependencies(profileRoot, lock);
   await preflightPackageConflict(profileRoot, lock.packageName);
@@ -932,7 +1010,26 @@ export const runReleaseLifecycle = async ({
   };
 
   let upgrade;
+  let observedVersion;
   try {
+    const versionResult = await runProcess([cliPath, "--version"], {
+      cwd: pluginRoot,
+      env: commandEnvironment(profileRoot),
+      timeoutMs: maximumCountedMs,
+      maximumOutputBytes: maximumCommandOutputBytes,
+    });
+    const profileAfterVersion = await captureExactProfile(profileRoot, effectivePolicy);
+    if (diffProfileSnapshots(exactBaseline.snapshot, profileAfterVersion.snapshot).changedPaths.length > 0) {
+      await restoreCapturedProfile(profileRoot, exactBaseline, effectivePolicy);
+      fail("lifecycle.version_profile_mutation", "cli_version");
+    }
+    if (versionResult.terminationReason === "timeout") fail("lifecycle.command_timeout", "cli_version");
+    if (versionResult.terminationReason === "output_limit") fail("lifecycle.command_output_limit", "cli_version");
+    if (versionResult.exitCode !== 0) fail("lifecycle.cli_version_failed", "$.cliPath");
+    observedVersion = parseVersion(versionResult.stdout, "$.cliVersion");
+    if (!versionAtLeast(observedVersion, parseVersion(lock.minimumCliVersion, "$.minimumCliVersion"))) {
+      fail("lifecycle.cli_version_mismatch", "$.cliVersion");
+    }
     const validation = await timedCommand("validate", ["validate", pluginRoot], { counted: true });
     const installation = await timedCommand("install", ["install", pluginRoot], { counted: true });
     const verificationMs = await timedInspection("verify", lock);

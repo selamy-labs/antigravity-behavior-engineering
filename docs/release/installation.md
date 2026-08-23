@@ -40,6 +40,16 @@ node packages/plugin-tooling/bin/lifecycle-test.mjs \
   --record-timing evidence/raw/lifecycle/customized-timing.json
 ```
 
+Each install, repeated install, upgrade, and rollback must also register the
+package through the Antigravity discovery path with the exact hooks and skills
+discovery components. Copied package bytes without that registration fail the
+lifecycle and are removed.
+
+The runner captures the exact disposable-profile baseline before the external
+CLI version probe. If that probe changes any non-volatile profile file—whether
+it then succeeds or fails—the runner restores the captured bytes and fails
+closed instead of adopting the mutation as its baseline.
+
 The counted interval is local validation, installation, and package inspection.
 The authentication and dependency download intervals are recorded as separate excluded
 intervals and cannot be hidden inside the counted result. The counted interval

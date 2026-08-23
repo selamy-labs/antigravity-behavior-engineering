@@ -453,6 +453,8 @@ test("installation documentation names the supported surface, dependency ownersh
     "artifact digest",
     "bounded output",
     "interrupted command",
+    "version probe",
+    "discovery components",
     "agy plugin uninstall antigravity-behavior-engineering",
     "compare-profile.mjs",
     "Desktop/IDE is experimental",

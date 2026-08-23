@@ -136,7 +136,7 @@ if (command === "install") {
   await copyTree(source, path.join(pluginsRoot, name));
   const manifest = await readJson(importManifestPath, { imports: [] });
   manifest.imports = (manifest.imports || []).filter((item) => item.name !== name);
-  manifest.imports.push({ name, source: "antigravity", importedAt: "2026-08-22T00:00:00Z", components: null });
+  manifest.imports.push({ name, source: "antigravity", importedAt: "2026-08-22T00:00:00Z", components: ["hooks", "skills"] });
   await writeJson(importManifestPath, manifest);
   process.stdout.write("[ok] " + name + "\\n");
   process.exit(0);
@@ -305,7 +305,7 @@ test("inspectInstall reports installed, enabled, disabled, and missing-plugin st
     const installedRoot = path.join(profileRoot, ".gemini", "config", "plugins", lock.packageName);
     await copyTree(pluginRoot, installedRoot);
     await writeJson(path.join(profileRoot, ".gemini", "config", "import_manifest.json"), {
-      imports: [{ name: lock.packageName, source: "antigravity", importedAt: "2026-08-22T00:00:00Z", components: null }],
+      imports: [{ name: lock.packageName, source: "antigravity", importedAt: "2026-08-22T00:00:00Z", components: ["hooks", "skills"] }],
     });
     await writeJson(path.join(profileRoot, ".gemini", "config", "config.json"), {
       plugins: { [lock.packageName]: { enabled: false } },
