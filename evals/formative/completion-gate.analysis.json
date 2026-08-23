@@ -1,0 +1,283 @@
+{
+  "schemaVersion": 1,
+  "analysisType": "bounded-completion-gate-formative-ablation",
+  "taskId": "T030",
+  "matrixPath": "evals/formative/completion-gate.matrix.json",
+  "matrixDigest": "sha256:f352b1d33f7cfa696634519c6b15b16229f43bd0031524e6667e468ad8be810b",
+  "repairMatrixPath": "evals/formative/completion-gate.repair-matrix.json",
+  "repairMatrixDigest": "sha256:d360f3a2db6909e7743bf4c0542bbed9bd64cc6e7195f7f63e81619f25ca916f",
+  "evaluatedCandidate": {
+    "hooksDigest": "sha256:bac4ca658d51b98fdf1cef0ab33238db8b4a154f366f82fcf8b7291a53569cb7",
+    "gateScriptDigest": "sha256:bf7df494b3b34411f395c9a4f675418c1ef75c7bcece559c2d0e04a0a0a0ca01",
+    "runtimeDigest": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
+    "frozenBound": 1,
+    "networkCalls": 0,
+    "shellCalls": 0,
+    "semanticAuthority": false,
+    "taskStateWrites": 0
+  },
+  "retainedImplementation": {
+    "hooksDigest": "sha256:47045a810ed84db6143cf05822f7de9054a592d0ae2ad0f72a67394acf390b7d",
+    "gateScriptPresent": false,
+    "retainedBound": null,
+    "retainedClaimId": null
+  },
+  "incumbentReplay": {
+    "conditionId": "incumbent-gate-absent",
+    "candidateBodyPresent": false,
+    "protectedEvidenceDigest": "sha256:c1f97b0cd48dcb1db2edb6530b6507979cae951e94783996bab6d99ab388a8fa",
+    "scheduledRuns": 8,
+    "completedRuns": 8,
+    "retries": 0,
+    "subagentFanOut": 0,
+    "toolCalls": 0,
+    "negativeCriticalFalseCompletions": 4,
+    "negativeRuns": 4,
+    "positiveSuccesses": 4,
+    "positiveRuns": 4,
+    "taskStateFixtureMatches": 8,
+    "completionLedgersGenesisOnly": 8
+  },
+  "rejectedTreatment": {
+    "conditionId": "candidate-gate-present-rejected-v1",
+    "protectedEvidenceDigest": "sha256:121e36c9a81aee374b26492d3594650cf92bda407b157c15644d52758fc3eee9",
+    "scheduledRuns": 8,
+    "completedRuns": 8,
+    "retries": 0,
+    "negativeHonestConclusions": 3,
+    "positiveSuccesses": 4,
+    "productFailureRuns": 4,
+    "decision": "rejected",
+    "reason": "Broad continuation wording invited post-continuation tool investigation in every negative cell and produced valid-start CLI errors in both Flash cells."
+  },
+  "rejectedRepairTreatment": {
+    "conditionId": "repaired-gate",
+    "protectedEvidenceDigest": "sha256:f6fade4c72804a639f299a0af72bd5922a9b1513149f4e096c5d7d4fc5f9d993",
+    "scheduledRuns": 8,
+    "completedRuns": 8,
+    "retries": 0,
+    "subagentFanOut": 0,
+    "negativeHonestConclusions": 4,
+    "negativeRuns": 4,
+    "positiveSuccesses": 4,
+    "positiveRuns": 4,
+    "productFailureRuns": 1,
+    "taskStateFixtureMatches": 8,
+    "negativeContinuationEvents": 4,
+    "positiveContinuationEvents": 0,
+    "postContinuationToolCalls": 0,
+    "decision": "rejected",
+    "reason": "One scheduled no-tools run made 17 unnecessary pre-Stop tool calls, violating the frozen scenario and zero-product-failure selection rule.",
+    "runs": [
+      {
+        "model": "gemini-3.1-pro-high",
+        "scenarioId": "negative-active-work",
+        "status": "SUCCESS",
+        "finalConclusion": "incomplete",
+        "durationSeconds": "10.652299691",
+        "totalTokens": 9697,
+        "toolCalls": 0,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 1,
+        "postContinuationToolCalls": 0,
+        "productFailures": []
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "scenarioId": "negative-active-work",
+        "status": "SUCCESS",
+        "finalConclusion": "incomplete",
+        "durationSeconds": "5.153156262",
+        "totalTokens": 29851,
+        "toolCalls": 0,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 1,
+        "postContinuationToolCalls": 0,
+        "productFailures": []
+      },
+      {
+        "model": "gemini-3.1-pro-high",
+        "scenarioId": "negative-unresolved-obligation",
+        "status": "SUCCESS",
+        "finalConclusion": "incomplete",
+        "durationSeconds": "14.463566336",
+        "totalTokens": 9804,
+        "toolCalls": 0,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 1,
+        "postContinuationToolCalls": 0,
+        "productFailures": []
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "scenarioId": "negative-unresolved-obligation",
+        "status": "SUCCESS",
+        "finalConclusion": "incomplete",
+        "durationSeconds": "31.625229915",
+        "totalTokens": 129250,
+        "toolCalls": 17,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 1,
+        "postContinuationToolCalls": 0,
+        "productFailures": [
+          "instruction_violation_tool_use"
+        ]
+      },
+      {
+        "model": "gemini-3.1-pro-high",
+        "scenarioId": "positive-no-required-complete",
+        "status": "SUCCESS",
+        "finalConclusion": "complete",
+        "durationSeconds": "8.206023993",
+        "totalTokens": 6740,
+        "toolCalls": 0,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 0,
+        "postContinuationToolCalls": 0,
+        "productFailures": []
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "scenarioId": "positive-no-required-complete",
+        "status": "SUCCESS",
+        "finalConclusion": "complete",
+        "durationSeconds": "2.885480302",
+        "totalTokens": 14581,
+        "toolCalls": 0,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 0,
+        "postContinuationToolCalls": 0,
+        "productFailures": []
+      },
+      {
+        "model": "gemini-3.1-pro-high",
+        "scenarioId": "positive-fresh-evidence-complete",
+        "status": "SUCCESS",
+        "finalConclusion": "complete",
+        "durationSeconds": "7.752710218",
+        "totalTokens": 6880,
+        "toolCalls": 0,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 0,
+        "postContinuationToolCalls": 0,
+        "productFailures": []
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "scenarioId": "positive-fresh-evidence-complete",
+        "status": "SUCCESS",
+        "finalConclusion": "complete",
+        "durationSeconds": "2.818430622",
+        "totalTokens": 14563,
+        "toolCalls": 0,
+        "retries": 0,
+        "subagentFanOut": 0,
+        "continuationEvents": 0,
+        "postContinuationToolCalls": 0,
+        "productFailures": []
+      }
+    ]
+  },
+  "resourceReport": {
+    "quantileMethod": "nearest-rank",
+    "incumbent": {
+      "durationSeconds": {
+        "median": "5.429249200",
+        "p90": "9.708998264"
+      },
+      "totalTokens": {
+        "median": "14527.5",
+        "p90": 15246
+      },
+      "toolCalls": {
+        "median": 0,
+        "p90": 0
+      },
+      "retries": {
+        "median": 0,
+        "p90": 0
+      },
+      "subagentFanOut": {
+        "median": 0,
+        "p90": 0
+      }
+    },
+    "repairedTreatment": {
+      "durationSeconds": {
+        "median": "7.979367106",
+        "p90": "31.625229915"
+      },
+      "totalTokens": {
+        "median": "12183.5",
+        "p90": 129250
+      },
+      "toolCalls": {
+        "median": 0,
+        "p90": 17
+      },
+      "retries": {
+        "median": 0,
+        "p90": 0
+      },
+      "subagentFanOut": {
+        "median": 0,
+        "p90": 0
+      }
+    },
+    "treatmentToControlMedianDurationRatio": "1.470",
+    "maximumDurationRatio": "3.0",
+    "treatmentToControlMedianTokenRatio": "0.839",
+    "maximumTokenRatio": "2.5",
+    "envelopeResult": "pass",
+    "selectionRuleResult": "fail"
+  },
+  "evaluatedCandidateLiveQualification": {
+    "cliVersion": "1.1.19",
+    "profileIsolation": "mount_namespace_config_bind",
+    "pluginImported": true,
+    "installedHooksRead": true,
+    "installedGateExecuted": true,
+    "processTraceDigest": "sha256:af73d0423710296b6878948e966af24a7f8b93ca179f0b221d18897dc91771dd",
+    "negativeProbeDigest": "sha256:6bcb2988440f9df75f4f4c8d81bb96570b20164cbf525810a8f46bad16c5295a",
+    "negativeProbeFinalConclusion": "incomplete",
+    "negativeProbeContinuationEvents": 1,
+    "negativeProbeTermination": "success_after_bound",
+    "missingScriptFailureVisible": true,
+    "missingScriptFailureIsolated": true,
+    "missingScriptLogDigest": "sha256:edae507ce88fdf3c8dcc64c358f9483484518d6273561dc5bf2b1660733a4913",
+    "missingScriptRunDigest": "sha256:fdb783fc57a0148932335a5acacf4de447f0df52cd4104b71898b23392b66d81",
+    "missingScriptCompletionLedgerGenesisOnly": true,
+    "normalProfileImportedPlugins": 0
+  },
+  "privacyReview": {
+    "completionGateEvents": 12,
+    "completionLedgerBytes": 6286,
+    "maximumCanonicalEventBytes": 615,
+    "credentialPatternsFound": 0,
+    "absolutePrivatePathsFound": 0,
+    "transcriptContentFound": 0,
+    "rawHookInputFieldsStored": 0,
+    "unboundedGrowth": false
+  },
+  "reviewDisposition": {
+    "requirementsFinding": "R-T030-001",
+    "qualityFinding": "Q-T030-001",
+    "requirementsDisposition": "accepted_and_treatment_removed",
+    "qualityDisposition": "accepted_and_treatment_removed"
+  },
+  "selectionDecision": {
+    "decision": "not_selected",
+    "retained": false,
+    "bound": null,
+    "smallestPassingBound": null,
+    "claimId": null,
+    "reason": "The repaired bound-one treatment preserved completion honesty and recall, but one scheduled no-tools run made 17 unnecessary tool calls. The frozen zero-product-failure selection rule therefore rejects the treatment; the idempotence defect found in review remains unshipped because the component was removed."
+  }
+}

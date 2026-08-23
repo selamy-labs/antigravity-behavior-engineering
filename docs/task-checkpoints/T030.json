@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T030",
+  "taskTitle": "Earn the bounded mechanical completion gate",
+  "taskEntryDigest": "sha256:e829d4c82396255b934e71a97eec0f9f660b9014e78cd30e5e14fcafd416cce0",
+  "baseCommit": "0513dde028ff97707e11e2985b044bc460f782e4",
+  "implementationCommit": "9bb6ec86ce8a564b9e51a5e2697cfb2319d37fe0",
+  "treeDigest": "sha256:dee3ae93987a2c1a42610a2c387e0f8333b6d4405db15f2edd5881bb6e9353ba",
+  "outcome": "not_selected",
+  "files": {
+    "evals/formative/completion-gate.analysis.json": "sha256:c81fe9448aa917aa1e22370c649f654ffb6018f40e6b18eda07b12881de76287",
+    "evals/formative/completion-gate.matrix.json": "sha256:f352b1d33f7cfa696634519c6b15b16229f43bd0031524e6667e468ad8be810b",
+    "evals/formative/completion-gate.repair-matrix.json": "sha256:d360f3a2db6909e7743bf4c0542bbed9bd64cc6e7195f7f63e81619f25ca916f",
+    "plugin/behavior-lock.json": "sha256:f07831661216f73f592c481c5cf63579f7860849d8cb81b2a1ff00768659aa6c",
+    "tests/hooks/bounded-completion-gate.test.mjs": "sha256:4dc0151f2815b2ed9a9b207daf1df38e04445aca8550bacd09b66245a7334094"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": [
+        "replay-committed-red-snapshot",
+        "f9b1a2e",
+        "node",
+        "--test",
+        "tests/hooks/bounded-completion-gate.test.mjs"
+      ],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:348b6133e2f20f30dc5197f677691a7e037f4197a9e548eada49e4829c02ee32"
+    },
+    {
+      "phase": "green",
+      "argv": [
+        "node",
+        "--test",
+        "tests/hooks/bounded-completion-gate.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:46136088a8578953c199edeb8dab158eca3fb2ba49d0f910531d8ba6a53201b4"
+    },
+    {
+      "phase": "sentinel",
+      "argv": [
+        "node",
+        "--test",
+        "tests/hooks/evidence-observer.test.mjs",
+        "tests/plugin/audited-iteration.test.mjs",
+        "tests/plugin/proof-obligation-contract.test.mjs",
+        "tests/lifecycle/inert-plugin.test.mjs"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9d519b177f42177435e3e875c06a1a20bf121dc9ef49793eeb469cada4d4a5ab"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "corepack",
+        "pnpm",
+        "verify:offline"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:1b2f1ed63755513ac9b26163324adc4719a32a4364036421be5f59cab22bc2f3"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "agy",
+        "plugin",
+        "validate",
+        "plugin"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:74ec4f80706288fc78045af7fef92df59d55d76491a726d840fe0bdfbc78f512"
+    },
+    {
+      "phase": "artifact",
+      "argv": [
+        "shasum",
+        "-a",
+        "256",
+        "-c",
+        "handoff/artifact-manifest.sha256"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:9e4b914991cd7d475c6a9c1c470a303fa74bc31fe215340df5c378a9dfcabc80"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "scanPublicDiff",
+        "T030-changed-public-files"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:319071bc4b2eb662027eeaa63f8a782d30c32b977dba3affce324bdaf31a1f2d"
+    },
+    {
+      "phase": "gate",
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:da89d0cf491e7fd52260c3a8b34ca37c1b637ff8057c5db72dfed5a8c5936f06",
+      "verdictDigest": "sha256:f88eaf1c0eeb0ece9f8cb71aab7c4e9cf9d9c001104fb33ccbefff6ede418e4f",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:da89d0cf491e7fd52260c3a8b34ca37c1b637ff8057c5db72dfed5a8c5936f06",
+      "verdictDigest": "sha256:a32beea433741303b04168bf12cfcc34bf26deebf2528355596de289069a4977",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:319071bc4b2eb662027eeaa63f8a782d30c32b977dba3affce324bdaf31a1f2d",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T030 branch without changing main. After merge, open a T030-linked revert PR that removes the formative completion-gate records and focused rejection test and restores the prior behavior-lock source revision without rewriting public history.",
+    "tested": false
+  },
+  "createdAt": "2026-08-23T01:40:41Z"
+}
