@@ -279,7 +279,15 @@ const readJsonFile = async (file, fallback) => {
   }
 };
 
-const profileFiles = async (profileRoot, volatilityPolicy) => {
+const parseCapturedJson = (bytes, fieldPath) => {
+  try {
+    return JSON.parse(Buffer.from(bytes).toString("utf8"));
+  } catch {
+    fail("lifecycle.invalid_json", fieldPath);
+  }
+};
+
+const profileFiles = async (profileRoot, volatilityPolicy, { includeBytes = false } = {}) => {
   const resolvedRoot = path.resolve(profileRoot);
   const canonicalRoot = await fs.realpath(resolvedRoot).catch((error) => {
     if (error?.code === "ENOENT") {
@@ -321,7 +329,12 @@ const profileFiles = async (profileRoot, volatilityPolicy) => {
           const status = await fileHandle.stat();
           if (!status.isFile()) fail("lifecycle.invalid_profile_file", relativePath);
           const bytes = await fileHandle.readFile();
-          entries.push({ path: relativePath, digest: digestBytes(bytes), byteLength: bytes.byteLength });
+          entries.push({
+            path: relativePath,
+            digest: digestBytes(bytes),
+            byteLength: bytes.byteLength,
+            ...(includeBytes ? { bytes } : {}),
+          });
         } finally {
           await fileHandle.close();
         }
@@ -396,45 +409,6 @@ export const diffProfileSnapshots = (beforeInput, afterInput) => {
 
 const installedPluginRoot = (profileRoot, packageName) => path.join(profileRoot, ".gemini", "config", "plugins", packageName);
 
-const listInstalledPackageFiles = async (root) => {
-  const files = [];
-  const scanDirectory = async (directoryHandle, prefix) => {
-    const descriptorRoot = `/proc/self/fd/${directoryHandle.fd}`;
-    const children = await fs.readdir(descriptorRoot, { withFileTypes: true });
-    children.sort((left, right) => left.name.localeCompare(right.name));
-    for (const child of children) {
-      const relativePath = prefix.length === 0 ? child.name : prefix + "/" + child.name;
-      const descriptorPath = descriptorRoot + "/" + child.name;
-      if (child.isDirectory()) {
-        const childHandle = await fs.open(
-          descriptorPath,
-          fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
-        ).catch(() => fail("lifecycle.package_symlink", relativePath));
-        try {
-          await scanDirectory(childHandle, relativePath);
-        } finally {
-          await childHandle.close();
-        }
-      } else if (child.isFile()) {
-        files.push(relativePath);
-      } else {
-        fail("lifecycle.package_symlink", relativePath);
-      }
-    }
-  };
-  const rootHandle = await fs.open(
-    root,
-    fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
-  ).catch(() => fail("lifecycle.package_symlink", root));
-  try {
-    await scanDirectory(rootHandle, "");
-  } finally {
-    await rootHandle.close();
-  }
-  files.sort();
-  return files;
-};
-
 const readDiscovery = async (profileRoot, packageName) => {
   const manifest = await readJsonFile(path.join(profileRoot, ".gemini", "config", "import_manifest.json"), { imports: [] });
   const imports = Array.isArray(manifest.imports) ? manifest.imports : [];
@@ -450,33 +424,37 @@ const readDiscovery = async (profileRoot, packageName) => {
 export const inspectInstall = async (profileRoot, expectedLock) => {
   const lock = validateLock(expectedLock);
   const root = installedPluginRoot(profileRoot, lock.packageName);
-  const manifest = await readJsonFile(path.join(root, "plugin.json"), null);
-  if (!manifest) {
-    fail("lifecycle.plugin_not_found", root);
-  }
+  const capturedFiles = await profileFiles(root, {}, { includeBytes: true }).catch((error) => {
+    if (error instanceof LifecycleValidationError && error.code === "lifecycle.profile_not_found") fail("lifecycle.plugin_not_found", root);
+    throw error;
+  });
+  const byPath = new Map(capturedFiles.map((entry) => [entry.path, entry]));
+  const manifestFile = byPath.get("plugin.json");
+  const behaviorLockFile = byPath.get("behavior-lock.json");
+  if (!manifestFile || !behaviorLockFile) fail("lifecycle.package_file_missing", !manifestFile ? "plugin.json" : "behavior-lock.json");
+  const manifest = parseCapturedJson(manifestFile.bytes, "plugin.json");
   if (manifest.name !== lock.packageName) {
     fail("lifecycle.plugin_name_mismatch", "plugin.json");
   }
   if (manifest.version !== lock.packageVersion) {
     fail("lifecycle.plugin_version_mismatch", "plugin.json");
   }
+  const installedLock = parseCapturedJson(behaviorLockFile.bytes, "behavior-lock.json");
+  if (!Buffer.from(canonicalBytes(installedLock)).equals(Buffer.from(canonicalBytes(lock)))) {
+    fail("lifecycle.package_file_digest_mismatch", "behavior-lock.json");
+  }
 
   const packageFiles = [];
   for (const [relativePath, expectedDigest] of Object.entries(lock.files).sort(([left], [right]) => left.localeCompare(right))) {
-    const bytes = await fs.readFile(path.join(root, relativePath)).catch((error) => {
-      if (error?.code === "ENOENT") {
-        fail("lifecycle.package_file_missing", relativePath);
-      }
-      throw error;
-    });
-    const digest = digestBytes(bytes);
-    if (digest !== expectedDigest) {
+    const captured = byPath.get(relativePath);
+    if (!captured) fail("lifecycle.package_file_missing", relativePath);
+    if (captured.digest !== expectedDigest) {
       fail("lifecycle.package_file_digest_mismatch", relativePath);
     }
-    packageFiles.push({ packagePath: relativePath, digest, byteLength: bytes.byteLength });
+    packageFiles.push({ packagePath: relativePath, digest: captured.digest, byteLength: captured.byteLength });
   }
 
-  const installedFiles = await listInstalledPackageFiles(root);
+  const installedFiles = capturedFiles.map((entry) => entry.path);
   const unexpectedFiles = installedFiles.filter((relativePath) => relativePath !== "behavior-lock.json" && !Object.hasOwn(lock.files, relativePath));
   if (unexpectedFiles.length > 0) {
     fail("lifecycle.package_unexpected_file", unexpectedFiles[0]);

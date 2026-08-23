@@ -7,6 +7,7 @@ import test from "node:test";
 
 import {
   LifecycleValidationError,
+  inspectInstall,
   materializeProfileFixture,
   runPluginCommand,
   snapshotProfile,
@@ -192,6 +193,41 @@ test("name, precedence, and interruption controls fail before profile mutation",
       assert.equal(result.exitCode, exitCode);
       assert.deepEqual(result.touchedPaths, []);
     }
+  });
+});
+
+test("profile and installed-package inspection reject symlinks and behavior-lock drift", async () => {
+  await withTemporaryRoot("abe-release-inspection-", async (root) => {
+    const profile = path.join(root, "profile");
+    await fs.mkdir(profile);
+    await fs.writeFile(path.join(root, "outside.json"), "{}\n");
+    await fs.symlink(path.join(root, "outside.json"), path.join(profile, "link.json"));
+    await assert.rejects(
+      () => snapshotProfile(profile),
+      (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.profile_symlink",
+    );
+
+    await fs.unlink(path.join(profile, "link.json"));
+    const lock = await readJson(path.join(pluginRoot, "behavior-lock.json"));
+    const installed = path.join(profile, ".gemini", "config", "plugins", lock.packageName);
+    await fs.mkdir(path.dirname(installed), { recursive: true });
+    await fs.cp(pluginRoot, installed, { recursive: true });
+    const driftedLock = await readJson(path.join(installed, "behavior-lock.json"));
+    driftedLock.generatedAt = "2026-08-23T00:00:00Z";
+    await writeJson(path.join(installed, "behavior-lock.json"), driftedLock);
+    await assert.rejects(
+      () => inspectInstall(profile, lock),
+      (error) => error instanceof LifecycleValidationError
+        && error.code === "lifecycle.package_file_digest_mismatch"
+        && error.path === "behavior-lock.json",
+    );
+
+    await fs.unlink(path.join(installed, "plugin.json"));
+    await fs.symlink(path.join(root, "outside.json"), path.join(installed, "plugin.json"));
+    await assert.rejects(
+      () => inspectInstall(profile, lock),
+      (error) => error instanceof LifecycleValidationError && error.code === "lifecycle.profile_symlink",
+    );
   });
 });
 
