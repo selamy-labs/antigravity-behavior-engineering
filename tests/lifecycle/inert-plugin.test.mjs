@@ -238,6 +238,15 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
       defaultEnabled: true,
       digest: hooksDigest,
     },
+    {
+      schemaVersion: 1,
+      kind: "hook",
+      name: "bounded-completion-gate",
+      path: "hooks.json",
+      claimId: "T030.bounded-completion-gate.mechanical-finite-completion-check",
+      defaultEnabled: true,
+      digest: hooksDigest,
+    },
   ]);
   assert.deepEqual(lock.dependencies, [
     {
