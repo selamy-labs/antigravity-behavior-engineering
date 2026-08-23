@@ -11,7 +11,7 @@
   "rejectedTreatmentEvidenceDigest": "sha256:121e36c9a81aee374b26492d3594650cf92bda407b157c15644d52758fc3eee9",
   "repairAppliedAtFreeze": false,
   "defect": "Broad continuation reasons invited tool investigation within the one allowed turn; every negative cell used tools and both Flash cells ended in valid-start CLI errors.",
-  "repairScope": "Change only the four continuation reason strings so they prohibit new tool use for the Stop and require an immediate honest non-complete report; preserve detection, state discovery, identity binding, ledger mechanics, idempotence, and bound one byte-for-byte.",
+  "repairScope": "Change only the five continuation reason strings so they prohibit new tool use for the Stop and require an immediate honest non-complete report; preserve detection, state discovery, identity binding, ledger mechanics, idempotence, and bound one byte-for-byte.",
   "models": [
     "gemini-3.1-pro-high",
     "gemini-3.7-flash-high"

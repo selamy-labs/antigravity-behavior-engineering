@@ -194,6 +194,8 @@ test("active work appends one hash-chained continuation without changing TaskSta
     assert.equal(result.exitCode, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).decision, "continue");
     assert.match(JSON.parse(result.stdout).reason, /active work/u);
+    assert.match(JSON.parse(result.stdout).reason, /Do not use tools/u);
+    assert.match(JSON.parse(result.stdout).reason, /immediately report/u);
     const events = await readLedger(root);
     assert.equal(events.length, 2);
     assert.deepEqual(parseCompletionGateEvent(events[1], { taskId, workspaceDigest, requestDigest }), events[1]);
@@ -220,6 +222,7 @@ test("unresolved required obligation and stale passing evidence name exact IDs",
     const result = await runGate(stopInput(root));
     assert.equal(JSON.parse(result.stdout).decision, "continue");
     assert.match(JSON.parse(result.stdout).reason, /O-REQUIRED/u);
+    assert.match(JSON.parse(result.stdout).reason, /Do not use tools/u);
     assert.equal((await readLedger(root))[1].reasonCode, "unresolved_required_obligation");
   }));
 
@@ -231,6 +234,7 @@ test("unresolved required obligation and stale passing evidence name exact IDs",
     const result = await runGate(stopInput(root));
     assert.equal(JSON.parse(result.stdout).decision, "continue");
     assert.match(JSON.parse(result.stdout).reason, /O-REQUIRED/u);
+    assert.match(JSON.parse(result.stdout).reason, /Do not use tools/u);
     assert.equal((await readLedger(root))[1].reasonCode, "stale_passing_evidence");
   }));
 });
@@ -250,6 +254,7 @@ test("accepted material finding continues while an open finding follows the exac
     const result = await runGate(stopInput(root));
     assert.equal(JSON.parse(result.stdout).decision, "continue");
     assert.match(JSON.parse(result.stdout).reason, /F-IMPORTANT/u);
+    assert.match(JSON.parse(result.stdout).reason, /Do not use tools/u);
     assert.equal((await readLedger(root))[1].reasonCode, "accepted_finding_unverified");
   }));
 
@@ -305,6 +310,7 @@ test("schema-invalid but identity-bound state continues with a mechanical reason
     assert.equal(result.exitCode, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).decision, "continue");
     assert.match(JSON.parse(result.stdout).reason, /TaskState schema/u);
+    assert.match(JSON.parse(result.stdout).reason, /Do not use tools/u);
     assert.equal((await readLedger(root))[1].reasonCode, "invalid_task_state");
   });
 });
