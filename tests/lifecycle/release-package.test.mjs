@@ -10,6 +10,7 @@ import {
   inspectInstall,
   materializeProfileFixture,
   runPluginCommand,
+  runReleaseLifecycle,
   snapshotProfile,
   verifyProfileDependencies,
 } from "../../packages/plugin-tooling/src/lifecycle.mjs";
@@ -192,6 +193,28 @@ test("name, precedence, and interruption controls fail before profile mutation",
       });
       assert.equal(result.exitCode, exitCode);
       assert.deepEqual(result.touchedPaths, []);
+    }
+
+    for (const [kind, configure, code] of [
+      ["name", (fixture, packageName) => {
+        fixture.files[".gemini/config/import_manifest.json"] = {
+          imports: [{ name: packageName, source: "user", importedAt: "2026-08-22T00:00:00Z", components: ["skills"] }],
+        };
+      }, "lifecycle.name_conflict"],
+      ["precedence", (fixture, packageName) => {
+        fixture.files[".gemini/config/config.json"] = { plugins: { [packageName]: { enabled: false } } };
+      }, "lifecycle.precedence_conflict"],
+    ]) {
+      const fixture = { schemaVersion: 1, fixtureId: "customized", files: {} };
+      configure(fixture, lock.packageName);
+      const profile = path.join(root, "preflight-" + kind);
+      await materializeProfileFixture(profile, fixture);
+      const before = await snapshotProfile(profile);
+      await assert.rejects(
+        () => runReleaseLifecycle({ cliPath: fakeCli, pluginRoot, profileRoot: profile, profileFixture: fixture.fixtureId }),
+        (error) => error instanceof LifecycleValidationError && error.code === code,
+      );
+      assert.deepEqual(await snapshotProfile(profile), before);
     }
   });
 });

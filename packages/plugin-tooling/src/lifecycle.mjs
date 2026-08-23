@@ -725,6 +725,15 @@ const packageResidue = async (profileRoot, packageName) => {
   return residue;
 };
 
+const preflightPackageConflict = async (profileRoot, packageName) => {
+  const discovery = await readDiscovery(profileRoot, packageName);
+  const installedRoot = installedPluginRoot(profileRoot, packageName);
+  const installed = await fs.lstat(installedRoot).then(() => true, (error) => (error?.code === "ENOENT" ? false : Promise.reject(error)));
+  if (installed || discovery.imported) fail("lifecycle.name_conflict", packageName);
+  const config = await readJsonFile(path.join(profileRoot, ".gemini", "config", "config.json"), {});
+  if (config?.plugins && Object.hasOwn(config.plugins, packageName)) fail("lifecycle.precedence_conflict", packageName);
+};
+
 export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, profileFixture }) => {
   const totalStarted = process.hrtime.bigint();
   const lock = await loadBehaviorLock(path.join(pluginRoot, "behavior-lock.json"));
@@ -750,6 +759,7 @@ export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, pr
   ])));
   const before = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
   const dependenciesBefore = await verifyProfileDependencies(profileRoot, lock);
+  await preflightPackageConflict(profileRoot, lock.packageName);
   const dependencyDigests = new Map();
   for (const dependency of dependenciesBefore) {
     const file = path.join(profileRoot, ".abe", "dependencies", dependency.name + ".json");
