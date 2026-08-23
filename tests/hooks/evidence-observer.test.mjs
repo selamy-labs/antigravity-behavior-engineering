@@ -142,12 +142,10 @@ test("hook manifest binds both qualified observation events to the shipped scrip
     timeout: 10,
   };
 
-  assert.deepEqual(hooks, {
-    "evidence-observer": {
-      enabled: true,
-      PostToolUse: [{ matcher: "*", hooks: [handler] }],
-      PostInvocation: [handler],
-    },
+  assert.deepEqual(hooks["evidence-observer"], {
+    enabled: true,
+    PostToolUse: [{ matcher: "*", hooks: [handler] }],
+    PostInvocation: [handler],
   });
   assert.equal((await fs.stat(observerPath)).isFile(), true, "missing observer script must fail closed in packaging");
 });
