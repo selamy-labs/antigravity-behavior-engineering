@@ -22,6 +22,7 @@ const hooksPath = path.join(pluginRoot, "hooks.json");
 const observerPath = path.join(pluginRoot, "scripts", "evidence-observer.mjs");
 const matrixPath = path.join(repoRoot, "evals", "formative", "evidence-observer.matrix.json");
 const repairMatrixPath = path.join(repoRoot, "evals", "formative", "evidence-observer.repair-matrix.json");
+const liveHookRepairMatrixPath = path.join(repoRoot, "evals", "formative", "evidence-observer.live-hook-repair-matrix.json");
 const analysisPath = path.join(repoRoot, "evals", "formative", "evidence-observer.analysis.json");
 const lockPath = path.join(pluginRoot, "behavior-lock.json");
 const taskId = "T029-fixture";
@@ -481,6 +482,7 @@ test("bounded direct appends stay below the frozen p95 envelope and reject ledge
 test("formative matrix freezes ablation, disablement, failure isolation, and resource decisions", async () => {
   const matrix = await readJson(matrixPath);
   const repairMatrix = await readJson(repairMatrixPath);
+  const liveHookRepairMatrix = await readJson(liveHookRepairMatrixPath);
   const analysis = await readJson(analysisPath);
   assert.equal(matrix.frozenBeforeTreatment, true);
   assert.deepEqual(matrix.models, ["gemini-3.1-pro-high", "gemini-3.7-flash-high"]);
@@ -501,9 +503,25 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
     "repaired-runtime-observer-off",
     "repaired-runtime-observer-on",
   ]);
+  assert.equal(liveHookRepairMatrix.frozenBeforeTreatment, true);
+  assert.equal(liveHookRepairMatrix.candidateRuntimeDigest, sha256Digest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs"))));
+  assert.deepEqual(liveHookRepairMatrix.conditions.map(({ conditionId }) => conditionId), [
+    "installed-live-observer-off",
+    "installed-live-observer-on",
+  ]);
+  assert.equal(liveHookRepairMatrix.liveHookQualification.observerOff.pluginImported, true);
+  assert.equal(liveHookRepairMatrix.liveHookQualification.observerOff.namedHooksLoaded, 0);
+  assert.equal(liveHookRepairMatrix.liveHookQualification.observerOff.hookFilesLoaded, 0);
+  assert.equal(liveHookRepairMatrix.liveHookQualification.observerOn.namedHooksLoaded, 1);
+  assert.equal(liveHookRepairMatrix.liveHookQualification.observerOn.hookFilesLoaded, 1);
+  assert.equal(liveHookRepairMatrix.liveHookQualification.profileIsolation, "mount_namespace_config_bind");
   assert.equal(analysis.matrixDigest, sha256Digest(await fs.readFile(matrixPath)));
-  assert.equal(analysis.currentRuntimeControl.matrixDigest, sha256Digest(await fs.readFile(repairMatrixPath)));
-  assert.equal(analysis.matchedTreatment.matrixDigest, sha256Digest(await fs.readFile(repairMatrixPath)));
+  assert.equal(analysis.currentRuntimeControl.matrixDigest, sha256Digest(await fs.readFile(liveHookRepairMatrixPath)));
+  assert.equal(analysis.matchedTreatment.matrixDigest, sha256Digest(await fs.readFile(liveHookRepairMatrixPath)));
+  assert.equal(analysis.currentRuntimeControl.hookResolution.namedHooksLoaded, 1);
+  assert.equal(analysis.currentRuntimeControl.hookResolution.hookFilesLoaded, 1);
+  assert.equal(analysis.matchedTreatment.hookResolution.namedHooksLoaded, 1);
+  assert.equal(analysis.matchedTreatment.hookResolution.hookFilesLoaded, 1);
   assert.equal(analysis.implementation.hooksDigest, sha256Digest(await fs.readFile(hooksPath)));
   assert.equal(analysis.implementation.observerScriptDigest, sha256Digest(await fs.readFile(observerPath)));
   assert.equal(analysis.implementation.runtimeDigest, sha256Digest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs"))));
