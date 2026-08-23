@@ -21,7 +21,7 @@ try {
   const args = parseArgs(process.argv.slice(2));
   const lock = JSON.parse(await fs.readFile(path.join(args.root, "behavior-lock.json"), "utf8"));
   const report = await validatePlugin(args.root, lock);
-  if (args.output) await writeCanonicalRecord(args.output, report);
+  if (args.output) await writeCanonicalRecord(args.output, report, args.root);
   process.stdout.write(canonicalRecordBytes(report).toString("utf8") + "\n");
 } catch (error) {
   process.stderr.write(usage);

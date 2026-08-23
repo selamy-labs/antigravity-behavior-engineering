@@ -284,10 +284,8 @@ const packageLockDigest = (lock) => {
 
 const publicFile = ({ bytes: _bytes, ...entry }) => entry;
 
-export const validatePlugin = async (root, lockInput) => {
-  const anchoredRoot = await canonicalRoot(root);
+const validateSnapshot = async (lockInput, files) => {
   const lock = validateLockShape(await lockInput);
-  const files = await walkPackage(anchoredRoot);
   const byPath = new Map(files.map((entry) => [entry.path, entry]));
   const manifestFile = byPath.get("plugin.json");
   const behaviorLockFile = byPath.get("behavior-lock.json");
@@ -341,6 +339,11 @@ export const validatePlugin = async (root, lockInput) => {
   };
 };
 
+export const validatePlugin = async (root, lockInput) => {
+  const anchoredRoot = await canonicalRoot(root);
+  return validateSnapshot(lockInput, await walkPackage(anchoredRoot));
+};
+
 export const inspectComponents = async (root) => {
   const lock = parseJson(await fs.readFile(path.join(root, "behavior-lock.json")), "behavior-lock.json");
   return (await validatePlugin(root, lock)).components;
@@ -385,40 +388,86 @@ const tarBytes = (entries) => {
   return Buffer.concat(chunks);
 };
 
-export const ensureOutputOutsideRoot = async (root, output) => {
-  if (typeof output !== "string" || output.length === 0) fail("package.invalid_output", "$.output");
-  const absoluteOutput = path.resolve(output);
-  const relative = path.relative(root, absoluteOutput);
-  if (relative === "" || (!relative.startsWith(".." + path.sep) && relative !== ".." && !path.isAbsolute(relative))) {
-    fail("package.output_inside_root", absoluteOutput);
-  }
-  await fs.mkdir(path.dirname(absoluteOutput), { recursive: true });
-  const existing = await fs.lstat(absoluteOutput).catch((error) => (error?.code === "ENOENT" ? null : Promise.reject(error)));
-  if (existing?.isSymbolicLink()) fail("package.symlink", absoluteOutput);
-  return absoluteOutput;
+const pathIsWithin = (root, candidate) => {
+  const relative = path.relative(root, candidate);
+  return relative === "" || (!relative.startsWith(".." + path.sep) && relative !== ".." && !path.isAbsolute(relative));
 };
 
-const atomicWrite = async (file, bytes) => {
-  const temporary = path.join(path.dirname(file), `.${path.basename(file)}.${process.pid}.${randomBytes(8).toString("hex")}.tmp`);
-  let installed = false;
-  const handle = await fs.open(temporary, "wx", 0o600);
+const openOutputParent = async (root, output) => {
+  if (typeof output !== "string" || output.length === 0) fail("package.invalid_output", "$.output");
+  const absoluteOutput = path.resolve(output);
+  if (pathIsWithin(root, absoluteOutput)) {
+    fail("package.output_inside_root", absoluteOutput);
+  }
+
+  const parent = path.dirname(absoluteOutput);
+  const filesystemRoot = path.parse(parent).root;
+  const segments = path.relative(filesystemRoot, parent).split(path.sep).filter(Boolean);
+  let handle = await fs.open(filesystemRoot, fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW);
   try {
-    try {
-      await handle.writeFile(bytes);
-      await handle.sync();
-    } finally {
+    for (const segment of segments) {
+      const descriptorPath = `/proc/self/fd/${handle.fd}/${segment}`;
+      const status = await fs.lstat(descriptorPath).catch((error) => (error?.code === "ENOENT" ? null : Promise.reject(error)));
+      if (status?.isSymbolicLink()) {
+        const resolved = await fs.realpath(descriptorPath).catch(() => null);
+        if (resolved && pathIsWithin(root, resolved)) fail("package.output_inside_root", absoluteOutput);
+        fail("package.symlink", descriptorPath);
+      }
+      if (status === null) {
+        await fs.mkdir(descriptorPath, { mode: 0o700 }).catch((error) => {
+          if (error?.code !== "EEXIST") throw error;
+        });
+      }
+      const child = await fs.open(
+        descriptorPath,
+        fsConstants.O_RDONLY | fsConstants.O_DIRECTORY | fsConstants.O_NOFOLLOW,
+      ).catch(() => fail("package.invalid_output", descriptorPath));
       await handle.close();
+      handle = child;
+      const resolved = await fs.realpath(`/proc/self/fd/${handle.fd}`);
+      if (pathIsWithin(root, resolved)) fail("package.output_inside_root", absoluteOutput);
     }
-    await fs.rename(temporary, file);
-    installed = true;
-    const directoryHandle = await fs.open(path.dirname(file), fsConstants.O_RDONLY | fsConstants.O_DIRECTORY);
+
+    const descriptorPath = `/proc/self/fd/${handle.fd}/${path.basename(absoluteOutput)}`;
+    const existing = await fs.lstat(descriptorPath).catch((error) => (error?.code === "ENOENT" ? null : Promise.reject(error)));
+    if (existing?.isSymbolicLink()) fail("package.symlink", absoluteOutput);
+    return { absoluteOutput, descriptorPath, parentHandle: handle };
+  } catch (error) {
+    await handle.close().catch(() => {});
+    throw error;
+  }
+};
+
+export const ensureOutputOutsideRoot = async (root, output) => {
+  const anchoredRoot = await canonicalRoot(root);
+  const opened = await openOutputParent(anchoredRoot, output);
+  await opened.parentHandle.close();
+  return opened.absoluteOutput;
+};
+
+const atomicWriteOutsideRoot = async (root, file, bytes) => {
+  const opened = await openOutputParent(root, file);
+  const temporary = `/proc/self/fd/${opened.parentHandle.fd}/.${path.basename(file)}.${process.pid}.${randomBytes(8).toString("hex")}.tmp`;
+  let installed = false;
+  try {
+    const handle = await fs.open(temporary, "wx", 0o600);
     try {
-      await directoryHandle.sync();
+      try {
+        await handle.writeFile(bytes);
+        await handle.sync();
+      } finally {
+        await handle.close();
+      }
+      const resolvedParent = await fs.realpath(`/proc/self/fd/${opened.parentHandle.fd}`);
+      if (pathIsWithin(root, resolvedParent)) fail("package.output_inside_root", opened.absoluteOutput);
+      await fs.rename(temporary, opened.descriptorPath);
+      installed = true;
+      await opened.parentHandle.sync();
     } finally {
-      await directoryHandle.close();
+      if (!installed) await fs.unlink(temporary).catch(() => {});
     }
   } finally {
-    if (!installed) await fs.unlink(temporary).catch(() => {});
+    await opened.parentHandle.close();
   }
 };
 
@@ -431,10 +480,11 @@ const createdByDigest = async () => sha256Digest(canonicalBytes({
 
 export const packPlugin = async (root, output) => {
   const anchoredRoot = await canonicalRoot(root);
-  const lock = parseJson(await fs.readFile(path.join(anchoredRoot, "behavior-lock.json")), "behavior-lock.json");
-  const validation = await validatePlugin(anchoredRoot, lock);
-  const absoluteOutput = await ensureOutputOutsideRoot(anchoredRoot, output);
   const allFiles = await walkPackage(anchoredRoot);
+  const behaviorLockFile = allFiles.find((entry) => entry.path === "behavior-lock.json");
+  if (!behaviorLockFile) fail("package.inventory_mismatch", "behavior-lock.json");
+  const lock = parseJson(behaviorLockFile.bytes, "behavior-lock.json");
+  const validation = await validateSnapshot(lock, allFiles);
   const archive = gzipSync(tarBytes(allFiles), { level: 9, mtime: 0 });
   const archiveManifest = allFiles.map(publicFile);
   const record = {
@@ -448,14 +498,14 @@ export const packPlugin = async (root, output) => {
     fileManifestDigest: sha256Digest(canonicalBytes(archiveManifest)),
     createdByDigest: await createdByDigest(),
   };
-  await atomicWrite(absoluteOutput, archive);
+  await atomicWriteOutsideRoot(anchoredRoot, output, archive);
   return record;
 };
 
 export const canonicalRecordBytes = (record) => Buffer.from(canonicalBytes(record));
 
-export const writeCanonicalRecord = async (file, record) => {
+export const writeCanonicalRecord = async (file, record, root) => {
   const absolute = path.resolve(file);
-  await fs.mkdir(path.dirname(absolute), { recursive: true });
-  await atomicWrite(absolute, Buffer.concat([canonicalRecordBytes(record), Buffer.from("\n")]));
+  const bytes = Buffer.concat([canonicalRecordBytes(record), Buffer.from("\n")]);
+  await atomicWriteOutsideRoot(await canonicalRoot(root), absolute, bytes);
 };

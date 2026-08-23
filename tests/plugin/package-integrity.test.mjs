@@ -8,6 +8,7 @@ import test from "node:test";
 
 import {
   PackageValidationError,
+  ensureOutputOutsideRoot,
   inspectComponents,
   packPlugin,
   validatePlugin,
@@ -148,6 +149,61 @@ test("validation fails closed for drift, unknown files, collisions, bad platform
     await copyTree(pluginRoot, symlinked);
     await fs.symlink("hooks.json", path.join(symlinked, "hook-link.json"));
     await expectPackageError("package.symlink", () => validatePlugin(symlinked, readJson(path.join(symlinked, "behavior-lock.json"))));
+  });
+});
+
+test("output paths cannot alias the package through symlinked ancestors", async () => {
+  await withTemporaryRoot("abe-package-output-alias-", async (root) => {
+    const copiedPlugin = path.join(root, "plugin");
+    const outside = path.join(root, "outside");
+    const alias = path.join(outside, "package-alias");
+    await copyTree(pluginRoot, copiedPlugin);
+    await fs.mkdir(outside);
+    await fs.symlink(copiedPlugin, alias);
+
+    await expectPackageError("package.output_inside_root", () => ensureOutputOutsideRoot(copiedPlugin, path.join(alias, "candidate.tgz")));
+
+    const originalLock = await fs.readFile(path.join(copiedPlugin, "behavior-lock.json"));
+    const rejected = await run([
+      process.execPath,
+      packBin,
+      "--root", copiedPlugin,
+      "--output", path.join(alias, "candidate.tgz"),
+      "--manifest-out", path.join(outside, "candidate.json"),
+    ]);
+    assert.equal(rejected.exitCode, 2);
+    assert.match(rejected.stderr, /package\.output_inside_root/u);
+    assert.deepEqual(await fs.readFile(path.join(copiedPlugin, "behavior-lock.json")), originalLock);
+  });
+});
+
+test("packer archives one validated snapshot when the source changes before output", async () => {
+  await withTemporaryRoot("abe-package-snapshot-", async (root) => {
+    const copiedPlugin = path.join(root, "plugin");
+    const outputDirectory = path.join(root, "output");
+    const archive = path.join(outputDirectory, "candidate.tgz");
+    await copyTree(pluginRoot, copiedPlugin);
+
+    const originalMkdir = fs.mkdir;
+    let injected = false;
+    fs.mkdir = async (...args) => {
+      const result = await originalMkdir(...args);
+      if (!injected && path.basename(String(args[0])) === path.basename(outputDirectory)) {
+        injected = true;
+        await fs.writeFile(path.join(copiedPlugin, "late-injection.txt"), "not in captured snapshot\n");
+      }
+      return result;
+    };
+    try {
+      await packPlugin(copiedPlugin, archive);
+    } finally {
+      fs.mkdir = originalMkdir;
+    }
+    assert.equal(injected, true);
+
+    const listed = await run(["tar", "-tzf", archive]);
+    assert.equal(listed.exitCode, 0, listed.stderr);
+    assert.equal(listed.stdout.includes("late-injection.txt"), false);
   });
 });
 

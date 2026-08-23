@@ -42,7 +42,7 @@ try {
     const expected = JSON.parse(await fs.readFile(args["--require-manifest-match"], "utf8"));
     if (!canonicalRecordBytes(record).equals(canonicalRecordBytes(expected))) throw new Error("package.manifest_mismatch");
   }
-  await writeCanonicalRecord(args["--manifest-out"], record);
+  await writeCanonicalRecord(args["--manifest-out"], record, args["--root"]);
   process.stdout.write(canonicalRecordBytes(record).toString("utf8") + "\n");
 } catch (error) {
   process.stderr.write(usage);
