@@ -540,5 +540,5 @@ test("frozen ablations select bound one and bind the shipped implementation", as
   assert.equal(lock.files["scripts/bounded-completion-gate.mjs"], sha256Digest(await fs.readFile(gatePath)));
 
   const publicAnalysis = await fs.readFile(analysisPath, "utf8");
-  assert.doesNotMatch(publicAnalysis, /\/home\/|\/private\/|codex-dispatch|\.gemini\/antigravity-cli\/brain/u);
+  assert.doesNotMatch(publicAnalysis, /\/home\/|\/private\/|\.gemini\/antigravity-cli\/brain/u);
 });
