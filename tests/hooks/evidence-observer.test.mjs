@@ -21,6 +21,7 @@ const pluginRoot = path.join(repoRoot, "plugin");
 const hooksPath = path.join(pluginRoot, "hooks.json");
 const observerPath = path.join(pluginRoot, "scripts", "evidence-observer.mjs");
 const matrixPath = path.join(repoRoot, "evals", "formative", "evidence-observer.matrix.json");
+const repairMatrixPath = path.join(repoRoot, "evals", "formative", "evidence-observer.repair-matrix.json");
 const analysisPath = path.join(repoRoot, "evals", "formative", "evidence-observer.analysis.json");
 const lockPath = path.join(pluginRoot, "behavior-lock.json");
 const taskId = "T029-fixture";
@@ -479,6 +480,7 @@ test("bounded direct appends stay below the frozen p95 envelope and reject ledge
 
 test("formative matrix freezes ablation, disablement, failure isolation, and resource decisions", async () => {
   const matrix = await readJson(matrixPath);
+  const repairMatrix = await readJson(repairMatrixPath);
   const analysis = await readJson(analysisPath);
   assert.equal(matrix.frozenBeforeTreatment, true);
   assert.deepEqual(matrix.models, ["gemini-3.1-pro-high", "gemini-3.7-flash-high"]);
@@ -493,7 +495,15 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
   assert.equal(matrix.resourceEnvelope.p95Milliseconds, 250);
   assert.equal(matrix.resourceEnvelope.hardTimeoutSeconds, 10);
   assert.equal(matrix.resourceEnvelope.maxLedgerBytes, 4 * 1024 * 1024);
+  assert.equal(repairMatrix.frozenBeforeTreatment, true);
+  assert.equal(repairMatrix.candidateRuntimeDigest, sha256Digest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs"))));
+  assert.deepEqual(repairMatrix.conditions.map(({ conditionId }) => conditionId), [
+    "repaired-runtime-observer-off",
+    "repaired-runtime-observer-on",
+  ]);
   assert.equal(analysis.matrixDigest, sha256Digest(await fs.readFile(matrixPath)));
+  assert.equal(analysis.currentRuntimeControl.matrixDigest, sha256Digest(await fs.readFile(repairMatrixPath)));
+  assert.equal(analysis.matchedTreatment.matrixDigest, sha256Digest(await fs.readFile(repairMatrixPath)));
   assert.equal(analysis.implementation.hooksDigest, sha256Digest(await fs.readFile(hooksPath)));
   assert.equal(analysis.implementation.observerScriptDigest, sha256Digest(await fs.readFile(observerPath)));
   assert.equal(analysis.implementation.runtimeDigest, sha256Digest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs"))));
@@ -504,7 +514,7 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
   assert.deepEqual(analysis.privacyReview, {
     liveEventCount: 8,
     liveLedgerBytes: 3251,
-    maximumCanonicalEventBytes: 423,
+    maximumCanonicalEventBytes: 424,
     credentialPatternsFound: 0,
     absolutePrivatePathsFound: 0,
     transcriptContentFound: 0,
@@ -516,7 +526,7 @@ test("formative matrix freezes ablation, disablement, failure isolation, and res
     decision: "selected",
     retained: true,
     claimId: "T029.evidence-observer.redacted-hash-chained-lifecycle-facts",
-    reason: "The treatment closes the observed lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope.",
+    reason: "The current repaired-runtime ablation closes the lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope.",
   });
   const analysisBytes = await fs.readFile(analysisPath, "utf8");
   for (const forbidden of ["/home/", "/tmp/", "codex-dispatch", "conversationId"]) {

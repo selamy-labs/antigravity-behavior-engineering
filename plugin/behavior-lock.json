@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "packageName": "antigravity-behavior-engineering",
   "packageVersion": "0.0.0",
-  "sourceRevision": "891f39d47881ca594d108cc135d8a75a1d86a249",
+  "sourceRevision": "e9b296932bd784a22f3ecefd0a5405e0665c96be",
   "minimumCliVersion": "1.1.18",
   "supportedPlatforms": [
     {
@@ -38,7 +38,7 @@
       "path": "scripts/runtime-lib.mjs",
       "claimId": "T024.durable-evidence-cli.safe-task-state-mechanics",
       "defaultEnabled": true,
-      "digest": "sha256:4bde18eb73e24c6d1a87085665d457dab26f595fc0516fb07c3abf59a25d62d0"
+      "digest": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346"
     },
     {
       "schemaVersion": 1,
@@ -75,7 +75,7 @@
     "scripts/reviewer-join.mjs": "sha256:c3ca9269a123ecde7be9c45108b02751b1e99e01203426c35d06033b587d4e76",
     "scripts/reviewer-package.mjs": "sha256:623e4d8cc878c3d5ce008716fc8e7e620d643220c9900a74c844824c23095aa6",
     "scripts/evidence-observer.mjs": "sha256:8b11bf8e9dd98b506e6def3ebbbaf94e7e475e0950bd84bed310aa2c67025319",
-    "scripts/runtime-lib.mjs": "sha256:4bde18eb73e24c6d1a87085665d457dab26f595fc0516fb07c3abf59a25d62d0",
+    "scripts/runtime-lib.mjs": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
     "skills/evidence-first-framing/SKILL.md": "sha256:f976f5cac112c4a329d3ae02c1abdd8022211923ce718d004920a368764055df",
     "skills/proof-obligation-contract/SKILL.md": "sha256:a42728ed6613eef87bb0befc1d5ed51857612cc0e015f5fdfdb145f0e6142379",
     "schemas/task-state.schema.json": "sha256:8d62a0a890d16f2087ff21dfad3df8a886049bddf39cd6d6c8476931b2e59b2a"

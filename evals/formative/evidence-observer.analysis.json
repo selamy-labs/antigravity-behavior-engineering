@@ -8,7 +8,7 @@
   "implementation": {
     "hooksDigest": "sha256:47045a810ed84db6143cf05822f7de9054a592d0ae2ad0f72a67394acf390b7d",
     "observerScriptDigest": "sha256:8b11bf8e9dd98b506e6def3ebbbaf94e7e475e0950bd84bed310aa2c67025319",
-    "runtimeDigest": "sha256:4bde18eb73e24c6d1a87085665d457dab26f595fc0516fb07c3abf59a25d62d0",
+    "runtimeDigest": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
     "networkCalls": 0,
     "shellCalls": 0,
     "semanticAuthority": false
@@ -45,7 +45,41 @@
     ],
     "observedGap": "The current incumbent preserved the artifact outcome but emitted no task-owned EvidenceEvent for either model."
   },
+  "currentRuntimeControl": {
+    "matrixPath": "evals/formative/evidence-observer.repair-matrix.json",
+    "matrixDigest": "sha256:0f56efa61cf6ed732cfbe2eae7327f9358e1cb9e5478fa3e35b4dee9965d23fb",
+    "conditionId": "repaired-runtime-observer-off",
+    "models": [
+      {
+        "model": "gemini-3.1-pro-high",
+        "status": "SUCCESS",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "completionConclusion": "complete",
+        "durationSeconds": "11.949111014",
+        "totalTokens": 35156,
+        "toolCalls": 1,
+        "observerEvents": 0,
+        "runRecordDigest": "sha256:482fe6a84d1f4f3ca9972c1862bb190caa0b480a29237b181ffdefbd500e20aa"
+      },
+      {
+        "model": "gemini-3.7-flash-high",
+        "status": "SUCCESS",
+        "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
+        "artifactMatches": true,
+        "completionConclusion": "complete",
+        "durationSeconds": "7.423521323",
+        "totalTokens": 40603,
+        "toolCalls": 2,
+        "observerEvents": 0,
+        "runRecordDigest": "sha256:5772fe52c567a4077a4edfc21fea3a6835904f859ff98b1553f33d3032e087f1"
+      }
+    ]
+  },
   "matchedTreatment": {
+    "matrixPath": "evals/formative/evidence-observer.repair-matrix.json",
+    "matrixDigest": "sha256:0f56efa61cf6ed732cfbe2eae7327f9358e1cb9e5478fa3e35b4dee9965d23fb",
+    "conditionId": "repaired-runtime-observer-on",
     "cliVersion": "1.1.18",
     "reasoningRequest": "high",
     "workspaceQualification": "Each run used a fresh task-owned state and an explicit CLI add-directory binding so the documented workspacePaths field identified the disposable workspace.",
@@ -56,15 +90,15 @@
         "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
         "artifactMatches": true,
         "completionConclusion": "complete",
-        "durationSeconds": "14.913422106",
-        "durationDeltaSeconds": "1.710200517",
-        "totalTokens": 27257,
-        "tokenDelta": 290,
+        "durationSeconds": "13.805056542",
+        "durationDeltaSeconds": "1.855945528",
+        "totalTokens": 27307,
+        "tokenDelta": -7849,
         "toolCalls": 1,
         "toolCallDelta": 0,
         "observerEvents": 3,
-        "ledgerDigest": "sha256:1ed0f257e4b276a959bb598ca7a50ecb612f31afabd1c3e6ec06a76adae3875c",
-        "runRecordDigest": "sha256:9c4c1ab725cabf6f6d71bc7a3bb0e29dd63ea8f6e9dd8a76ddab01efffb1cb09"
+        "ledgerDigest": "sha256:e94058f7493ec3c65d64071ce4b3c39989e524d882f5e2643263af25c1d95849",
+        "runRecordDigest": "sha256:67ec130db1e440ac61e9f2605dacb8e20d30b331b48e854ad55675e5fcbb34d2"
       },
       {
         "model": "gemini-3.7-flash-high",
@@ -72,15 +106,15 @@
         "artifactDigest": "sha256:5df51e51e90f06db59f5428ec96ab35c6531740fb529581ff42fda73b6f3a14f",
         "artifactMatches": true,
         "completionConclusion": "complete",
-        "durationSeconds": "7.109337322",
-        "durationDeltaSeconds": "-0.538478163",
-        "totalTokens": 40178,
-        "tokenDelta": -477,
+        "durationSeconds": "7.006386637",
+        "durationDeltaSeconds": "-0.417134686",
+        "totalTokens": 40479,
+        "tokenDelta": -124,
         "toolCalls": 2,
         "toolCallDelta": 0,
         "observerEvents": 5,
-        "ledgerDigest": "sha256:7ecd6fddeb8370c9198d32acd9754d9b43de9185bea0792c1815389c37c42ac7",
-        "runRecordDigest": "sha256:e692d914b82c5682bb1b4053025b40745297cd87993d4add191ecb317a860474"
+        "ledgerDigest": "sha256:af5a210028c17b20f2e19625a63d537b6053780abbb58ba21051bfe51f3861e3",
+        "runRecordDigest": "sha256:3d155e4cba41c2e4ba50a734d8bd396ef0dab879d3ed0f4f339ea6d897c3e957"
       }
     ],
     "artifactOutcomeAgreement": "2/2",
@@ -93,18 +127,18 @@
   },
   "resourceReport": {
     "runCountPerCell": 1,
-    "incumbentMedianDurationSeconds": "10.425518537",
-    "treatmentMedianDurationSeconds": "11.011379714",
-    "medianDurationDeltaSeconds": "0.585861177",
-    "incumbentP90DurationSeconds": "13.203221589",
-    "treatmentP90DurationSeconds": "14.913422106",
-    "incumbentMedianTokens": "33811",
-    "treatmentMedianTokens": "33717.5",
-    "medianTokenDelta": "-93.5",
-    "incumbentP90Tokens": 40655,
-    "treatmentP90Tokens": 40178,
+    "observerOffMedianDurationSeconds": "9.6863161685",
+    "observerOnMedianDurationSeconds": "10.4057215895",
+    "medianDurationDeltaSeconds": "0.719405421",
+    "observerOffP90DurationSeconds": "11.949111014",
+    "observerOnP90DurationSeconds": "13.805056542",
+    "observerOffMedianTokens": "37879.5",
+    "observerOnMedianTokens": "33893",
+    "medianTokenDelta": "-3986.5",
+    "observerOffP90Tokens": 40603,
+    "observerOnP90Tokens": 40479,
     "directAppendSamples": 40,
-    "directAppendP95Milliseconds": "24.052",
+    "directAppendP95Milliseconds": "26.217",
     "directAppendP95LimitMilliseconds": 250,
     "configuredHardTimeoutSeconds": 10,
     "envelopeResult": "pass"
@@ -137,19 +171,27 @@
     "secretAndPrivatePathRedaction": "pass",
     "symlinkEscape": "rejected_without_outside_write",
     "taskDirectoryReplacement": "inode_anchored_without_outside_write",
+    "preStateReadParentReplacement": "descriptor_traversal_without_external_read_or_write",
+    "stateAndLedgerLeafReplacement": "no_follow_file_descriptors_reject_external_symlinks",
     "missingTaskState": "fail_open_with_visible_diagnostic",
     "observerWriteFailure": "fail_open_with_visible_diagnostic",
     "ledgerGrowthLimitBytes": 4194304,
     "missingScript": "packaging_test_fails"
   },
   "correctiveRepairValidation": {
-    "acceptedFindingId": "Q-T029-001",
-    "repairCommit": "891f39d47881ca594d108cc135d8a75a1d86a249",
-    "repairRuntimeDigest": "sha256:4bde18eb73e24c6d1a87085665d457dab26f595fc0516fb07c3abf59a25d62d0",
-    "redTestDigest": "sha256:df48cad34d3a42b2151a6f2f6b06687fd46270a7aa42b6b21e36c11db45d7cb2",
-    "greenTestDigest": "sha256:4b0150b097bd5d89ebe870495c7bf089a9135874596a1dfd251d072a86cb0b54",
-    "repairMechanism": "The observer opens the validated task directory with no-follow directory flags, verifies its device and inode, and performs lock, state, and ledger operations through the retained descriptor path.",
-    "liveSmoke": [
+    "acceptedFindingIds": ["Q-T029-001", "Q-T029-002", "R-T029-001", "R-T029-002"],
+    "repairCommit": "e9b296932bd784a22f3ecefd0a5405e0665c96be",
+    "repairRuntimeDigest": "sha256:1e7ad33194e48d031a3bd65b1c5b79c8cc6112d541b8514484e8cb309fe55346",
+    "redTestDigests": [
+      "sha256:df48cad34d3a42b2151a6f2f6b06687fd46270a7aa42b6b21e36c11db45d7cb2",
+      "sha256:31672b8a45c0db26900e740bb848cfc91fde7b3f61fdd25107a4fd1081c6254b"
+    ],
+    "greenTestDigests": [
+      "sha256:4b0150b097bd5d89ebe870495c7bf089a9135874596a1dfd251d072a86cb0b54",
+      "sha256:60b46d4bfc6ff1d8afe90985902a7ccec804e1c53eda670d7c9d6c7763a8b909"
+    ],
+    "repairMechanism": "The observer anchors the workspace, .agents, abe, and selected task directories through retained no-follow directory descriptors before reading state; state and ledger leaves are opened with no-follow file descriptors before any read, while lock and atomic replacement remain within the selected task descriptor.",
+    "supersededUnscheduledSmoke": [
       {
         "model": "gemini-3.1-pro-high",
         "status": "SUCCESS",
@@ -170,22 +212,12 @@
         "runRecordDigest": "sha256:43c25e4f3ec55b6e2931910740feb3e7a1882aa8e7bcd721c509375ebe6e76a0"
       }
     ],
-    "privacyReview": {
-      "liveEventCount": 11,
-      "liveLedgerBytes": 4516,
-      "maximumCanonicalEventBytes": 424,
-      "credentialPatternsFound": 0,
-      "absolutePrivatePathsFound": 0,
-      "transcriptContentFound": 0,
-      "rawArgumentsFound": 0,
-      "rawErrorsFound": 0
-    },
-    "evidenceDisposition": "The deterministic race repair and current-runtime hook dispatch replace invalidated mechanical evidence. The original matched ablation remains the frozen behavioral comparison because the hook's model-facing stdout and semantic policy did not change; the unscheduled smoke is disclosed but is not substituted into that comparison, and its product failure was not retried."
+    "evidenceDisposition": "The unscheduled first-repair smoke remains disclosed and was not retried. The separately frozen repaired-runtime matrix replaces it for selection: all four scheduled cells used fresh state without retries, both observer-off and observer-on models completed with exact artifacts and matching tool-call counts, and only observer-on emitted chained events."
   },
   "privacyReview": {
     "liveEventCount": 8,
     "liveLedgerBytes": 3251,
-    "maximumCanonicalEventBytes": 423,
+    "maximumCanonicalEventBytes": 424,
     "credentialPatternsFound": 0,
     "absolutePrivatePathsFound": 0,
     "transcriptContentFound": 0,
@@ -197,12 +229,12 @@
     "decision": "selected",
     "retained": true,
     "claimId": "T029.evidence-observer.redacted-hash-chained-lifecycle-facts",
-    "reason": "The treatment closes the observed lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope."
+    "reason": "The current repaired-runtime ablation closes the lifecycle-evidence gap for both models while preserving exact artifacts, completion conclusions, tool-call counts, failure isolation, privacy, and the frozen resource envelope."
   },
   "limitations": [
     "The matched live ablation is formative with one run per model and does not establish a release-scale latency distribution.",
     "CLI print mode supplied an empty workspacePaths array until the documented add-directory binding was used; the observer rejects that unqualified input rather than guessing a workspace.",
-    "A post-repair Flash smoke produced the exact artifact and eight observer events but ended ERROR after an invalid extra tool call; it is disclosed as a product failure and was not retried or substituted for the frozen matched ablation.",
+    "An unscheduled first-repair Flash smoke produced the exact artifact and eight observer events but ended ERROR after an invalid extra tool call; it remains disclosed as a product failure and was neither retried nor substituted for the later frozen current-runtime ablation.",
     "EvidenceEvent records mechanical lifecycle facts only; correctness, obligation completion, and release readiness remain external judgments."
   ]
 }
