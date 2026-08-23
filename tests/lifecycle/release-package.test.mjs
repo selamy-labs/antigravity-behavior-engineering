@@ -146,6 +146,8 @@ test("customized fixture is exact, user-owned, and dependency-verifiable", async
       expectedRevision: "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
       observedRevision: "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
       ownership: "user",
+      sourceUrl: "https://github.com/obra/superpowers",
+      artifactDigest: "sha256:7b91dce0b846d7e5632e1f6fddbcaa7b4de473b7cf3c86ec008d3bdddb2e143a",
       status: "user_owned_verified",
     }]);
 
@@ -406,6 +408,9 @@ test("installation documentation names the supported surface, dependency ownersh
     "user-owned",
     "authentication",
     "dependency download",
+    "artifact digest",
+    "bounded output",
+    "interrupted command",
     "agy plugin uninstall antigravity-behavior-engineering",
     "compare-profile.mjs",
     "Desktop/IDE is experimental",

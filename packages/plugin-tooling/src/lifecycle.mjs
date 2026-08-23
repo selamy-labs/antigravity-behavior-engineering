@@ -10,6 +10,8 @@ import { canonicalBytes, sha256Digest } from "../../contracts/src/canonical-json
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 const PINNED_REVISION_PATTERN = /^[0-9a-f]{40}$/u;
 const SEMVER_PATTERN = /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/u;
+const DEFAULT_MAXIMUM_COUNTED_MS = 600_000;
+const DEFAULT_MAXIMUM_COMMAND_OUTPUT_BYTES = 1_048_576;
 const PACKAGE_LOCK_KEYS = new Set([
   "schemaVersion",
   "packageName",
@@ -413,11 +415,13 @@ const readDiscovery = async (profileRoot, packageName) => {
   const manifest = await readJsonFile(path.join(profileRoot, ".gemini", "config", "import_manifest.json"), { imports: [] });
   const imports = Array.isArray(manifest.imports) ? manifest.imports : [];
   const names = imports.map((item) => String(item.name || "")).filter((name) => name.length > 0).sort();
+  const imported = imports.find((item) => item.name === packageName);
   return {
     schemaVersion: 1,
     imported: names.includes(packageName),
     names,
-    components: imports.find((item) => item.name === packageName)?.components ?? null,
+    components: imported?.components ?? null,
+    source: typeof imported?.source === "string" ? imported.source : null,
   };
 };
 
@@ -481,30 +485,98 @@ const runProcess = (argv, options) => new Promise((resolve) => {
   const child = spawn(argv[0], argv.slice(1), {
     cwd: options.cwd,
     env: options.env,
+    detached: process.platform !== "win32",
     shell: false,
     stdio: ["ignore", "pipe", "pipe"],
   });
   let stdout = "";
   let stderr = "";
+  let capturedBytes = 0;
+  let terminationReason = null;
+  let settled = false;
+  let forceKillTimer;
+  const maximumOutputBytes = options.maximumOutputBytes;
+  const signalChild = (signal) => {
+    try {
+      if (process.platform !== "win32" && Number.isInteger(child.pid)) process.kill(-child.pid, signal);
+      else child.kill(signal);
+    } catch {
+      try {
+        child.kill(signal);
+      } catch {
+        // The process or process group has already exited.
+      }
+    }
+  };
+  const terminate = (reason) => {
+    if (terminationReason !== null) return;
+    terminationReason = reason;
+    signalChild("SIGTERM");
+    forceKillTimer = setTimeout(() => {
+      signalChild("SIGKILL");
+    }, 100);
+    forceKillTimer.unref();
+  };
+  const capture = (current, chunk) => {
+    const remaining = Math.max(0, maximumOutputBytes - capturedBytes);
+    const bytes = Buffer.from(chunk);
+    capturedBytes += bytes.byteLength;
+    if (remaining > 0) current += bytes.subarray(0, remaining).toString("utf8");
+    if (capturedBytes > maximumOutputBytes) terminate("output_limit");
+    return current;
+  };
+  const timeout = setTimeout(() => terminate("timeout"), options.timeoutMs);
+  timeout.unref();
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (chunk) => {
-    stdout += chunk;
+    stdout = capture(stdout, chunk);
   });
   child.stderr.on("data", (chunk) => {
-    stderr += chunk;
+    stderr = capture(stderr, chunk);
   });
   child.on("error", (error) => {
-    resolve({ exitCode: 127, stdout, stderr: stderr + String(error.message) + "\n" });
+    if (settled) return;
+    settled = true;
+    clearTimeout(timeout);
+    if (forceKillTimer) clearTimeout(forceKillTimer);
+    resolve({ exitCode: 127, stdout, stderr: stderr + String(error.message) + "\n", terminationReason });
   });
   child.on("close", (code) => {
-    resolve({ exitCode: Number.isInteger(code) ? code : 127, stdout, stderr });
+    if (settled) return;
+    settled = true;
+    clearTimeout(timeout);
+    if (forceKillTimer) clearTimeout(forceKillTimer);
+    const forcedExitCode = terminationReason === "timeout" ? 124 : 125;
+    resolve({
+      exitCode: terminationReason === null && Number.isInteger(code) ? code : forcedExitCode,
+      stdout,
+      stderr,
+      terminationReason,
+    });
   });
 });
 
-export const runPluginCommand = async (cliPath, args, { profileRoot, cwd, env = {}, volatilityPolicy } = {}) => {
+export const runPluginCommand = async (cliPath, args, {
+  profileRoot,
+  cwd,
+  env = {},
+  volatilityPolicy,
+  timeoutMs = DEFAULT_MAXIMUM_COUNTED_MS,
+  maximumOutputBytes = DEFAULT_MAXIMUM_COMMAND_OUTPUT_BYTES,
+} = {}) => {
   if (typeof profileRoot !== "string" || profileRoot.length === 0) {
     fail("lifecycle.profile_not_found", "$.profileRoot");
+  }
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > DEFAULT_MAXIMUM_COUNTED_MS) {
+    fail("lifecycle.invalid_field", "$.timeoutMs");
+  }
+  if (
+    !Number.isSafeInteger(maximumOutputBytes)
+    || maximumOutputBytes <= 0
+    || maximumOutputBytes > DEFAULT_MAXIMUM_COMMAND_OUTPUT_BYTES
+  ) {
+    fail("lifecycle.invalid_field", "$.maximumOutputBytes");
   }
   await fs.mkdir(profileRoot, { recursive: true });
   const policy = volatilityPolicy || {};
@@ -518,6 +590,8 @@ export const runPluginCommand = async (cliPath, args, { profileRoot, cwd, env = 
       HOME: profileRoot,
       ...Object.fromEntries(Object.entries(env).map(([key, value]) => [String(key), String(value)])),
     },
+    timeoutMs,
+    maximumOutputBytes,
   });
   const after = await snapshotProfile(profileRoot, policy);
   const diff = diffProfileSnapshots(before, after);
@@ -536,6 +610,7 @@ export const runPluginCommand = async (cliPath, args, { profileRoot, cwd, env = 
     exitCode: processResult.exitCode,
     stdout: processResult.stdout,
     stderr: processResult.stderr,
+    terminationReason: processResult.terminationReason,
     beforeDigest: before.profileDigest,
     afterDigest: after.profileDigest,
     touchedPaths: diff.changedPaths,
@@ -546,7 +621,7 @@ export const runPluginCommand = async (cliPath, args, { profileRoot, cwd, env = 
 export const loadBehaviorLock = async (file) => validateLock(JSON.parse(await fs.readFile(file, "utf8")));
 
 const FIXTURE_KEYS = new Set(["schemaVersion", "fixtureId", "files"]);
-const DEPENDENCY_STATE_KEYS = new Set(["schemaVersion", "name", "revision", "ownership"]);
+const DEPENDENCY_STATE_KEYS = new Set(["schemaVersion", "name", "sourceUrl", "revision", "ownership", "artifactDigest"]);
 const PROFILE_METADATA_PATHS = [
   ".gemini/config/config.json",
   ".gemini/config/import_manifest.json",
@@ -616,7 +691,33 @@ export const verifyProfileDependencies = async (profileRoot, lockInput) => {
     if (state.schemaVersion !== 1 || state.name !== dependency.name || !["user", "release"].includes(state.ownership)) {
       fail("lifecycle.invalid_dependency_state", dependency.name);
     }
+    if (state.sourceUrl !== dependency.sourceUrl) fail("lifecycle.dependency_source_mismatch", dependency.name);
     if (state.revision !== dependency.revision) fail("lifecycle.dependency_mismatch", dependency.name);
+    assertDigest(state.artifactDigest, dependency.name + ".artifactDigest");
+    const artifactRoot = installedPluginRoot(profileRoot, dependency.name);
+    const artifactFiles = await profileFiles(artifactRoot, {}, { includeBytes: true }).catch((error) => {
+      if (error instanceof LifecycleValidationError && error.code === "lifecycle.profile_not_found") {
+        fail("lifecycle.dependency_artifact_missing", dependency.name);
+      }
+      throw error;
+    });
+    const artifactEntries = artifactFiles.map(({ path: artifactPath, digest, byteLength }) => ({ path: artifactPath, digest, byteLength }));
+    const artifactDigest = digestObject(artifactEntries);
+    if (artifactDigest !== state.artifactDigest) fail("lifecycle.dependency_artifact_mismatch", dependency.name);
+    const artifactByPath = new Map(artifactFiles.map((file) => [file.path, file]));
+    const pluginManifest = artifactByPath.get("plugin.json");
+    const revisionRecord = artifactByPath.get("revision.json");
+    if (!pluginManifest || parseCapturedJson(pluginManifest.bytes, dependency.name + "/plugin.json").name !== dependency.name) {
+      fail("lifecycle.dependency_artifact_mismatch", dependency.name);
+    }
+    if (!revisionRecord) fail("lifecycle.dependency_revision_missing", dependency.name);
+    const pinnedArtifact = parseCapturedJson(revisionRecord.bytes, dependency.name + "/revision.json");
+    if (pinnedArtifact.revision !== dependency.revision || pinnedArtifact.sourceUrl !== dependency.sourceUrl) {
+      fail("lifecycle.dependency_mismatch", dependency.name);
+    }
+    const discovery = await readDiscovery(profileRoot, dependency.name);
+    if (!discovery.imported) fail("lifecycle.dependency_discovery_missing", dependency.name);
+    if (discovery.source !== state.ownership) fail("lifecycle.dependency_ownership_mismatch", dependency.name);
     records.push({
       schemaVersion: 1,
       name: dependency.name,
@@ -624,6 +725,8 @@ export const verifyProfileDependencies = async (profileRoot, lockInput) => {
       expectedRevision: dependency.revision,
       observedRevision: state.revision,
       ownership: state.ownership,
+      sourceUrl: state.sourceUrl,
+      artifactDigest,
       status: state.ownership === "user" ? "user_owned_verified" : "release_owned_verified",
     });
   }
@@ -725,6 +828,18 @@ const packageResidue = async (profileRoot, packageName) => {
   return residue;
 };
 
+const restoreReleaseBaseline = async (profileRoot, packageName, baselineMetadata, before, volatilityPolicy) => {
+  await fs.rm(installedPluginRoot(profileRoot, packageName), { recursive: true, force: true });
+  await restoreMetadata(profileRoot, baselineMetadata);
+  const after = await normalizedLifecycleSnapshot(profileRoot, volatilityPolicy);
+  const diff = diffProfileSnapshots(before, after);
+  const packageOwnedResiduePaths = await packageResidue(profileRoot, packageName);
+  if (packageOwnedResiduePaths.length > 0 || diff.changedPaths.length > 0) {
+    fail("lifecycle.cleanup_failed", packageName);
+  }
+  return { after, diff, packageOwnedResiduePaths };
+};
+
 const preflightPackageConflict = async (profileRoot, packageName) => {
   const discovery = await readDiscovery(profileRoot, packageName);
   const installedRoot = installedPluginRoot(profileRoot, packageName);
@@ -734,7 +849,24 @@ const preflightPackageConflict = async (profileRoot, packageName) => {
   if (config?.plugins && Object.hasOwn(config.plugins, packageName)) fail("lifecycle.precedence_conflict", packageName);
 };
 
-export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, profileFixture }) => {
+export const runReleaseLifecycle = async ({
+  cliPath,
+  pluginRoot,
+  profileRoot,
+  profileFixture,
+  maximumCountedMs = DEFAULT_MAXIMUM_COUNTED_MS,
+  maximumCommandOutputBytes = DEFAULT_MAXIMUM_COMMAND_OUTPUT_BYTES,
+}) => {
+  if (!Number.isSafeInteger(maximumCountedMs) || maximumCountedMs <= 0 || maximumCountedMs > DEFAULT_MAXIMUM_COUNTED_MS) {
+    fail("lifecycle.invalid_field", "$.maximumCountedMs");
+  }
+  if (
+    !Number.isSafeInteger(maximumCommandOutputBytes)
+    || maximumCommandOutputBytes <= 0
+    || maximumCommandOutputBytes > DEFAULT_MAXIMUM_COMMAND_OUTPUT_BYTES
+  ) {
+    fail("lifecycle.invalid_field", "$.maximumCommandOutputBytes");
+  }
   const totalStarted = process.hrtime.bigint();
   const lock = await loadBehaviorLock(path.join(pluginRoot, "behavior-lock.json"));
   if (!lock.supportedPlatforms.some((platform) => platform.os === process.platform && platform.architecture === process.arch)) {
@@ -743,7 +875,11 @@ export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, pr
   const versionResult = await runProcess([cliPath, "--version"], {
     cwd: pluginRoot,
     env: commandEnvironment(profileRoot),
+    timeoutMs: maximumCountedMs,
+    maximumOutputBytes: maximumCommandOutputBytes,
   });
+  if (versionResult.terminationReason === "timeout") fail("lifecycle.command_timeout", "cli_version");
+  if (versionResult.terminationReason === "output_limit") fail("lifecycle.command_output_limit", "cli_version");
   if (versionResult.exitCode !== 0) fail("lifecycle.cli_version_failed", "$.cliPath");
   const observedVersion = parseVersion(versionResult.stdout, "$.cliVersion");
   if (!versionAtLeast(observedVersion, parseVersion(lock.minimumCliVersion, "$.minimumCliVersion"))) {
@@ -762,16 +898,27 @@ export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, pr
   await preflightPackageConflict(profileRoot, lock.packageName);
   const dependencyDigests = new Map();
   for (const dependency of dependenciesBefore) {
-    const file = path.join(profileRoot, ".abe", "dependencies", dependency.name + ".json");
-    dependencyDigests.set(dependency.name, await readOptionalBytes(file).then((bytes) => (bytes ? digestBytes(bytes) : null)));
+    dependencyDigests.set(dependency.name, digestObject(dependency));
   }
 
   const operations = [];
-  const timedCommand = async (name, args) => {
+  const countedStarted = process.hrtime.bigint();
+  const elapsedCountedMs = () => Number((process.hrtime.bigint() - countedStarted) / 1_000_000n);
+  const timedCommand = async (name, args, { counted = false } = {}) => {
     const start = process.hrtime.bigint();
-    const result = await runPluginCommand(cliPath, args, { profileRoot, cwd: pluginRoot, volatilityPolicy: effectivePolicy });
+    const remainingMs = counted ? maximumCountedMs - elapsedCountedMs() : maximumCountedMs;
+    if (remainingMs <= 0) fail("lifecycle.command_timeout", name);
+    const result = await runPluginCommand(cliPath, args, {
+      profileRoot,
+      cwd: pluginRoot,
+      volatilityPolicy: effectivePolicy,
+      timeoutMs: remainingMs,
+      maximumOutputBytes: maximumCommandOutputBytes,
+    });
     const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
     operations.push({ schemaVersion: 1, name, command: String(args[0]), exitCode: result.exitCode, durationMs, touchedPaths: result.touchedPaths });
+    if (result.terminationReason === "timeout") fail("lifecycle.command_timeout", name);
+    if (result.terminationReason === "output_limit") fail("lifecycle.command_output_limit", name);
     if (result.exitCode !== 0) fail("lifecycle.command_failed", name);
     return { result, durationMs };
   };
@@ -779,14 +926,15 @@ export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, pr
     const start = process.hrtime.bigint();
     await inspectInstall(profileRoot, expectedLock);
     const durationMs = Number((process.hrtime.bigint() - start) / 1_000_000n);
+    if (elapsedCountedMs() >= maximumCountedMs) fail("lifecycle.command_timeout", name);
     operations.push({ schemaVersion: 1, name, command: "inspect-install", exitCode: 0, durationMs, touchedPaths: [] });
     return durationMs;
   };
 
   let upgrade;
   try {
-    const validation = await timedCommand("validate", ["validate", pluginRoot]);
-    const installation = await timedCommand("install", ["install", pluginRoot]);
+    const validation = await timedCommand("validate", ["validate", pluginRoot], { counted: true });
+    const installation = await timedCommand("install", ["install", pluginRoot], { counted: true });
     const verificationMs = await timedInspection("verify", lock);
     const installed = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
     await timedCommand("repeat_install", ["install", pluginRoot]);
@@ -803,22 +951,23 @@ export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, pr
     await inspectInstall(profileRoot, lock);
     await timedCommand("uninstall", ["uninstall", lock.packageName]);
     const cliResidueBeforeCleanup = await packageResidue(profileRoot, lock.packageName);
-    await restoreMetadata(profileRoot, baselineMetadata);
-    const after = await normalizedLifecycleSnapshot(profileRoot, effectivePolicy);
-    const diff = diffProfileSnapshots(before, after);
-    const packageOwnedResiduePaths = await packageResidue(profileRoot, lock.packageName);
+    const { after, diff, packageOwnedResiduePaths } = await restoreReleaseBaseline(
+      profileRoot,
+      lock.packageName,
+      baselineMetadata,
+      before,
+      effectivePolicy,
+    );
     const dependenciesAfter = await verifyProfileDependencies(profileRoot, lock);
     const dependencies = [];
     for (const dependency of dependenciesAfter) {
-      const file = path.join(profileRoot, ".abe", "dependencies", dependency.name + ".json");
-      const afterDigest = await readOptionalBytes(file).then((bytes) => (bytes ? digestBytes(bytes) : null));
-      dependencies.push({ ...dependency, preserved: dependencyDigests.get(dependency.name) === afterDigest });
+      dependencies.push({ ...dependency, preserved: dependencyDigests.get(dependency.name) === digestObject(dependency) });
     }
     const countedInstallVerifyMs = validation.durationMs + installation.durationMs + verificationMs;
     const totalDurationMs = Number((process.hrtime.bigint() - totalStarted) / 1_000_000n);
     return {
       schemaVersion: 1,
-      valid: packageOwnedResiduePaths.length === 0 && diff.changedPaths.length === 0 && countedInstallVerifyMs < 600_000,
+      valid: packageOwnedResiduePaths.length === 0 && diff.changedPaths.length === 0 && countedInstallVerifyMs < maximumCountedMs,
       profileFixture,
       packageName: lock.packageName,
       packageVersion: lock.packageVersion,
@@ -828,7 +977,7 @@ export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, pr
       operations,
       totalDurationMs,
       countedInstallVerifyMs,
-      maximumCountedMs: 600_000,
+      maximumCountedMs,
       excludedIntervals: [
         { schemaVersion: 1, kind: "authentication", counted: false, durationMs: 0, reason: "prequalified local CLI" },
         { schemaVersion: 1, kind: "dependency_download", counted: false, durationMs: 0, reason: "local package; no dependency download" },
@@ -842,6 +991,9 @@ export const runReleaseLifecycle = async ({ cliPath, pluginRoot, profileRoot, pr
       afterProfileDigest: after.profileDigest,
       volatilityReview: { schemaVersion: 1, acceptedPaths, rejectedPaths },
     };
+  } catch (error) {
+    await restoreReleaseBaseline(profileRoot, lock.packageName, baselineMetadata, before, effectivePolicy);
+    throw error;
   } finally {
     if (upgrade) await fs.rm(upgrade.temporaryRoot, { recursive: true, force: true });
   }
