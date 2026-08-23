@@ -195,8 +195,9 @@ test("inert manifest is the minimal CLI-accepted package and behavior lock cover
   const runtimeScriptDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "scripts", "runtime-lib.mjs")));
   const hooksDigest = rawDigest(await fs.readFile(path.join(pluginRoot, "hooks.json")));
 
-  assert.deepEqual(Object.keys(manifest).sort(), ["name"]);
+  assert.deepEqual(Object.keys(manifest).sort(), ["name", "version"]);
   assert.equal(manifest.name, "antigravity-behavior-engineering");
+  assert.equal(manifest.version, "0.0.0");
   assert.equal(lock.schemaVersion, 1);
   assert.equal(lock.packageName, manifest.name);
   assert.equal(lock.packageVersion, "0.0.0");

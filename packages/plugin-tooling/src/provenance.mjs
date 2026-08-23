@@ -13,9 +13,10 @@ const NODE_RANGE_PATTERN = /^(?:(?:>=|>|<=|<|=|\^|~)?[0-9]+(?:\.[0-9]+){0,2})(?:
 const SPDX_LICENSE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9.-]*(?:\+)?$/u;
 const TIMESTAMP_PATTERN = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/u;
 const UNPINNED_REVISIONS = new Set(["HEAD", "latest", "main", "master"]);
-const PACKAGE_LOCK_KEYS = new Set(["schemaVersion", "packageName", "packageVersion", "sourceRevision", "minimumCliVersion", "supportedPlatforms", "components", "dependencies", "files", "generatedAt"]);
+const PACKAGE_LOCK_KEYS = new Set(["schemaVersion", "packageName", "packageVersion", "sourceRevision", "minimumCliVersion", "supportedPlatforms", "components", "rejectedComponents", "dependencies", "files", "generatedAt"]);
 const PLATFORM_KEYS = new Set(["schemaVersion", "os", "architecture", "nodeRange"]);
 const COMPONENT_KEYS = new Set(["schemaVersion", "kind", "name", "path", "claimId", "defaultEnabled", "digest"]);
+const REJECTED_COMPONENT_KEYS = new Set(["schemaVersion", "taskId", "kind", "name", "decision", "evidencePath", "evidenceDigest"]);
 const COMPONENT_KINDS = new Set(["skill", "rule", "agent", "hook", "script"]);
 const DEPENDENCY_KEYS = new Set(["schemaVersion", "name", "sourceUrl", "revision", "license", "consumption", "required", "qualificationEvidence"]);
 const ADAPTATION_KEYS = new Set(["schemaVersion", "sourceDigest", "localPath", "classification"]);
@@ -188,6 +189,21 @@ const validateComponentLock = (component, index) => {
   validateDigest(component.digest, "$.packageLock.components[" + index + "].digest");
 };
 
+const validateRejectedComponentLock = (component, index) => {
+  const fieldPath = "$.packageLock.rejectedComponents[" + index + "]";
+  assertObject(component, fieldPath);
+  assertKnownKeys(component, REJECTED_COMPONENT_KEYS, fieldPath, "provenance.invalid_package_lock");
+  if (component.schemaVersion !== 1 || !/^T[0-9]{3}$/u.test(component.taskId) || !COMPONENT_KINDS.has(component.kind)) {
+    fail("provenance.invalid_package_lock", fieldPath);
+  }
+  assertNonEmptyString(component.name, fieldPath + ".name", "provenance.invalid_package_lock");
+  if (component.decision !== "not_selected") {
+    fail("provenance.invalid_package_lock", fieldPath + ".decision");
+  }
+  assertRelativePath(component.evidencePath, fieldPath + ".evidencePath");
+  validateDigest(component.evidenceDigest, fieldPath + ".evidenceDigest");
+};
+
 const validatePackageLock = (packageLock) => {
   assertKnownKeys(packageLock, PACKAGE_LOCK_KEYS, "$.packageLock", "provenance.invalid_package_lock");
   if (packageLock.schemaVersion !== 1) {
@@ -213,6 +229,18 @@ const validatePackageLock = (packageLock) => {
     }
     componentIdentities.add(identity);
   });
+  if (!Array.isArray(packageLock.rejectedComponents)) {
+    fail("provenance.invalid_package_lock", "$.packageLock.rejectedComponents");
+  }
+  const rejectedIdentities = new Set();
+  packageLock.rejectedComponents.forEach((component, index) => {
+    validateRejectedComponentLock(component, index);
+    const identity = component.kind + "\n" + component.name;
+    if (componentIdentities.has(identity) || rejectedIdentities.has(identity)) {
+      fail("provenance.invalid_package_lock", "$.packageLock.rejectedComponents");
+    }
+    rejectedIdentities.add(identity);
+  });
   validateTimestamp(packageLock.generatedAt, "$.packageLock.generatedAt");
 };
 
@@ -230,7 +258,7 @@ const validatePackageIdentity = (files, packageLock) => {
   if (pluginJson === null || typeof pluginJson !== "object" || Array.isArray(pluginJson) || typeof pluginJson.name !== "string" || pluginJson.name.length === 0) {
     fail("provenance.invalid_package_lock", "$.packageLock.packageName");
   }
-  if (packageLock.packageName !== pluginJson.name) {
+  if (packageLock.packageName !== pluginJson.name || packageLock.packageVersion !== pluginJson.version) {
     fail("provenance.invalid_package_lock", "$.packageLock.packageName");
   }
 };
