@@ -739,10 +739,35 @@ def _selected_model_override_present(log_text: str, *, model: str, expected_labe
     )
 
 
-def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> QualificationResult:
+def qualify_environment(
+    worker: AntigravityWorkerHandle,
+    protocol: object,
+    *,
+    release_candidate_inputs: object | None = None,
+    plugin_lifecycle_evidence: str = "not_applicable",
+    customization_conformance_evidence: str = "not_applicable",
+) -> QualificationResult:
     """Qualify an exact CLI artifact and target model/effort set."""
 
     parsed_protocol = parse_contract("QualificationProtocol", protocol)
+    release_inputs_digest = "not_applicable"
+    if parsed_protocol["customizationScope"] == "release_candidate":
+        if not isinstance(release_candidate_inputs, dict):
+            raise ValueError("antigravity.release_candidate_inputs_required")
+        release_inputs_digest = _digest_payload(release_candidate_inputs)
+        if release_inputs_digest != parsed_protocol["releaseCandidateInputsDigest"]:
+            raise ValueError("antigravity.release_candidate_inputs_mismatch")
+        if release_candidate_inputs.get("workerImageDigest") != parsed_protocol["imageDigest"]:
+            raise ValueError("antigravity.release_candidate_worker_mismatch")
+        if plugin_lifecycle_evidence == "not_applicable":
+            raise ValueError("antigravity.plugin_lifecycle_evidence_required")
+        if customization_conformance_evidence == "not_applicable":
+            raise ValueError("antigravity.customization_conformance_evidence_required")
+    elif any(
+        value != "not_applicable"
+        for value in (plugin_lifecycle_evidence, customization_conformance_evidence)
+    ) or release_candidate_inputs is not None:
+        raise ValueError("antigravity.cli_core_release_evidence_forbidden")
     cli_path = Path(worker.cli_path)
     cli_digest = _sha256_file(cli_path)
     if cli_digest != parsed_protocol["cliArtifactDigest"]:
@@ -854,7 +879,7 @@ def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> Qu
     )
     limitations = [
         "Antigravity CLI stream exposes init.model but no independent provider-served identity field.",
-        "Antigravity CLI 1.1.18 exposes --print-timeout; the runner contract's provisional --timeout spelling is not accepted.",
+        f"Antigravity CLI {cli_version} exposes --print-timeout; the runner contract's provisional --timeout spelling is not accepted.",
     ]
     platform_record = parsed_protocol["platforms"][0] if parsed_protocol["platforms"] else _semver_platform()
     environment = parse_contract(
@@ -870,8 +895,8 @@ def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> Qu
             "modelConfigurationEvidence": dict(sorted(model_evidence.items())),
             "unknownModelFallbackEvidence": _digest_payload(fallback_results),
             "structuredCaptureEvidence": _digest_payload(raw_model_runs),
-            "pluginLifecycleEvidence": "not_applicable",
-            "customizationConformanceEvidence": "not_applicable",
+            "pluginLifecycleEvidence": plugin_lifecycle_evidence,
+            "customizationConformanceEvidence": customization_conformance_evidence,
             "authorityToolCapabilityEvidence": _digest_payload(
                 {
                     "catalog": catalog,
@@ -891,6 +916,7 @@ def qualify_environment(worker: AntigravityWorkerHandle, protocol: object) -> Qu
         "schemaVersion": 1,
         "kind": "AntigravityQualificationEvidence",
         "protocolDigest": parsed_protocol["protocolDigest"],
+        "releaseCandidateInputsDigest": release_inputs_digest,
         "environmentQualification": environment,
         "environmentQualificationDigest": canonical_contract_digest("EnvironmentQualificationRecord", environment),
         "cli": {"path": str(cli_path), "version": cli_version, "digest": cli_digest},

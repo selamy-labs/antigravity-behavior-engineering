@@ -479,6 +479,10 @@ def _check_qualification_protocol(value: dict[str, Any]) -> None:
     if value["customizationScope"] == "release_candidate":
         models = {request["modelRequest"] for request in value["modelRequests"]}
         _require_target_model_map({model: True for model in models}, "$.modelRequests")
+        if not isinstance(value.get("releaseCandidateInputsDigest"), str):
+            _fail(ReasonCodes.BINDING_MISMATCH, "$.releaseCandidateInputsDigest")
+    elif "releaseCandidateInputsDigest" in value:
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.releaseCandidateInputsDigest")
     if tuple(value["requiredPreflights"]) != _QUALIFICATION_PREFLIGHTS:
         _fail(ReasonCodes.BINDING_MISMATCH, "$.requiredPreflights")
 

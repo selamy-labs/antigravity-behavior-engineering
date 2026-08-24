@@ -15,8 +15,15 @@ Each frozen protocol has one positive and one relevant-negative regression
 variant. The role-to-reserved-commitment assignment is fixed before replay.
 The commitment string is supplied as the generator's opaque seed input; no
 outcome, treatment output, hidden grader, or sealed instance influences
-generation. Re-running the frozen generator over the recorded family,
-partition, and commitment must reproduce every scenario card byte-for-byte.
+the semantic protocol or seed assignment. The original registry's claimed
+concrete scenario bytes were synthetic and are unavailable. Under the T033
+scope amendment, an independent evaluation context materialized the real
+private 28-case bundle after the candidate causality freeze and before any
+protected outcome was observed. The public registry contains only the resulting
+fixture, starting-state, controller, and aggregate protected-material digests.
+Its `concreteBindingCorrection` records the original registry digest, private
+manifest digest, candidate freeze, qualification, and amendment bindings.
+Candidate mutation remains forbidden after an outcome is observed.
 
 The third reserved commitment remains unused. It is retained for the frozen
 protocol rather than consumed after treatment.

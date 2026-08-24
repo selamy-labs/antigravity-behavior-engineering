@@ -1730,7 +1730,8 @@
           "authority_tool_inventory"
         ],
         "customizationScope": "release_candidate",
-        "protocolDigest": "sha256:cf0cc9d3171f4739f2b1c0e80d7fd03bc6fa0565c63d137739609f1066271d59"
+        "releaseCandidateInputsDigest": "sha256:9898989898989898989898989898989898989898989898989898989898989898",
+        "protocolDigest": "sha256:17f29e083a9ed315dde35aa6ba0356acd88e689af4dbe114cf574b703ad9e85e"
       }
     },
     {

@@ -2466,10 +2466,39 @@
             "release_candidate"
           ]
         },
+        "releaseCandidateInputsDigest": {
+          "$ref": "#/$defs/Digest"
+        },
         "protocolDigest": {
           "$ref": "#/$defs/Digest"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "customizationScope": {
+                "const": "release_candidate"
+              }
+            },
+            "required": [
+              "customizationScope"
+            ]
+          },
+          "then": {
+            "required": [
+              "releaseCandidateInputsDigest"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "releaseCandidateInputsDigest"
+              ]
+            }
+          }
+        }
+      ]
     },
     "ReasonCodeRule": {
       "type": "object",

@@ -68,6 +68,7 @@ def _protocol(cli_digest: str = "sha256:" + "a" * 64, image_digest: str = "sha25
     protocol = _case_value("QualificationProtocol")
     protocol["protocolId"] = "qualification-protocol-t013-test"
     protocol["customizationScope"] = "cli_core"
+    protocol.pop("releaseCandidateInputsDigest", None)
     protocol["cliVersionConstraint"] = "1.1.18"
     protocol["cliArtifactDigest"] = cli_digest
     protocol["imageDigest"] = image_digest
@@ -456,6 +457,45 @@ def test_qualify_environment_freezes_model_evidence_and_reusable_environment_rec
         "step_update",
         "result",
     ]
+
+
+def test_release_candidate_qualification_binds_candidate_inputs_and_real_lifecycle_evidence(tmp_path):
+    fake = _fake_agy(tmp_path)
+    cli_digest = sha256_digest(fake.read_bytes())
+    candidate_inputs = {
+        "schemaVersion": 1,
+        "kind": "ReleaseCandidateQualificationInputs",
+        "workerImageDigest": _digest("5"),
+        "candidateArchiveDigest": _digest("6"),
+    }
+    protocol = _protocol(cli_digest=cli_digest, image_digest=candidate_inputs["workerImageDigest"])
+    protocol["customizationScope"] = "release_candidate"
+    protocol["releaseCandidateInputsDigest"] = sha256_digest(canonical_bytes(candidate_inputs))
+    body = copy.deepcopy(protocol)
+    body.pop("protocolDigest")
+    protocol["protocolDigest"] = sha256_digest(canonical_bytes(body))
+    protocol = parse_contract("QualificationProtocol", protocol)
+    handle = AntigravityWorkerHandle(
+        cli_path=fake,
+        request_path=_request(tmp_path),
+        output_root=tmp_path / "qualification-output",
+        cwd=tmp_path,
+        env={},
+    )
+
+    qualification = qualify_environment(
+        handle,
+        protocol,
+        release_candidate_inputs=candidate_inputs,
+        plugin_lifecycle_evidence=_digest("7"),
+        customization_conformance_evidence=_digest("8"),
+    )
+
+    assert qualification.environment["scope"] == "release_candidate"
+    assert qualification.environment["pluginLifecycleEvidence"] == _digest("7")
+    assert qualification.environment["customizationConformanceEvidence"] == _digest("8")
+    assert qualification.environment["supportDecision"] == "qualified"
+    assert qualification.raw["releaseCandidateInputsDigest"] == protocol["releaseCandidateInputsDigest"]
 
 
 def test_qualify_environment_rejects_protocol_model_missing_from_live_catalog(tmp_path):

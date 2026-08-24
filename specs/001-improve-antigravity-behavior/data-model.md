@@ -595,6 +595,7 @@ customization configuration. It never contains a per-attempt valid-start time.
 | `structuredCaptureContractDigest` | SHA-256 | Required |
 | `requiredPreflights` | exact seven registered preflight IDs | Closed set |
 | `customizationScope` | `cli_core` or `release_candidate` | Required |
+| `releaseCandidateInputsDigest` | SHA-256 | Required only for `release_candidate`; absent for historical `cli_core` protocols |
 | `protocolDigest` | SHA-256 | Canonical identity excluding itself |
 
 ### AttemptQualificationRecord

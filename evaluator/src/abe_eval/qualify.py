@@ -9,7 +9,7 @@ from typing import Any
 
 from abe_eval.antigravity import AntigravityWorkerHandle, qualify_environment, run_matrix
 from abe_eval.bare_condition import MATRIX_TYPE, run_bare_pilot_matrix
-from abe_eval.canonical import canonical_bytes
+from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import parse_contract
 from abe_eval.paired_incumbent import MATRIX_TYPE as PAIRED_INCUMBENT_MATRIX_TYPE
 from abe_eval.paired_incumbent import run_paired_incumbent_matrix
@@ -35,10 +35,33 @@ def command_qualify(
     scope: str,
     cli_artifact: Path,
     output_path: Path,
+    release_candidate_inputs_path: Path | None = None,
+    plugin_lifecycle_evidence_path: Path | None = None,
+    customization_conformance_evidence_path: Path | None = None,
 ) -> dict[str, object]:
     protocol = parse_contract("QualificationProtocol", load_json(protocol_path))
     if protocol["customizationScope"] != scope:
         raise ValueError("qualify.scope_mismatch")
+    release_candidate_inputs: dict[str, object] | None = None
+    plugin_lifecycle_evidence = "not_applicable"
+    customization_conformance_evidence = "not_applicable"
+    if scope == "release_candidate":
+        if release_candidate_inputs_path is None:
+            raise ValueError("qualify.release_candidate_inputs_required")
+        if plugin_lifecycle_evidence_path is None or customization_conformance_evidence_path is None:
+            raise ValueError("qualify.release_candidate_lifecycle_evidence_required")
+        release_candidate_inputs = load_json(release_candidate_inputs_path)
+        plugin_lifecycle_evidence = sha256_digest(plugin_lifecycle_evidence_path.read_bytes())
+        customization_conformance_evidence = sha256_digest(customization_conformance_evidence_path.read_bytes())
+    elif any(
+        value is not None
+        for value in (
+            release_candidate_inputs_path,
+            plugin_lifecycle_evidence_path,
+            customization_conformance_evidence_path,
+        )
+    ):
+        raise ValueError("qualify.cli_core_release_evidence_forbidden")
     output_path = output_path.resolve()
     output_root = (output_path.parent / (output_path.stem + "-artifacts")).resolve()
     request_path = output_root / "request.txt"
@@ -58,6 +81,9 @@ def command_qualify(
             timeout_seconds=45,
         ),
         protocol,
+        release_candidate_inputs=release_candidate_inputs,
+        plugin_lifecycle_evidence=plugin_lifecycle_evidence,
+        customization_conformance_evidence=customization_conformance_evidence,
     )
     write_json(output_path, result.raw)
     return result.raw
