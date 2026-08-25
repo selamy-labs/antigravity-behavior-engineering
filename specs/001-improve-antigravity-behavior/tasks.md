@@ -1683,6 +1683,36 @@ quickly, coexist safely, and return to the original unrelated state on removal.
 - Create: `evals/regression/diagnostic-registry.json`
 - Test: `evaluator/tests/test_regression_portfolio.py`
 - Create: `docs/evaluation/regression-taxonomy.md`
+- Create (project-owner-authorized current-CLI qualification): `evals/protocols/qualification-release-candidate.json`
+- Create (project-owner-authorized candidate input lock): `evals/protocols/release-candidate-qualification-inputs.json`
+- Modify (project-owner-authorized conditional contract): `evals/schemas/evaluation.schema.json`
+- Modify (project-owner-authorized conditional contract): `evaluator/src/abe_eval/contracts.py`
+- Modify (project-owner-authorized protected runner bridge): `evaluator/src/abe_eval/qualify.py`
+- Modify (project-owner-authorized protected runner bridge): `evaluator/src/abe_eval/cli.py`
+- Create (project-owner-authorized protected runner bridge): `evaluator/src/abe_eval/regression.py`
+- Test (authorized qualification sentinel): `evaluator/tests/test_live_qualification.py`
+- Test (authorized adapter sentinel): `evaluator/tests/test_antigravity_adapter.py`
+- Modify (authorized contract model): `specs/001-improve-antigravity-behavior/data-model.md`
+- Modify (authorized contract fixture): `tests/contract/fixtures/evaluation-contracts.json`
+
+**Protected-regression correction approval**: On 2026-08-24 the project owner
+authorized T033 to preserve the T032 candidate bytes, independently materialize
+real private regression inputs from the frozen semantic protocols and seed
+commitments, replace unavailable synthetic concrete-byte bindings with the
+resulting digests, qualify the current authorized CLI, and add only the minimum
+controller bridge needed for replay. Concrete protected bytes are post-candidate-
+freeze and pre-outcome; only the semantic protocols and seed commitments retain
+the original pre-treatment claim. This correction changes no candidate package,
+metric, threshold, denominator, ResourceEnvelope, or analysis decision and does
+not satisfy the T038 or T045 human gates.
+
+**Direct-coverage amendment**: The frozen confirmatory suite has no direct
+lifecycle regression protocol and no direct subagent-failure regression
+protocol. T032 lifecycle evidence and T029 review-topology evidence are
+checkpoint context only; they do not convert leakage/isolation, hook/tool
+failure, or agent-positive-control variants into direct coverage. The public
+taxonomy MUST record both gaps as uncovered and ineligible for T034 selection
+or release claims. Any later direct cases are diagnostic/noncausal only.
 
 **Required families**:
 
@@ -1711,9 +1741,12 @@ model/quota drift, truncated capture, grader leakage, lifecycle, isolation
 - [ ] Review ceiling families, unexpected failures, and classification disputes
   directly from raw evidence before changing any component.
 
-**Acceptance**: Every required behavior and failure mode has immutable,
-pre-treatment-frozen independent regression coverage with artifact-first
-grading; post-treatment diagnostics cannot enter causal selection evidence.
+**Acceptance**: Every directly covered behavior and failure mode has immutable,
+independently materialized regression coverage with pre-treatment-frozen
+semantic protocols and seed commitments, post-candidate-freeze/pre-outcome
+concrete bytes, and artifact-first grading. Lifecycle and subagent failure are
+explicit uncovered gaps; post-treatment diagnostics cannot enter causal
+selection evidence or release claims.
 
 - [ ] T034 [US5] Run final-candidate leave-one-component-out ablations
 

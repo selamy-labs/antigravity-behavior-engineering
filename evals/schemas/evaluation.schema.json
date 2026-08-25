@@ -2263,6 +2263,78 @@
         }
       }
     },
+    "ReleaseCandidateQualificationInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "workerImageDigest",
+        "candidateArchiveDigest",
+        "packageArchiveRecordDigest",
+        "packageLockDigest",
+        "behaviorLockDigest",
+        "pluginManifestDigest",
+        "t032CheckpointDigest",
+        "candidateCausalityFreezeDigest",
+        "authorizedCliDigest",
+        "invocationBoundaryDigest",
+        "captureBoundaryDigest",
+        "pluginLifecycleSourceEvidenceDigest",
+        "customizationConformanceSourceEvidenceDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "ReleaseCandidateQualificationInputs" },
+        "workerImageDigest": { "$ref": "#/$defs/Digest" },
+        "candidateArchiveDigest": { "$ref": "#/$defs/Digest" },
+        "packageArchiveRecordDigest": { "$ref": "#/$defs/Digest" },
+        "packageLockDigest": { "$ref": "#/$defs/Digest" },
+        "behaviorLockDigest": { "$ref": "#/$defs/Digest" },
+        "pluginManifestDigest": { "$ref": "#/$defs/Digest" },
+        "t032CheckpointDigest": { "$ref": "#/$defs/Digest" },
+        "candidateCausalityFreezeDigest": { "$ref": "#/$defs/Digest" },
+        "authorizedCliDigest": { "$ref": "#/$defs/Digest" },
+        "invocationBoundaryDigest": { "$ref": "#/$defs/Digest" },
+        "captureBoundaryDigest": { "$ref": "#/$defs/Digest" },
+        "pluginLifecycleSourceEvidenceDigest": { "$ref": "#/$defs/Digest" },
+        "customizationConformanceSourceEvidenceDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
+    "ReleaseCandidateQualificationEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "kind",
+        "evidenceType",
+        "result",
+        "candidateArchiveDigest",
+        "workerImageDigest",
+        "cliDigest",
+        "releaseCandidateInputsDigest",
+        "invocationBoundaryDigest",
+        "captureBoundaryDigest",
+        "sourceEvidenceDigest",
+        "limitations",
+        "evidenceContractDigest"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "kind": { "const": "ReleaseCandidateQualificationEvidence" },
+        "evidenceType": { "enum": ["plugin_lifecycle", "customization_conformance"] },
+        "result": { "enum": ["pass", "fail", "indeterminate"] },
+        "candidateArchiveDigest": { "$ref": "#/$defs/Digest" },
+        "workerImageDigest": { "$ref": "#/$defs/Digest" },
+        "cliDigest": { "$ref": "#/$defs/Digest" },
+        "releaseCandidateInputsDigest": { "$ref": "#/$defs/Digest" },
+        "invocationBoundaryDigest": { "$ref": "#/$defs/Digest" },
+        "captureBoundaryDigest": { "$ref": "#/$defs/Digest" },
+        "sourceEvidenceDigest": { "$ref": "#/$defs/Digest" },
+        "limitations": { "$ref": "#/$defs/StringArray" },
+        "evidenceContractDigest": { "$ref": "#/$defs/Digest" }
+      }
+    },
     "EnvironmentQualificationRecord": {
       "type": "object",
       "additionalProperties": false,
@@ -2466,10 +2538,39 @@
             "release_candidate"
           ]
         },
+        "releaseCandidateInputsDigest": {
+          "$ref": "#/$defs/Digest"
+        },
         "protocolDigest": {
           "$ref": "#/$defs/Digest"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "customizationScope": {
+                "const": "release_candidate"
+              }
+            },
+            "required": [
+              "customizationScope"
+            ]
+          },
+          "then": {
+            "required": [
+              "releaseCandidateInputsDigest"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "releaseCandidateInputsDigest"
+              ]
+            }
+          }
+        }
+      ]
     },
     "ReasonCodeRule": {
       "type": "object",
@@ -3426,6 +3527,12 @@
     },
     {
       "$ref": "#/$defs/QualificationProtocol"
+    },
+    {
+      "$ref": "#/$defs/ReleaseCandidateQualificationInputs"
+    },
+    {
+      "$ref": "#/$defs/ReleaseCandidateQualificationEvidence"
     },
     {
       "$ref": "#/$defs/AttemptQualificationRecord"

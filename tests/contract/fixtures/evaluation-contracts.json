@@ -1730,7 +1730,48 @@
           "authority_tool_inventory"
         ],
         "customizationScope": "release_candidate",
-        "protocolDigest": "sha256:cf0cc9d3171f4739f2b1c0e80d7fd03bc6fa0565c63d137739609f1066271d59"
+        "releaseCandidateInputsDigest": "sha256:9898989898989898989898989898989898989898989898989898989898989898",
+        "protocolDigest": "sha256:17f29e083a9ed315dde35aa6ba0356acd88e689af4dbe114cf574b703ad9e85e"
+      }
+    },
+    {
+      "name": "ReleaseCandidateQualificationInputs",
+      "kind": "ReleaseCandidateQualificationInputs",
+      "value": {
+        "schemaVersion": 1,
+        "kind": "ReleaseCandidateQualificationInputs",
+        "workerImageDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "candidateArchiveDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "packageArchiveRecordDigest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "packageLockDigest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "behaviorLockDigest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "pluginManifestDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "t032CheckpointDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "candidateCausalityFreezeDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "authorizedCliDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "invocationBoundaryDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "captureBoundaryDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "pluginLifecycleSourceEvidenceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "customizationConformanceSourceEvidenceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    },
+    {
+      "name": "ReleaseCandidateQualificationEvidence",
+      "kind": "ReleaseCandidateQualificationEvidence",
+      "value": {
+        "schemaVersion": 1,
+        "kind": "ReleaseCandidateQualificationEvidence",
+        "evidenceType": "plugin_lifecycle",
+        "result": "pass",
+        "candidateArchiveDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "workerImageDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "cliDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "releaseCandidateInputsDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "invocationBoundaryDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "captureBoundaryDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sourceEvidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "limitations": [],
+        "evidenceContractDigest": "sha256:40a90603549b9810f47999c09147e13e67ed9481ef7fde1e24541254d15d28d6"
       }
     },
     {

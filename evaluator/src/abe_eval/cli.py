@@ -540,6 +540,17 @@ def _cmd_qualify(args: argparse.Namespace) -> int:
         scope=str(args.scope),
         cli_artifact=Path(args.cli_artifact),
         output_path=Path(args.output),
+        release_candidate_inputs_path=(
+            Path(args.release_candidate_inputs) if args.release_candidate_inputs else None
+        ),
+        plugin_lifecycle_evidence_path=(
+            Path(args.plugin_lifecycle_evidence) if args.plugin_lifecycle_evidence else None
+        ),
+        customization_conformance_evidence_path=(
+            Path(args.customization_conformance_evidence)
+            if args.customization_conformance_evidence
+            else None
+        ),
     )
     _emit(
         {
@@ -593,6 +604,9 @@ def _parser() -> argparse.ArgumentParser:
     qualify.add_argument("--scope", required=True, choices=["cli_core", "release_candidate"])
     qualify.add_argument("--cli-artifact", required=True)
     qualify.add_argument("--output", required=True)
+    qualify.add_argument("--release-candidate-inputs")
+    qualify.add_argument("--plugin-lifecycle-evidence")
+    qualify.add_argument("--customization-conformance-evidence")
     qualify.set_defaults(func=_cmd_qualify)
 
     run_matrix_parser = subcommands.add_parser("run-matrix")

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "registryId": "diagnostic-registry-2026-08-23",
+  "partition": "diagnostic",
+  "causalStatus": "noncausal",
+  "eligibleForT034Selection": false,
+  "eligibleForReleaseClaim": false,
+  "sourceRegressionRegistryDigest": "sha256:f157b6832090997be009234d663cc5bc2c7dfdee8eb275bb2bc7d98b0afdf7b7",
+  "cases": []
+}

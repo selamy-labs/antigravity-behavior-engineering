@@ -16,6 +16,8 @@ from abe_eval.antigravity import (
     preflight_attempt,
     probe_fail_closed,
     qualify_environment,
+    release_candidate_capture_boundary_digest,
+    release_candidate_invocation_boundary_digest,
     run_antigravity,
 )
 from abe_eval.canonical import canonical_bytes, sha256_digest
@@ -68,6 +70,7 @@ def _protocol(cli_digest: str = "sha256:" + "a" * 64, image_digest: str = "sha25
     protocol = _case_value("QualificationProtocol")
     protocol["protocolId"] = "qualification-protocol-t013-test"
     protocol["customizationScope"] = "cli_core"
+    protocol.pop("releaseCandidateInputsDigest", None)
     protocol["cliVersionConstraint"] = "1.1.18"
     protocol["cliArtifactDigest"] = cli_digest
     protocol["imageDigest"] = image_digest
@@ -106,6 +109,55 @@ def _protocol(cli_digest: str = "sha256:" + "a" * 64, image_digest: str = "sha25
     body.pop("protocolDigest")
     protocol["protocolDigest"] = sha256_digest(canonical_bytes(body))
     return parse_contract("QualificationProtocol", protocol)
+
+
+def _release_candidate_inputs(*, cli_digest: str, worker_image_digest: str) -> dict[str, object]:
+    return {
+        "schemaVersion": 1,
+        "kind": "ReleaseCandidateQualificationInputs",
+        "workerImageDigest": worker_image_digest,
+        "candidateArchiveDigest": _digest("6"),
+        "packageArchiveRecordDigest": _digest("a"),
+        "packageLockDigest": _digest("b"),
+        "behaviorLockDigest": _digest("c"),
+        "pluginManifestDigest": _digest("d"),
+        "t032CheckpointDigest": _digest("e"),
+        "candidateCausalityFreezeDigest": _digest("f"),
+        "authorizedCliDigest": cli_digest,
+        "invocationBoundaryDigest": release_candidate_invocation_boundary_digest(),
+        "captureBoundaryDigest": release_candidate_capture_boundary_digest(),
+        "pluginLifecycleSourceEvidenceDigest": _digest("3"),
+        "customizationConformanceSourceEvidenceDigest": _digest("4"),
+    }
+
+
+def _release_candidate_evidence(
+    evidence_type: str,
+    inputs: dict[str, object],
+    *,
+    result: str = "pass",
+) -> dict[str, object]:
+    source_key = (
+        "pluginLifecycleSourceEvidenceDigest"
+        if evidence_type == "plugin_lifecycle"
+        else "customizationConformanceSourceEvidenceDigest"
+    )
+    value = {
+        "schemaVersion": 1,
+        "kind": "ReleaseCandidateQualificationEvidence",
+        "evidenceType": evidence_type,
+        "result": result,
+        "candidateArchiveDigest": inputs["candidateArchiveDigest"],
+        "workerImageDigest": inputs["workerImageDigest"],
+        "cliDigest": inputs["authorizedCliDigest"],
+        "releaseCandidateInputsDigest": sha256_digest(canonical_bytes(inputs)),
+        "invocationBoundaryDigest": inputs["invocationBoundaryDigest"],
+        "captureBoundaryDigest": inputs["captureBoundaryDigest"],
+        "sourceEvidenceDigest": inputs[source_key],
+        "limitations": [],
+    }
+    value["evidenceContractDigest"] = sha256_digest(canonical_bytes(value))
+    return value
 
 
 def _fake_agy(tmp_path: Path) -> Path:
@@ -216,6 +268,16 @@ def _fake_agy(tmp_path: Path) -> Path:
                 emit(result)
                 emit(init)
                 raise SystemExit(0)
+            if mode == "event_before_init":
+                emit({"event":"step_update","step_update":{"state":"RUNNING"}})
+                emit(init)
+                emit(result)
+                raise SystemExit(0)
+            if mode == "event_after_result":
+                emit(init)
+                emit(result)
+                emit({"event":"step_update","step_update":{"state":"DONE"}})
+                raise SystemExit(0)
             if mode == "soft_denial":
                 emit(init)
                 denied = dict(result)
@@ -285,6 +347,28 @@ def test_build_argv_uses_one_prompt_argument_and_explicit_headless_permissions(t
     assert ";" not in argv[: argv.index("-p")]
 
 
+def test_release_candidate_capture_boundary_binds_first_and_last_event_positions():
+    assert release_candidate_capture_boundary_digest() == sha256_digest(
+        canonical_bytes(
+            {
+                "schemaVersion": 1,
+                "format": "stream-json",
+                "rawLinesPreservedBeforeParsing": True,
+                "requiredInitialEvent": "init",
+                "requiredTerminalEvent": "result",
+                "exactlyOneInitialEvent": True,
+                "exactlyOneTerminalEvent": True,
+                "initialMustBeFirst": True,
+                "terminalMustBeLast": True,
+                "terminalMustFollowInitial": True,
+                "stdoutCaptured": True,
+                "stderrCaptured": True,
+                "logCapturedAt": "/workspace/output/agy.log",
+            }
+        )
+    )
+
+
 def test_successful_stream_preserves_raw_lines_and_returns_runner_worker_result(tmp_path):
     result = _run_fake(tmp_path)
 
@@ -307,7 +391,18 @@ def test_successful_stream_preserves_raw_lines_and_returns_runner_worker_result(
     ]
 
 
-@pytest.mark.parametrize("mode", ["malformed", "duplicate_init", "duplicate_result", "out_of_order", "missing_identity"])
+@pytest.mark.parametrize(
+    "mode",
+    [
+        "malformed",
+        "duplicate_init",
+        "duplicate_result",
+        "out_of_order",
+        "event_before_init",
+        "event_after_result",
+        "missing_identity",
+    ],
+)
 def test_stream_contract_failures_are_preserved_as_capture_malformed(tmp_path, mode):
     result = _run_fake(tmp_path, mode=mode)
 
@@ -456,6 +551,150 @@ def test_qualify_environment_freezes_model_evidence_and_reusable_environment_rec
         "step_update",
         "result",
     ]
+
+
+def test_release_candidate_qualification_binds_candidate_inputs_and_real_lifecycle_evidence(tmp_path):
+    fake = _fake_agy(tmp_path)
+    cli_digest = sha256_digest(fake.read_bytes())
+    candidate_inputs = _release_candidate_inputs(cli_digest=cli_digest, worker_image_digest=_digest("5"))
+    lifecycle = _release_candidate_evidence("plugin_lifecycle", candidate_inputs)
+    customization = _release_candidate_evidence("customization_conformance", candidate_inputs)
+    protocol = _protocol(cli_digest=cli_digest, image_digest=candidate_inputs["workerImageDigest"])
+    protocol["customizationScope"] = "release_candidate"
+    protocol["releaseCandidateInputsDigest"] = sha256_digest(canonical_bytes(candidate_inputs))
+    body = copy.deepcopy(protocol)
+    body.pop("protocolDigest")
+    protocol["protocolDigest"] = sha256_digest(canonical_bytes(body))
+    protocol = parse_contract("QualificationProtocol", protocol)
+    handle = AntigravityWorkerHandle(
+        cli_path=fake,
+        request_path=_request(tmp_path),
+        output_root=tmp_path / "qualification-output",
+        cwd=tmp_path,
+        env={},
+    )
+
+    qualification = qualify_environment(
+        handle,
+        protocol,
+        release_candidate_inputs=candidate_inputs,
+        plugin_lifecycle_evidence=lifecycle,
+        customization_conformance_evidence=customization,
+    )
+
+    assert qualification.environment["scope"] == "release_candidate"
+    assert qualification.environment["pluginLifecycleEvidence"] == canonical_contract_digest(
+        "ReleaseCandidateQualificationEvidence", lifecycle
+    )
+    assert qualification.environment["customizationConformanceEvidence"] == canonical_contract_digest(
+        "ReleaseCandidateQualificationEvidence", customization
+    )
+    assert qualification.environment["supportDecision"] == "qualified"
+    assert qualification.raw["releaseCandidateInputsDigest"] == protocol["releaseCandidateInputsDigest"]
+    assert qualification.raw["releaseCandidateEvidence"] == {
+        "customizationConformance": customization,
+        "pluginLifecycle": lifecycle,
+    }
+
+
+@pytest.mark.parametrize(
+    ("target", "mutation", "error"),
+    [
+        ("lifecycle", lambda value: value.pop("candidateArchiveDigest"), "contract.missing_field"),
+        ("lifecycle", lambda value: value.update({"unknown": True}), "contract.unknown_field"),
+        ("lifecycle", lambda value: value.update({"result": "unknown"}), "contract.invalid_field"),
+        ("lifecycle", lambda value: value.update({"result": "fail"}), "antigravity.release_evidence_not_passing"),
+        ("customization", lambda value: value.update({"result": "indeterminate"}), "antigravity.release_evidence_not_passing"),
+        ("lifecycle", lambda value: value.update({"evidenceType": "customization_conformance"}), "antigravity.release_evidence_type_mismatch"),
+        ("lifecycle", lambda value: value.update({"candidateArchiveDigest": _digest("9")}), "antigravity.release_evidence_binding_mismatch"),
+        ("lifecycle", lambda value: value.update({"workerImageDigest": _digest("9")}), "antigravity.release_evidence_binding_mismatch"),
+        ("lifecycle", lambda value: value.update({"cliDigest": _digest("9")}), "antigravity.release_evidence_binding_mismatch"),
+        ("lifecycle", lambda value: value.update({"invocationBoundaryDigest": _digest("9")}), "antigravity.release_evidence_binding_mismatch"),
+        ("lifecycle", lambda value: value.update({"captureBoundaryDigest": _digest("9")}), "antigravity.release_evidence_binding_mismatch"),
+        ("lifecycle", lambda value: value.update({"sourceEvidenceDigest": _digest("9")}), "antigravity.release_evidence_binding_mismatch"),
+        ("lifecycle", lambda value: value.update({"evidenceContractDigest": _digest("9")}), "contract.binding_mismatch"),
+    ],
+)
+def test_release_candidate_qualification_rejects_missing_malformed_mismatched_failed_unknown_and_drifted_evidence(
+    tmp_path,
+    target,
+    mutation,
+    error,
+):
+    fake = _fake_agy(tmp_path)
+    cli_digest = sha256_digest(fake.read_bytes())
+    inputs = _release_candidate_inputs(cli_digest=cli_digest, worker_image_digest=_digest("5"))
+    lifecycle = _release_candidate_evidence("plugin_lifecycle", inputs)
+    customization = _release_candidate_evidence("customization_conformance", inputs)
+    selected = lifecycle if target == "lifecycle" else customization
+    mutation(selected)
+    if error != "contract.binding_mismatch":
+        selected["evidenceContractDigest"] = sha256_digest(
+            canonical_bytes({key: value for key, value in selected.items() if key != "evidenceContractDigest"})
+        )
+    protocol = _protocol(cli_digest=cli_digest, image_digest=inputs["workerImageDigest"])
+    protocol["customizationScope"] = "release_candidate"
+    protocol["releaseCandidateInputsDigest"] = sha256_digest(canonical_bytes(inputs))
+    body = copy.deepcopy(protocol)
+    body.pop("protocolDigest")
+    protocol["protocolDigest"] = sha256_digest(canonical_bytes(body))
+    protocol = parse_contract("QualificationProtocol", protocol)
+    handle = AntigravityWorkerHandle(
+        cli_path=fake,
+        request_path=_request(tmp_path),
+        output_root=tmp_path / "qualification-output",
+        cwd=tmp_path,
+        env={},
+    )
+
+    with pytest.raises((TypeError, ValueError), match=error):
+        qualify_environment(
+            handle,
+            protocol,
+            release_candidate_inputs=inputs,
+            plugin_lifecycle_evidence=lifecycle,
+            customization_conformance_evidence=customization,
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "error"),
+    [
+        ("authorizedCliDigest", "antigravity.release_candidate_cli_mismatch"),
+        ("invocationBoundaryDigest", "antigravity.release_candidate_invocation_boundary_mismatch"),
+        ("captureBoundaryDigest", "antigravity.release_candidate_capture_boundary_mismatch"),
+    ],
+)
+def test_release_candidate_qualification_rejects_cli_invocation_and_capture_input_drift(tmp_path, field, error):
+    fake = _fake_agy(tmp_path)
+    cli_digest = sha256_digest(fake.read_bytes())
+    inputs = _release_candidate_inputs(cli_digest=cli_digest, worker_image_digest=_digest("5"))
+    inputs[field] = _digest("9")
+    lifecycle = _release_candidate_evidence("plugin_lifecycle", inputs)
+    customization = _release_candidate_evidence("customization_conformance", inputs)
+    protocol = _protocol(cli_digest=cli_digest, image_digest=inputs["workerImageDigest"])
+    protocol["customizationScope"] = "release_candidate"
+    protocol["releaseCandidateInputsDigest"] = sha256_digest(canonical_bytes(inputs))
+    body = copy.deepcopy(protocol)
+    body.pop("protocolDigest")
+    protocol["protocolDigest"] = sha256_digest(canonical_bytes(body))
+    protocol = parse_contract("QualificationProtocol", protocol)
+    handle = AntigravityWorkerHandle(
+        cli_path=fake,
+        request_path=_request(tmp_path),
+        output_root=tmp_path / "qualification-output",
+        cwd=tmp_path,
+        env={},
+    )
+
+    with pytest.raises(ValueError, match=error):
+        qualify_environment(
+            handle,
+            protocol,
+            release_candidate_inputs=inputs,
+            plugin_lifecycle_evidence=lifecycle,
+            customization_conformance_evidence=customization,
+        )
 
 
 def test_qualify_environment_rejects_protocol_model_missing_from_live_catalog(tmp_path):
