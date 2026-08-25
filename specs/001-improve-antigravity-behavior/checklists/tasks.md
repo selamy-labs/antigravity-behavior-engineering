@@ -64,7 +64,7 @@ implementation implicitly.
   and `git diff --check` validations pass
 - [x] Task-gate constitution check covers all nine principles without an
   exception
-- [ ] Independent adversarial task review finds no blocking omission,
+- [x] Independent adversarial task review finds no blocking omission,
   contradiction, unowned interface, or invalid gate
 
 ## Notes

@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "taskId": "T033",
+  "taskTitle": "Materialize the complete immutable regression taxonomy",
+  "taskEntryDigest": "sha256:f4556ee27c59b67e27ca8443a18f917f780fb369ef4fdecff4ab015763d53d3b",
+  "baseCommit": "0c6ebeacd9469c1e6415a549891d6a22f9c65cd0",
+  "implementationCommit": "61042cd2e7c7e909b188c3897c3e3871f534b68a",
+  "treeDigest": "sha256:926a35719b01db72775de50568e2aae075e35a027f1f2649557879fadb4a270a",
+  "outcome": "implemented",
+  "files": {
+    "docs/evaluation/regression-taxonomy.md": "sha256:1f94e69c059ab61b69463b11889c3d65979fa99f5907f4a4164e8b6a3af8a23d",
+    "evals/protocols/qualification-release-candidate.json": "sha256:976b2d25c2d3748f685f51b981495d0d32bd1e831c5884f66a39bd51350d1f57",
+    "evals/protocols/release-candidate-qualification-inputs.json": "sha256:649c565e1b2310241a8dc5033b976d6d8da284b50d46f0d35ecc6785f3ca9e69",
+    "evals/regression/diagnostic-registry.json": "sha256:702961c74af5f4bf1df8597d631116cd39fdda54a6f0238addce9fec2dfa8889",
+    "evals/regression/registry.json": "sha256:00b43fc1020761a38826dfe38d4b4844e3b7d489ee75c292030f6b7a2b1a3443",
+    "evals/schemas/evaluation.schema.json": "sha256:d4684d68cc5a970e777aae6d22616113b72130a66fcd8ba5df877023acb244bf",
+    "evaluator/src/abe_eval/antigravity.py": "sha256:44019133a59254286c6985c78abd1986409b6cd92fcbf335ceee65165b7c2491",
+    "evaluator/src/abe_eval/contracts.py": "sha256:edd9fd7d28d350dd0ef5e199662b3e526bb5fe604edfe2c6bb692b8d403ba914",
+    "evaluator/src/abe_eval/qualify.py": "sha256:7430143a538875a465d0f19f109d0510700b24e9945ba86c8fb7a585d4db6c23",
+    "evaluator/src/abe_eval/regression.py": "sha256:5898912806bf92c9cc5d7849ace65ecf85c23d10bee2d54e845c01bc3b4e6179",
+    "evaluator/tests/test_antigravity_adapter.py": "sha256:46d6073133d4d784829934530c5b534251e3a3d1a40f1d2378c960ca1db89be7",
+    "evaluator/tests/test_evaluation_contracts.py": "sha256:b7789156daeb07a28e00f66e98601db8931a2a265fd57cac7344fde1c2f72d5d",
+    "evaluator/tests/test_live_qualification.py": "sha256:d3aa3246f5ac8c93a3161a7217a3d1d5536391845b76d58e22af07b427e27efc",
+    "evaluator/tests/test_regression_portfolio.py": "sha256:4a636b07e10e9d22e39e464284c14523aecc507f504c758c6357d1c57dfed1f2",
+    "evaluator/tests/test_scenario_registry.py": "sha256:838f255e0876de163ffb3d55db7591ec58f1d690863a646555c5ac02b2434d43",
+    "specs/001-improve-antigravity-behavior/data-model.md": "sha256:41d01e8defe4a4cdb8bbb48db1da4bfe377629390f5b1b9142c58ea7776e00fe",
+    "specs/001-improve-antigravity-behavior/tasks.md": "sha256:59e629c7aedf8689fd08d78d596b6ba7830e6ac2102ab0a6d9a1ab99fee2fef3",
+    "tests/contract/fixtures/evaluation-contracts.json": "sha256:6ac68c16a6bee2c296999481afc96e57f5b09cf3d3016e9eee9324c3b183b07d"
+  },
+  "verification": [
+    {
+      "phase": "red",
+      "argv": ["red-snapshot", "22d5988c9d9a9290aac2dee4fd782492bcec39e1", "evaluator/.venv/bin/python", "-m", "pytest", "-q", "evaluator/tests/test_regression_portfolio.py"],
+      "expectedExit": 1,
+      "actualExit": 1,
+      "outputDigest": "sha256:aa99bc100d9ed2f3d75226f9c6cbdff9714eacd00fcf286b00aa36b8192ec99a"
+    },
+    {
+      "phase": "green",
+      "argv": ["PYTHONPATH=evaluator/src", "uv", "run", "--project", "evaluator", "--locked", "--offline", "pytest", "-q", "evaluator/tests/test_regression_portfolio.py", "evaluator/tests/test_live_qualification.py", "evaluator/tests/test_antigravity_adapter.py", "evaluator/tests/test_evaluation_contracts.py", "evaluator/tests/test_scenario_registry.py"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:6615e17542389e8589c95cda7a55518c01a7716696adbe1669d218dcdad9b022"
+    },
+    {
+      "phase": "artifact",
+      "argv": ["t033-corrected-starting-state-replacement-validator", "--suppress-protected-summary"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:72f53e1eebb5a46e439f7e20973ca528adac87fb8cf569c36dedb977fe9f9d66"
+    },
+    {
+      "phase": "sentinel",
+      "argv": ["scanPublicTree", "T033-changed-public-files"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:283d81232a2ddf12383bc98768af98330f7766a3b45355a370cc27dfe5b1b89a"
+    },
+    {
+      "phase": "gate",
+      "argv": ["corepack", "pnpm", "verify:offline"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:1540c6403e5e1bee6dd1f5fc26327600289e63330970391c377500da88b66e1e"
+    },
+    {
+      "phase": "gate",
+      "argv": ["git", "diff", "--check"],
+      "expectedExit": 0,
+      "actualExit": 0,
+      "outputDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "reviews": [
+    {
+      "role": "requirements",
+      "reviewInputDigest": "sha256:97e0a2cb0c783772a2e12e62db3fa2e25143e88f15dfd2378d8b791460ba5435",
+      "verdictDigest": "sha256:8748d52831c270ab82b130dcc7f15670218fe0db06d45173fa78ee19ec285aa0",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    },
+    {
+      "role": "quality",
+      "reviewInputDigest": "sha256:97e0a2cb0c783772a2e12e62db3fa2e25143e88f15dfd2378d8b791460ba5435",
+      "verdictDigest": "sha256:e6cfeb5ae302e728571438ab20d8f92dff0269e462f376723ed7cf55f0d7edfa",
+      "verdict": "pass",
+      "openMaterialFindings": 0
+    }
+  ],
+  "publicBoundary": {
+    "scanDigest": "sha256:283d81232a2ddf12383bc98768af98330f7766a3b45355a370cc27dfe5b1b89a",
+    "criticalFindings": 0
+  },
+  "rollback": {
+    "strategy": "Before merge, abandon the T033 branch without changing the base branch. After merge, open a T033-linked revert PR that restores the prior public taxonomy, qualification, evaluator, contract, documentation, checklist, and checkpoint bytes without rewriting history; preserve every private replay and qualification generation as immutable evidence and mark the reverted correction ineligible downstream without changing candidate bytes or evaluation decisions.",
+    "tested": false
+  },
+  "createdAt": "2026-08-25T03:12:42Z"
+}
