@@ -61,6 +61,8 @@ _EVALUATION_KINDS = frozenset(
         "ProcessState",
         "EnvironmentQualificationRecord",
         "QualificationProtocol",
+        "ReleaseCandidateQualificationInputs",
+        "ReleaseCandidateQualificationEvidence",
         "AttemptQualificationRecord",
         "GradeRecord",
         "Scorecard",
@@ -487,6 +489,13 @@ def _check_qualification_protocol(value: dict[str, Any]) -> None:
         _fail(ReasonCodes.BINDING_MISMATCH, "$.requiredPreflights")
 
 
+def _check_release_candidate_qualification_evidence(value: dict[str, Any]) -> None:
+    body = copy.deepcopy(value)
+    digest = body.pop("evidenceContractDigest")
+    if digest != sha256_digest(canonical_bytes(body)):
+        _fail(ReasonCodes.BINDING_MISMATCH, "$.evidenceContractDigest")
+
+
 def _check_scorecard(value: dict[str, Any]) -> None:
     if value["modelRequest"] not in _TARGET_MODEL_KEYS:
         _fail(ReasonCodes.BINDING_MISMATCH, "$.modelRequest")
@@ -818,6 +827,8 @@ def _run_parser_checks(kind: str, value: dict[str, Any]) -> None:
         _check_environment_qualification(value)
     elif kind == "QualificationProtocol":
         _check_qualification_protocol(value)
+    elif kind == "ReleaseCandidateQualificationEvidence":
+        _check_release_candidate_qualification_evidence(value)
     elif kind == "Scorecard":
         _check_scorecard(value)
     elif kind == "DurableGoalDecision":

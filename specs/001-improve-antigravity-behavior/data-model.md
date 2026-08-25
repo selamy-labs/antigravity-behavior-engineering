@@ -231,7 +231,7 @@ Frozen controller-owned definition for one task instance.
 | `variantProtocolDigest` | SHA-256 or `not_applicable` | Required |
 | `fixtureDigest` | SHA-256 | Required |
 | `startingStateDigest` | SHA-256 | Required |
-| `agentInput` | protected path reference | Never embedded in public reports for sealed tasks |
+| `agentInput` | protected path reference or opaque regression case ID | Controller-owned cards use the path; public regression projections must use only the opaque case ID, with path resolution private |
 | `applicability` | map of component name to boolean | Created before execution |
 | `materialAmbiguities` | protected labeled array | Required for framing families |
 | `authorityManifest` | AuthorityManifest | Required |
@@ -597,6 +597,52 @@ customization configuration. It never contains a per-attempt valid-start time.
 | `customizationScope` | `cli_core` or `release_candidate` | Required |
 | `releaseCandidateInputsDigest` | SHA-256 | Required only for `release_candidate`; absent for historical `cli_core` protocols |
 | `protocolDigest` | SHA-256 | Canonical identity excluding itself |
+
+### ReleaseCandidateQualificationInputs
+
+Closed input lock for the release-candidate qualification. It binds the
+unchanged candidate and worker to the authorized CLI, invocation/capture
+boundaries, and the exact source lifecycle evidence retained from T032.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `kind` | literal `ReleaseCandidateQualificationInputs` | Required |
+| `workerImageDigest` | SHA-256 | Must match QualificationProtocol image |
+| `candidateArchiveDigest` | SHA-256 | Exact frozen candidate archive |
+| `packageArchiveRecordDigest` | SHA-256 | Existing T031 archive record |
+| `packageLockDigest` | SHA-256 | Existing package lock |
+| `behaviorLockDigest` | SHA-256 | Existing behavior lock |
+| `pluginManifestDigest` | SHA-256 | Existing plugin manifest |
+| `t032CheckpointDigest` | SHA-256 | Existing lifecycle checkpoint |
+| `candidateCausalityFreezeDigest` | SHA-256 | Existing T033 causality freeze |
+| `authorizedCliDigest` | SHA-256 | Must match QualificationProtocol CLI |
+| `invocationBoundaryDigest` | SHA-256 | Exact permission, sandbox, slash-command, model/effort, request, logging, and timeout policy |
+| `captureBoundaryDigest` | SHA-256 | Exact stream ordering and stdout/stderr/log capture contract |
+| `pluginLifecycleSourceEvidenceDigest` | SHA-256 | Immutable clean-profile lifecycle bytes |
+| `customizationConformanceSourceEvidenceDigest` | SHA-256 | Immutable customized-profile lifecycle bytes |
+
+### ReleaseCandidateQualificationEvidence
+
+Closed normalized evidence envelope for one required release-candidate
+qualification seam. The qualifier accepts exactly one lifecycle and one
+customization envelope, requires both to pass, and rejects any binding drift.
+
+| Field | Type | Rule |
+|---|---|---|
+| `schemaVersion` | literal `1` | Required |
+| `kind` | literal `ReleaseCandidateQualificationEvidence` | Required |
+| `evidenceType` | `plugin_lifecycle` or `customization_conformance` | Must match the supplied seam |
+| `result` | `pass`, `fail`, or `indeterminate` | Release qualification requires `pass` |
+| `candidateArchiveDigest` | SHA-256 | Must match ReleaseCandidateQualificationInputs |
+| `workerImageDigest` | SHA-256 | Must match ReleaseCandidateQualificationInputs |
+| `cliDigest` | SHA-256 | Must match the authorized CLI |
+| `releaseCandidateInputsDigest` | SHA-256 | Must match the exact input lock |
+| `invocationBoundaryDigest` | SHA-256 | Must match the input lock |
+| `captureBoundaryDigest` | SHA-256 | Must match the input lock |
+| `sourceEvidenceDigest` | SHA-256 | Must match the seam-specific immutable source evidence |
+| `limitations` | array of strings | Required, may be empty |
+| `evidenceContractDigest` | SHA-256 | Canonical identity excluding itself |
 
 ### AttemptQualificationRecord
 

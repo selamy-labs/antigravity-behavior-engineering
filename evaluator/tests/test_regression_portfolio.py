@@ -3,11 +3,17 @@ from __future__ import annotations
 import copy
 import json
 import stat
+import subprocess
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+import abe_eval.regression as regression
+from abe_eval.antigravity import (
+    release_candidate_capture_boundary_digest,
+    release_candidate_invocation_boundary_digest,
+)
 from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import canonical_contract_digest, parse_contract
 from abe_eval.regression import (
@@ -18,6 +24,8 @@ from abe_eval.regression import (
     protected_replay_condition,
     provision_protected_workspace,
     validate_protected_bundle,
+    validate_regression_taxonomy,
+    verify_protected_replay_condition,
 )
 from abe_eval.scenario import materialize_scenario, public_scenario
 
@@ -69,7 +77,18 @@ RAW_HIDDEN_MARKERS = (
     "GRADER_INSTRUCTION:",
 )
 CANDIDATE_FREEZE_DIGEST = "sha256:eaabda91aea0f2555205bc98ac2337e6c3c6871fc35ba2b4bb1c56d71dd695fa"
-QUALIFICATION_DIGEST = "sha256:252cb549dc4dba878a352e049ea75c2d076b59aa9f0dcd111aa5c626cb6699f2"
+SOURCE_QUALIFICATION_DIGEST = "sha256:252cb549dc4dba878a352e049ea75c2d076b59aa9f0dcd111aa5c626cb6699f2"
+QUALIFICATION_DIGEST = "sha256:8fcab232e403cbe396dbcf0c808b6dba3fb65aebf860de682d997a77a69c5382"
+QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST = "sha256:f1659df6d7542aec1aac6a812c252268f9b562e8b7295efecfe9872caf8eaf81"
+CANDIDATE_ARCHIVE_DIGEST = "sha256:233366d1fd5c2fe513b533fabc106a8683635d95ca6faaf63bd36fb4a8f99d86"
+AUTHORIZED_CAUSAL_GAPS = {
+    "hook_tool_subagent_failure": ["subagent_failure"],
+    "lifecycle": ["lifecycle"],
+}
+FULLY_UNCOVERED_FAMILIES = ["lifecycle"]
+PARTIALLY_UNCOVERED_FAMILIES = [
+    {"requiredFamily": "hook_tool_subagent_failure", "uncoveredAspects": ["subagent_failure"]}
+]
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -118,7 +137,9 @@ def _build_private_bundle(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
                     {
                         "schemaVersion": 1,
                         "caseId": case_id,
-                        "fixture": variant["familyId"],
+                        "familyId": variant["familyId"],
+                        "role": variant["role"],
+                        "fixtureKind": "synthetic-test",
                         "files": [{"path": "task.txt", "content": "before\n"}],
                     }
                 ),
@@ -126,7 +147,17 @@ def _build_private_bundle(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
             ),
             "startingState": _write_protected(
                 case_root / "worker" / "starting-state.json",
-                canonical_bytes({"schemaVersion": 1, "caseId": case_id, "state": variant["role"]}),
+                canonical_bytes(
+                    {
+                        "schemaVersion": 1,
+                        "caseId": case_id,
+                        "familyId": variant["familyId"],
+                        "role": variant["role"],
+                        "variantToken": case_id.rsplit("-", 1)[1],
+                        "worktree": "clean",
+                        "priorContext": "none",
+                    }
+                ),
                 root=root,
             ),
         }
@@ -168,6 +199,8 @@ def _build_private_bundle(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
         variant["publicScenarioDigest"] = canonical_contract_digest("PublicScenario", variant["publicScenario"])
         variant["artifactSeams"]["fixtureDigest"] = worker_files["fixture"]["digest"]
         variant["artifactSeams"]["startingStateDigest"] = worker_files["startingState"]["digest"]
+        variant["artifactSeams"]["agentInputDigest"] = worker_files["agentInput"]["digest"]
+        variant["artifactSeams"].pop("protectedAgentInput", None)
         cases.append(
             {
                 "schemaVersion": 1,
@@ -175,7 +208,7 @@ def _build_private_bundle(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
                 "familyId": variant["familyId"],
                 "role": variant["role"],
                 "partition": "regression",
-                "logicalAgentInputPath": variant["scenarioCard"]["agentInput"],
+                "logicalAgentInputPath": worker_files["agentInput"]["path"],
                 "workerReadable": worker_files,
                 "controllerOnly": controller_files,
             }
@@ -197,15 +230,60 @@ def _build_private_bundle(root: Path) -> tuple[dict[str, Any], dict[str, Any]]:
             "protectedOutcomesObservedBeforeMaterialization": False,
             "candidateMutationAllowedAfterOutcome": False,
         },
-        "sourceLocks": registry["sourceLocks"],
-        "candidateArchiveDigest": "sha256:233366d1fd5c2fe513b533fabc106a8683635d95ca6faaf63bd36fb4a8f99d86",
-        "qualificationDigest": QUALIFICATION_DIGEST,
+        "sourceLocks": copy.deepcopy(registry["sourceLocks"]),
+        "candidateArchiveDigest": CANDIDATE_ARCHIVE_DIGEST,
+        "qualificationDigest": SOURCE_QUALIFICATION_DIGEST,
         "caseCount": len(cases),
         "cases": cases,
     }
+    registry["concreteBindingCorrection"]["protectedBundleManifestDigest"] = sha256_digest(canonical_bytes(manifest))
     (root / "manifest.json").write_bytes(canonical_bytes(manifest))
     (root / "manifest.json").chmod(0o400)
     return registry, manifest
+
+
+def _replace_starting_state(root: Path, case: dict[str, Any], value: object, *, canonical: bool = True) -> None:
+    binding = case["workerReadable"]["startingState"]
+    path = root / binding["path"]
+    data = canonical_bytes(value) if canonical else bytes(value)
+    path.chmod(0o600)
+    path.write_bytes(data)
+    path.chmod(0o400)
+    binding["digest"] = sha256_digest(data)
+
+
+def _starting_state(case: dict[str, Any], **changes: object) -> dict[str, object]:
+    value: dict[str, object] = {
+        "schemaVersion": 1,
+        "caseId": case["caseId"],
+        "familyId": case["familyId"],
+        "role": case["role"],
+        "variantToken": case["caseId"].rsplit("-", 1)[1],
+        "worktree": "clean",
+        "priorContext": "none",
+    }
+    value.update(changes)
+    return value
+
+
+def _validated_bundle_summary(manifest_digest: str) -> dict[str, object]:
+    return {
+        "schemaVersion": 1,
+        "manifestDigest": manifest_digest,
+        "caseCount": 28,
+        "familyCount": 14,
+        "roles": ["positive", "relevant_negative"],
+        "sourceQualificationDigest": SOURCE_QUALIFICATION_DIGEST,
+        "qualificationDigest": QUALIFICATION_DIGEST,
+        "qualificationReplacementAmendmentDigest": QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+        "candidateCausalityFreezeDigest": CANDIDATE_FREEZE_DIGEST,
+        "candidateArchiveDigest": CANDIDATE_ARCHIVE_DIGEST,
+        "workerControllerPathsDisjoint": True,
+        "allDeclaredDigestsMatch": True,
+        "causalCoverageComplete": False,
+        "uncoveredFamilies": FULLY_UNCOVERED_FAMILIES,
+        "partiallyUncoveredFamilies": PARTIALLY_UNCOVERED_FAMILIES,
+    }
 
 
 def test_complete_regression_taxonomy_binds_frozen_inputs_and_every_required_family():
@@ -238,16 +316,119 @@ def test_complete_regression_taxonomy_binds_frozen_inputs_and_every_required_fam
     coverage = {item["requiredFamily"]: item for item in registry["coverage"]}
     assert set(coverage) == set(REQUIRED_COVERAGE)
     assert registry["familyIds"] == [item["familyId"] for item in protocols["protocols"]]
+    assert validate_regression_taxonomy(registry) == {
+        "schemaVersion": 1,
+        "causalCoverageComplete": False,
+        "uncoveredFamilies": FULLY_UNCOVERED_FAMILIES,
+        "partiallyUncoveredFamilies": PARTIALLY_UNCOVERED_FAMILIES,
+    }
     for required_family, family_ids in REQUIRED_COVERAGE.items():
         item = coverage[required_family]
+        if required_family == "lifecycle":
+            assert item == {
+                "requiredFamily": required_family,
+                "protocolFamilyIds": [],
+                "positiveVariantIds": [],
+                "relevantNegativeVariantIds": [],
+                "realArtifactSeams": [],
+                "classificationDigests": [],
+                "analysisLockDigests": [],
+                "coverageStatus": "uncovered",
+                "uncoveredAspects": AUTHORIZED_CAUSAL_GAPS[required_family],
+                "eligibleForT034Selection": False,
+                "eligibleForReleaseClaim": False,
+            }
+            continue
+        if required_family == "hook_tool_subagent_failure":
+            assert item["coverageStatus"] == "partial"
+            assert item["coveredAspects"] == ["hook_failure", "tool_failure"]
+            assert item["uncoveredAspects"] == ["subagent_failure"]
+            assert item["uncoveredAspectsEligibleForT034Selection"] is False
+            assert item["uncoveredAspectsEligibleForReleaseClaim"] is False
+            family_ids = ["fr044-hook-tool-failure"]
+        else:
+            assert item["coverageStatus"] == "covered"
         assert item["protocolFamilyIds"] == family_ids
         assert item["positiveVariantIds"]
         assert item["relevantNegativeVariantIds"]
         assert item["realArtifactSeams"]
         assert item["classificationDigests"]
         assert item["analysisLockDigests"]
-        if required_family == "lifecycle":
-            assert "docs/task-checkpoints/T032.json" in item["realArtifactSeams"]
+
+
+@pytest.mark.parametrize(
+    "broken_binding",
+    ["missing_family", "positive", "relevant_negative", "analysis", "classification", "real_seam"],
+)
+def test_taxonomy_validator_fails_closed_for_every_required_coverage_binding(broken_binding):
+    registry = copy.deepcopy(_load(REGISTRY_PATH))
+    covered = next(item for item in registry["coverage"] if item["coverageStatus"] == "covered")
+    if broken_binding == "missing_family":
+        registry["coverage"].remove(covered)
+    elif broken_binding == "positive":
+        covered["positiveVariantIds"] = []
+    elif broken_binding == "relevant_negative":
+        covered["relevantNegativeVariantIds"] = []
+    elif broken_binding == "analysis":
+        covered["analysisLockDigests"] = ["sha256:" + "9" * 64]
+    elif broken_binding == "classification":
+        covered["classificationDigests"] = ["sha256:" + "9" * 64]
+    else:
+        covered["realArtifactSeams"] = ["unbound_seam"]
+
+    with pytest.raises(ProtectedRegressionError, match="regression_taxonomy.incomplete_family"):
+        validate_regression_taxonomy(registry)
+
+
+def test_taxonomy_validator_rejects_semantic_mapping_swaps_duplicate_variants_and_missing_digest_seams():
+    swapped = copy.deepcopy(_load(REGISTRY_PATH))
+    first, second = [item for item in swapped["coverage"] if item["coverageStatus"] == "covered"][:2]
+    for field in (
+        "protocolFamilyIds",
+        "positiveVariantIds",
+        "relevantNegativeVariantIds",
+        "realArtifactSeams",
+        "classificationDigests",
+        "analysisLockDigests",
+    ):
+        first[field], second[field] = second[field], first[field]
+    with pytest.raises(ProtectedRegressionError, match="regression_taxonomy.incomplete_family"):
+        validate_regression_taxonomy(swapped)
+
+    duplicate = copy.deepcopy(_load(REGISTRY_PATH))
+    duplicate["variants"].append(copy.deepcopy(duplicate["variants"][0]))
+    with pytest.raises(ProtectedRegressionError, match="regression_taxonomy.incomplete_family"):
+        validate_regression_taxonomy(duplicate)
+
+    for seam_field in ("agentInputDigest", "fixtureDigest", "startingStateDigest"):
+        missing_seam = copy.deepcopy(_load(REGISTRY_PATH))
+        missing_seam["variants"][0]["artifactSeams"].pop(seam_field)
+        with pytest.raises(ProtectedRegressionError, match="regression_taxonomy.incomplete_family"):
+            validate_regression_taxonomy(missing_seam)
+
+
+@pytest.mark.parametrize("gap_family", sorted(AUTHORIZED_CAUSAL_GAPS))
+def test_explicit_uncovered_families_cannot_be_promoted_to_causal_completeness(gap_family):
+    registry = copy.deepcopy(_load(REGISTRY_PATH))
+    gap = next(item for item in registry["coverage"] if item["requiredFamily"] == gap_family)
+    gap["coverageStatus"] = "covered"
+
+    with pytest.raises(ProtectedRegressionError, match="regression_taxonomy.invalid_gap"):
+        validate_regression_taxonomy(registry)
+
+
+@pytest.mark.parametrize("claim", ["causal_complete", "fully_uncovered", "partially_uncovered"])
+def test_taxonomy_validator_rejects_drifted_top_level_coverage_claims(claim):
+    registry = copy.deepcopy(_load(REGISTRY_PATH))
+    if claim == "causal_complete":
+        registry["causalCoverageComplete"] = True
+    elif claim == "fully_uncovered":
+        registry["uncoveredFamilies"] = []
+    else:
+        registry["partiallyUncoveredFamilies"] = []
+
+    with pytest.raises(ProtectedRegressionError, match="regression_taxonomy.invalid_gap"):
+        validate_regression_taxonomy(registry)
 
 
 def test_reserved_variants_preserve_pre_treatment_semantics_and_bind_corrected_concrete_bytes():
@@ -277,13 +458,15 @@ def test_reserved_variants_preserve_pre_treatment_semantics_and_bind_corrected_c
             assert variant["classificationPolicyDigest"] == card["classificationPolicyDigest"]
             assert variant["componentControls"] == protocol["componentControls"]
             assert variant["scenarioCard"]["scenarioId"] == card["scenarioId"]
-            assert variant["scenarioCard"]["agentInput"] == card["agentInput"]
+            assert variant["scenarioCard"]["agentInput"] == variant["variantId"]
+            assert "/" not in variant["scenarioCard"]["agentInput"]
             assert variant["scenarioCard"]["resourceEnvelope"] == card["resourceEnvelope"]
             assert variant["scenarioCard"]["classificationPolicyDigest"] == card["classificationPolicyDigest"]
             assert variant["publicScenario"]["publicScenarioId"] == public["publicScenarioId"]
             assert variant["publicScenario"]["hiddenMaterialDigest"] == "none"
             assert variant["artifactSeams"]["labels"] == protocol["preTreatmentLabels"]["evidenceSeams"]
-            assert variant["artifactSeams"]["protectedAgentInput"] == card["agentInput"]
+            assert "protectedAgentInput" not in variant["artifactSeams"]
+            assert variant["artifactSeams"]["agentInputDigest"].startswith("sha256:")
             assert variant["artifactSeams"]["checkIds"] == [check["checkId"] for check in card["checks"]]
             assert variant["scenarioCardDigest"] == canonical_contract_digest(
                 "ScenarioCard", variant["scenarioCard"]
@@ -352,8 +535,12 @@ def test_real_private_bundle_is_complete_digest_bound_partitioned_and_worker_iso
     result = validate_protected_bundle(
         root,
         registry=registry,
+        source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
         qualification_digest=QUALIFICATION_DIGEST,
+        qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+        expected_manifest_digest=sha256_digest(canonical_bytes(manifest)),
         candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+        expected_candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
     )
 
     assert result["caseCount"] == 28
@@ -374,21 +561,137 @@ def test_public_registry_is_a_deterministic_digest_only_projection_of_private_bi
         root,
         registry=original_registry,
         amendment_digest="sha256:d6210f8a0bc595badf6171a0b8ee671f2f5109433fc7adcf6a7d59fb5995f3f4",
+        source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
+        qualification_digest=QUALIFICATION_DIGEST,
+        qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+        expected_manifest_digest=sha256_digest(canonical_bytes(manifest)),
+        candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+        candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
     )
 
     assert projected["variants"] == expected_registry["variants"]
     assert projected["concreteBindingCorrection"] == {
         "schemaVersion": 1,
         "claimBoundary": "semantic_protocols_and_seed_commitments_pre_treatment; concrete_bytes_post_candidate_freeze_pre_outcome",
-        "originalRegistryDigest": _digest_object(original_registry),
+        "originalRegistryDigest": original_registry["concreteBindingCorrection"]["originalRegistryDigest"],
         "protectedBundleManifestDigest": sha256_digest(canonical_bytes(manifest)),
         "candidateCausalityFreezeDigest": CANDIDATE_FREEZE_DIGEST,
+        "sourceQualificationDigest": SOURCE_QUALIFICATION_DIGEST,
         "qualificationDigest": QUALIFICATION_DIGEST,
+        "qualificationReplacementAmendmentDigest": QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
         "scopeAmendmentDigest": "sha256:d6210f8a0bc595badf6171a0b8ee671f2f5109433fc7adcf6a7d59fb5995f3f4",
         "originalConcreteBindingsAvailable": False,
         "candidateMutationAllowedAfterOutcome": False,
     }
     assert "test-only-" not in json.dumps(projected, sort_keys=True)
+    assert materialize_public_registry(
+        root,
+        registry=projected,
+        amendment_digest="sha256:d6210f8a0bc595badf6171a0b8ee671f2f5109433fc7adcf6a7d59fb5995f3f4",
+        source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
+        qualification_digest=QUALIFICATION_DIGEST,
+        qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+        expected_manifest_digest=sha256_digest(canonical_bytes(manifest)),
+        candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+        candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
+    ) == projected
+
+
+@pytest.mark.parametrize(
+    ("drift", "error"),
+    [
+        ("producer", "protected_bundle.invalid_producer"),
+        ("producer_unknown", "protected_bundle.invalid_producer"),
+        ("created_at", "protected_bundle.invalid_manifest"),
+        ("temporal", "protected_bundle.invalid_temporal_boundary"),
+        ("source_locks", "protected_bundle.source_lock_mismatch"),
+        ("qualification", "protected_bundle.qualification_mismatch"),
+        ("candidate_freeze", "protected_bundle.invalid_temporal_boundary"),
+        ("candidate_archive", "protected_bundle.candidate_archive_mismatch"),
+        ("case_count", "protected_bundle.incomplete_taxonomy"),
+        ("duplicate_case", "protected_bundle.invalid_cases"),
+        ("family", "protected_bundle.case_binding_mismatch"),
+        ("role", "protected_bundle.case_binding_mismatch"),
+    ],
+)
+def test_public_materialization_rejects_every_provenance_and_taxonomy_binding_drift(tmp_path, drift, error):
+    root = tmp_path / "protected-bundle"
+    registry, manifest = _build_private_bundle(root)
+    if drift == "producer":
+        manifest["producer"]["role"] = "candidate_author"
+    elif drift == "producer_unknown":
+        manifest["producer"]["unknown"] = True
+    elif drift == "created_at":
+        manifest["createdAt"] = "not-a-timestamp"
+    elif drift == "temporal":
+        manifest["temporalBoundary"]["protectedOutcomesObservedBeforeMaterialization"] = True
+    elif drift == "source_locks":
+        manifest["sourceLocks"]["t017HeadCommit"] = "drift"
+    elif drift == "qualification":
+        manifest["qualificationDigest"] = "sha256:" + "9" * 64
+    elif drift == "candidate_freeze":
+        manifest["temporalBoundary"]["candidateCausalityFreezeDigest"] = "sha256:" + "9" * 64
+    elif drift == "candidate_archive":
+        manifest["candidateArchiveDigest"] = "sha256:" + "9" * 64
+    elif drift == "case_count":
+        manifest["caseCount"] = 27
+    elif drift == "duplicate_case":
+        manifest["cases"].append(copy.deepcopy(manifest["cases"][0]))
+    elif drift == "family":
+        manifest["cases"][0]["familyId"] = "different-family"
+    else:
+        manifest["cases"][0]["role"] = "relevant_negative"
+    manifest_path = root / "manifest.json"
+    manifest_path.chmod(0o600)
+    manifest_path.write_bytes(canonical_bytes(manifest))
+    manifest_path.chmod(0o400)
+
+    with pytest.raises(ProtectedRegressionError, match=error):
+        materialize_public_registry(
+            root,
+            registry=registry,
+            amendment_digest="sha256:" + "8" * 64,
+            source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
+            qualification_digest=QUALIFICATION_DIGEST,
+            qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+            expected_manifest_digest=sha256_digest(canonical_bytes(manifest)),
+            candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+            candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
+        )
+
+
+def test_candidate_archive_mismatch_fails_before_replay_scheduling(tmp_path):
+    root = tmp_path / "protected-bundle"
+    registry, _ = _build_private_bundle(root)
+
+    with pytest.raises(ProtectedRegressionError, match="protected_bundle.candidate_archive_mismatch"):
+        validate_protected_bundle(
+            root,
+            registry=registry,
+            source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
+            qualification_digest=QUALIFICATION_DIGEST,
+            qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+            expected_manifest_digest=sha256_digest((root / "manifest.json").read_bytes()),
+            candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+            expected_candidate_archive_digest="sha256:" + "9" * 64,
+        )
+
+
+def test_authorized_manifest_digest_is_required_before_bundle_validation(tmp_path):
+    root = tmp_path / "protected-bundle"
+    registry, _ = _build_private_bundle(root)
+
+    with pytest.raises(ProtectedRegressionError, match="protected_bundle.manifest_identity_mismatch"):
+        validate_protected_bundle(
+            root,
+            registry=registry,
+            source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
+            qualification_digest=QUALIFICATION_DIGEST,
+            qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+            expected_manifest_digest="sha256:" + "9" * 64,
+            candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+            expected_candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
+        )
 
 
 def test_private_bundle_fails_closed_on_missing_bytes_digest_drift_and_grader_visibility(tmp_path):
@@ -400,8 +703,12 @@ def test_private_bundle_fails_closed_on_missing_bytes_digest_drift_and_grader_vi
         validate_protected_bundle(
             missing_root,
             registry=missing_registry,
+            source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
             qualification_digest=QUALIFICATION_DIGEST,
+            qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+            expected_manifest_digest=sha256_digest((missing_root / "manifest.json").read_bytes()),
             candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+            expected_candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
         )
 
     drift_root = tmp_path / "drift"
@@ -414,8 +721,12 @@ def test_private_bundle_fails_closed_on_missing_bytes_digest_drift_and_grader_vi
         validate_protected_bundle(
             drift_root,
             registry=drift_registry,
+            source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
             qualification_digest=QUALIFICATION_DIGEST,
+            qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+            expected_manifest_digest=sha256_digest((drift_root / "manifest.json").read_bytes()),
             candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+            expected_candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
         )
 
     leak_root = tmp_path / "leak"
@@ -425,34 +736,35 @@ def test_private_bundle_fails_closed_on_missing_bytes_digest_drift_and_grader_vi
     (leak_root / "manifest.json").chmod(0o600)
     (leak_root / "manifest.json").write_bytes(canonical_bytes(leak_manifest))
     (leak_root / "manifest.json").chmod(0o400)
+    leak_registry["concreteBindingCorrection"]["protectedBundleManifestDigest"] = sha256_digest(
+        canonical_bytes(leak_manifest)
+    )
     with pytest.raises(ProtectedRegressionError, match="protected_bundle.worker_controller_overlap"):
         validate_protected_bundle(
             leak_root,
             registry=leak_registry,
+            source_qualification_digest=SOURCE_QUALIFICATION_DIGEST,
             qualification_digest=QUALIFICATION_DIGEST,
+            qualification_replacement_amendment_digest=QUALIFICATION_REPLACEMENT_AMENDMENT_DIGEST,
+            expected_manifest_digest=sha256_digest((leak_root / "manifest.json").read_bytes()),
             candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
+            expected_candidate_archive_digest=CANDIDATE_ARCHIVE_DIGEST,
         )
 
 
 def test_protected_replay_plan_is_deterministic_complete_paired_and_public_safe():
     registry = _load(REGISTRY_PATH)
     manifest_digest = "sha256:2d0450f5b4455787a1e3563a72e7a148792815c5d65a838a7594b5f5726946f9"
-    candidate_archive_digest = "sha256:233366d1fd5c2fe513b533fabc106a8683635d95ca6faaf63bd36fb4a8f99d86"
+    validated_bundle = _validated_bundle_summary(manifest_digest)
 
     first = build_protected_replay_plan(
         registry,
-        manifest_digest=manifest_digest,
-        qualification_digest=QUALIFICATION_DIGEST,
-        candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
-        candidate_archive_digest=candidate_archive_digest,
+        validated_bundle=validated_bundle,
         seed="t033-protected-replay-v1",
     )
     second = build_protected_replay_plan(
         registry,
-        manifest_digest=manifest_digest,
-        qualification_digest=QUALIFICATION_DIGEST,
-        candidate_freeze_digest=CANDIDATE_FREEZE_DIGEST,
-        candidate_archive_digest=candidate_archive_digest,
+        validated_bundle=validated_bundle,
         seed="t033-protected-replay-v1",
     )
 
@@ -476,8 +788,9 @@ def test_protected_controller_bridge_provisions_only_worker_bytes_and_grades_con
     case = manifest["cases"][0]
     workspace = tmp_path / "workspace"
 
-    request_path = provision_protected_workspace(root, case, workspace)
-    assert request_path.read_text().startswith("Execute the frozen")
+    provisioned = provision_protected_workspace(root, case, workspace)
+    request_path = provisioned.request_path
+    assert request_path.read_text().startswith("Frozen prior context:\nnone\n\nExecute the frozen")
     assert (workspace / "task.txt").read_text() == "before\n"
     (workspace / "task.txt").write_text("after\n")
     grade = grade_protected_workspace(root, case, workspace, tmp_path / "grade.json")
@@ -506,3 +819,222 @@ def test_protected_controller_bridge_provisions_only_worker_bytes_and_grades_con
     assert bare["enabledComponents"] == []
     assert bare["pluginDigest"] == "none"
     assert integrated["enabledComponents"] == ["candidate:antigravity-behavior-engineering"]
+    assert verify_protected_replay_condition(
+        integrated,
+        variant=variant,
+        model="gemini-3.7-flash-high",
+        condition_id="integrated",
+        cli_path="/opt/antigravity/bin/agy",
+        cli_digest="sha256:68d229d37aeabde76d15af0003d4c1ce07b211414e7452fb0309be9714ae7dd4",
+        qualification_digest=QUALIFICATION_DIGEST,
+        candidate_archive_digest="sha256:233366d1fd5c2fe513b533fabc106a8683635d95ca6faaf63bd36fb4a8f99d86",
+        invocation_boundary_digest=release_candidate_invocation_boundary_digest(),
+        capture_boundary_digest=release_candidate_capture_boundary_digest(),
+    ) == integrated
+
+
+@pytest.mark.parametrize(
+    "drift",
+    [
+        "permissions",
+        "sandbox",
+        "slash_commands",
+        "structured_output",
+        "logging",
+        "timeout",
+        "environment",
+        "qualification",
+        "candidate",
+        "invocation_boundary",
+        "capture_boundary",
+        "cli_path_and_digest",
+        "timeout_coordinated",
+        "model_coordinated",
+        "condition_coordinated",
+    ],
+)
+def test_protected_replay_condition_rejects_every_qualified_boundary_drift_before_valid_start(drift):
+    variant = _load(REGISTRY_PATH)["variants"][0]
+    candidate = "sha256:233366d1fd5c2fe513b533fabc106a8683635d95ca6faaf63bd36fb4a8f99d86"
+    invocation = release_candidate_invocation_boundary_digest()
+    capture = release_candidate_capture_boundary_digest()
+    condition = protected_replay_condition(
+        variant,
+        model="gemini-3.7-flash-high",
+        condition_id="integrated",
+        cli_path="/opt/antigravity/bin/agy",
+        cli_digest="sha256:68d229d37aeabde76d15af0003d4c1ce07b211414e7452fb0309be9714ae7dd4",
+        qualification_digest=QUALIFICATION_DIGEST,
+        candidate_archive_digest=candidate,
+    )
+    argv = condition["rawInvocation"]["argv"]
+    if drift == "permissions":
+        argv.remove("--dangerously-skip-permissions")
+    elif drift == "sandbox":
+        argv.remove("--sandbox")
+    elif drift == "slash_commands":
+        argv.remove("--disable-slash-commands")
+    elif drift == "structured_output":
+        argv[argv.index("--output-format") + 1] = "text"
+    elif drift == "logging":
+        argv[argv.index("--log-file") + 1] = "/tmp/drift.log"
+    elif drift == "timeout":
+        argv[argv.index("--print-timeout") + 1] = "1s"
+    elif drift == "environment":
+        condition["rawInvocation"]["environment"]["unknown"] = "drift"
+    elif drift == "qualification":
+        condition["environmentQualificationDigest"] = "sha256:" + "9" * 64
+    elif drift == "candidate":
+        condition["pluginDigest"] = "sha256:" + "9" * 64
+    elif drift == "invocation_boundary":
+        condition["dependencyDigests"]["qualificationInvocationBoundary"] = "sha256:" + "9" * 64
+    elif drift == "capture_boundary":
+        condition["dependencyDigests"]["qualificationCaptureBoundary"] = "sha256:" + "9" * 64
+    elif drift == "cli_path_and_digest":
+        argv[0] = "/opt/drift/bin/agy"
+        condition["cliDigest"] = "sha256:" + "9" * 64
+    elif drift == "timeout_coordinated":
+        argv[argv.index("--print-timeout") + 1] = "1s"
+        condition["rawInvocation"]["environment"]["AGY_PRINT_TIMEOUT"] = "1s"
+    elif drift == "model_coordinated":
+        condition["modelRequest"] = "gemini-3.1-pro-high"
+        argv[argv.index("--model") + 1] = "gemini-3.1-pro-high"
+    else:
+        condition["conditionId"] = "bare"
+        condition["pluginDigest"] = "none"
+        condition["enabledComponents"] = []
+
+    with pytest.raises(ProtectedRegressionError, match="protected_replay.qualification_boundary_mismatch"):
+        verify_protected_replay_condition(
+            condition,
+            variant=variant,
+            model="gemini-3.7-flash-high",
+            condition_id="integrated",
+            cli_path="/opt/antigravity/bin/agy",
+            cli_digest="sha256:68d229d37aeabde76d15af0003d4c1ce07b211414e7452fb0309be9714ae7dd4",
+            qualification_digest=QUALIFICATION_DIGEST,
+            candidate_archive_digest=candidate,
+            invocation_boundary_digest=invocation,
+            capture_boundary_digest=capture,
+        )
+
+
+def test_starting_state_is_applied_before_agent_input_and_behaviorally_distinct(tmp_path):
+    clean_root = tmp_path / "clean-bundle"
+    _, clean_manifest = _build_private_bundle(clean_root)
+    clean_case = clean_manifest["cases"][0]
+    _replace_starting_state(
+        clean_root,
+        clean_case,
+        _starting_state(clean_case, priorContext="clean-context", worktree="clean"),
+    )
+
+    dirty_root = tmp_path / "dirty-bundle"
+    _, dirty_manifest = _build_private_bundle(dirty_root)
+    dirty_case = dirty_manifest["cases"][0]
+    _replace_starting_state(
+        dirty_root,
+        dirty_case,
+        _starting_state(dirty_case, priorContext="dirty-context", worktree="dirty_unrelated"),
+    )
+
+    clean = provision_protected_workspace(clean_root, clean_case, tmp_path / "clean" / "workspace")
+    dirty = provision_protected_workspace(dirty_root, dirty_case, tmp_path / "dirty" / "workspace")
+
+    assert clean.starting_state_digest != dirty.starting_state_digest
+    assert clean.applied_state_digest != dirty.applied_state_digest
+    assert clean.request_path.read_bytes() != dirty.request_path.read_bytes()
+    assert subprocess.run(
+        ["git", "-C", str(clean.workspace), "status", "--porcelain=v1"],
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout == ""
+    assert subprocess.run(
+        ["git", "-C", str(dirty.workspace), "status", "--porcelain=v1"],
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout != ""
+    assert regression.verify_protected_workspace_application(clean_root, clean_case, clean) == clean.applied_state_digest
+    assert regression.verify_protected_workspace_application(dirty_root, dirty_case, dirty) == dirty.applied_state_digest
+
+
+@pytest.mark.parametrize(
+    ("mutation", "error"),
+    [
+        (lambda value: value.pop("priorContext"), "protected_replay.invalid_starting_state"),
+        (lambda value: value.update({"unknown": True}), "protected_replay.invalid_starting_state"),
+        (lambda value: value.update({"schemaVersion": "1"}), "protected_replay.invalid_starting_state"),
+        (lambda value: value.update({"caseId": "different-case"}), "protected_replay.starting_state_case_mismatch"),
+        (lambda value: value.update({"familyId": "different-family"}), "protected_replay.starting_state_case_mismatch"),
+        (lambda value: value.update({"role": "different-role"}), "protected_replay.invalid_starting_state"),
+        (lambda value: value.update({"variantToken": "different-token"}), "protected_replay.starting_state_case_mismatch"),
+        (lambda value: value.update({"worktree": "unknown"}), "protected_replay.invalid_starting_state"),
+    ],
+)
+def test_starting_state_closed_schema_rejects_missing_unknown_malformed_and_mismatched_fields(tmp_path, mutation, error):
+    root = tmp_path / "protected-bundle"
+    _, manifest = _build_private_bundle(root)
+    case = manifest["cases"][0]
+    value = _starting_state(case)
+    mutation(value)
+    _replace_starting_state(root, case, value)
+
+    with pytest.raises(ProtectedRegressionError, match=error):
+        provision_protected_workspace(root, case, tmp_path / "workspace")
+
+
+def test_starting_state_rejects_noncanonical_and_frozen_digest_drift(tmp_path):
+    malformed_root = tmp_path / "malformed-bundle"
+    _, malformed_manifest = _build_private_bundle(malformed_root)
+    malformed_case = malformed_manifest["cases"][0]
+    _replace_starting_state(malformed_root, malformed_case, b'{"schemaVersion":1,}', canonical=False)
+    with pytest.raises(ProtectedRegressionError, match="protected_replay.invalid_starting_state"):
+        provision_protected_workspace(malformed_root, malformed_case, tmp_path / "malformed-workspace")
+
+    noncanonical_root = tmp_path / "noncanonical-bundle"
+    _, noncanonical_manifest = _build_private_bundle(noncanonical_root)
+    noncanonical_case = noncanonical_manifest["cases"][0]
+    value = _starting_state(noncanonical_case)
+    _replace_starting_state(
+        noncanonical_root,
+        noncanonical_case,
+        json.dumps(value, indent=2, sort_keys=False).encode(),
+        canonical=False,
+    )
+    with pytest.raises(ProtectedRegressionError, match="protected_replay.noncanonical_starting_state"):
+        provision_protected_workspace(noncanonical_root, noncanonical_case, tmp_path / "noncanonical-workspace")
+
+    drift_root = tmp_path / "drift-bundle"
+    _, drift_manifest = _build_private_bundle(drift_root)
+    drift_case = drift_manifest["cases"][0]
+    drift_path = drift_root / drift_case["workerReadable"]["startingState"]["path"]
+    drift_path.chmod(0o600)
+    drift_path.write_bytes(canonical_bytes(_starting_state(drift_case, priorContext="drifted")))
+    drift_path.chmod(0o400)
+    with pytest.raises(ProtectedRegressionError, match="protected_bundle.digest_mismatch"):
+        provision_protected_workspace(drift_root, drift_case, tmp_path / "drift-workspace")
+
+
+@pytest.mark.parametrize("drift", ["request", "workspace", "partial"])
+def test_applied_starting_state_verification_rejects_drift_and_partial_application(tmp_path, drift):
+    root = tmp_path / "protected-bundle"
+    _, manifest = _build_private_bundle(root)
+    case = manifest["cases"][0]
+    _replace_starting_state(
+        root,
+        case,
+        _starting_state(case, priorContext="durable-context", worktree="dirty_unrelated"),
+    )
+    provisioned = provision_protected_workspace(root, case, tmp_path / "workspace")
+
+    if drift == "request":
+        provisioned.request_path.write_text("changed after application", encoding="utf-8")
+    elif drift == "workspace":
+        (provisioned.workspace / "task.txt").write_text("changed after application", encoding="utf-8")
+    else:
+        (provisioned.workspace / ".abe-starting-state" / "applied.json").unlink()
+
+    with pytest.raises(ProtectedRegressionError, match="protected_replay.applied_starting_state_mismatch"):
+        regression.verify_protected_workspace_application(root, case, provisioned)

@@ -1735,6 +1735,46 @@
       }
     },
     {
+      "name": "ReleaseCandidateQualificationInputs",
+      "kind": "ReleaseCandidateQualificationInputs",
+      "value": {
+        "schemaVersion": 1,
+        "kind": "ReleaseCandidateQualificationInputs",
+        "workerImageDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "candidateArchiveDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "packageArchiveRecordDigest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "packageLockDigest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "behaviorLockDigest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "pluginManifestDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "t032CheckpointDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "candidateCausalityFreezeDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "authorizedCliDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "invocationBoundaryDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "captureBoundaryDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "pluginLifecycleSourceEvidenceDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "customizationConformanceSourceEvidenceDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+      }
+    },
+    {
+      "name": "ReleaseCandidateQualificationEvidence",
+      "kind": "ReleaseCandidateQualificationEvidence",
+      "value": {
+        "schemaVersion": 1,
+        "kind": "ReleaseCandidateQualificationEvidence",
+        "evidenceType": "plugin_lifecycle",
+        "result": "pass",
+        "candidateArchiveDigest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "workerImageDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "cliDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "releaseCandidateInputsDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "invocationBoundaryDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "captureBoundaryDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "sourceEvidenceDigest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "limitations": [],
+        "evidenceContractDigest": "sha256:40a90603549b9810f47999c09147e13e67ed9481ef7fde1e24541254d15d28d6"
+      }
+    },
+    {
       "name": "ClassificationPolicy",
       "kind": "ClassificationPolicy",
       "value": {

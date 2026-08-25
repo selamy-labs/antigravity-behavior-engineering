@@ -9,6 +9,10 @@ import pytest
 
 from abe_eval.canonical import canonical_bytes, sha256_digest
 from abe_eval.contracts import parse_contract
+from abe_eval.antigravity import (
+    release_candidate_capture_boundary_digest,
+    release_candidate_invocation_boundary_digest,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -49,11 +53,12 @@ def test_release_candidate_qualification_protocol_binds_current_cli_worker_and_c
     protocol_body = dict(protocol)
     protocol_body.pop("protocolDigest")
     assert protocol["protocolDigest"] == sha256_digest(canonical_bytes(protocol_body))
-    assert protocol["protocolId"] == "qualification-protocol-release-candidate-1.1.19-2026-08-24"
+    assert protocol["protocolId"] == "qualification-protocol-release-candidate-1.1.19-capture-replacement-2026-08-25"
     assert protocol["cliVersionConstraint"] == "1.1.19"
     assert protocol["cliArtifactDigest"] == "sha256:68d229d37aeabde76d15af0003d4c1ce07b211414e7452fb0309be9714ae7dd4"
     assert protocol["customizationScope"] == "release_candidate"
     assert protocol["releaseCandidateInputsDigest"] == sha256_digest(canonical_bytes(inputs))
+    assert parse_contract("ReleaseCandidateQualificationInputs", inputs) == inputs
     assert inputs == {
         "schemaVersion": 1,
         "kind": "ReleaseCandidateQualificationInputs",
@@ -65,6 +70,11 @@ def test_release_candidate_qualification_protocol_binds_current_cli_worker_and_c
         "pluginManifestDigest": "sha256:e860e2f88747c8272e295f2e8e4718e40bd414f4a85a786eb3c94997be7df37e",
         "t032CheckpointDigest": "sha256:68dc66d9ae7fffabaeec3f05143efa7ad1af4335d83ff374164ec0f103433f72",
         "candidateCausalityFreezeDigest": "sha256:eaabda91aea0f2555205bc98ac2337e6c3c6871fc35ba2b4bb1c56d71dd695fa",
+        "authorizedCliDigest": protocol["cliArtifactDigest"],
+        "invocationBoundaryDigest": release_candidate_invocation_boundary_digest(),
+        "captureBoundaryDigest": release_candidate_capture_boundary_digest(),
+        "pluginLifecycleSourceEvidenceDigest": "sha256:5ba6c26cdc6165bbc4630fa626104cea85bfaae115b1f436b129f2bc129c49a1",
+        "customizationConformanceSourceEvidenceDigest": "sha256:03d9ed7c955178ce32fa77c804236a2f8927285038b04210af36078e62705fc5",
     }
 
 

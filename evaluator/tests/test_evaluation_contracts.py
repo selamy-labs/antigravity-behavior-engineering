@@ -38,6 +38,8 @@ PHASE0_CONTRACT_KINDS = (
     "StagedAttemptOutcomeBundle",
     "EnvironmentQualificationRecord",
     "QualificationProtocol",
+    "ReleaseCandidateQualificationInputs",
+    "ReleaseCandidateQualificationEvidence",
     "AttemptQualificationRecord",
     "GradeRecord",
     "Scorecard",

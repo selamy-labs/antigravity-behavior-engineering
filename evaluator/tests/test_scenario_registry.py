@@ -176,9 +176,21 @@ def test_partition_registries_reserve_seeds_and_keep_materialization_partitioned
             assert registry["variants"]
             assert all(variant["scenarioCard"]["partition"] == "regression" for variant in registry["variants"])
             assert all(
-                variant["scenarioCard"]["agentInput"].startswith("protected/scenarios/regression/")
+                variant["scenarioCard"]["agentInput"] == variant["variantId"]
+                and "/" not in variant["scenarioCard"]["agentInput"]
                 for variant in registry["variants"]
             )
+            public_blob = _text_blob(registry)
+            for forbidden in (
+                "protected/scenarios",
+                "protectedAgentInput",
+                "agent-input.md",
+                "grader-input",
+                "/home/",
+                "controllerOnly",
+                "workerReadable",
+            ):
+                assert forbidden not in public_blob
         assert '"partition":"sealed"' not in _text_blob(registry)
         _assert_no_worker_readable_hidden_material(registry)
         partition_commitments[partition] = set(registry["reservedSeedCommitments"])

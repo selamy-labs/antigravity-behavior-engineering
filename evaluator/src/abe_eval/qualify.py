@@ -43,16 +43,18 @@ def command_qualify(
     if protocol["customizationScope"] != scope:
         raise ValueError("qualify.scope_mismatch")
     release_candidate_inputs: dict[str, object] | None = None
-    plugin_lifecycle_evidence = "not_applicable"
-    customization_conformance_evidence = "not_applicable"
+    plugin_lifecycle_evidence: object = "not_applicable"
+    customization_conformance_evidence: object = "not_applicable"
     if scope == "release_candidate":
         if release_candidate_inputs_path is None:
             raise ValueError("qualify.release_candidate_inputs_required")
         if plugin_lifecycle_evidence_path is None or customization_conformance_evidence_path is None:
             raise ValueError("qualify.release_candidate_lifecycle_evidence_required")
-        release_candidate_inputs = load_json(release_candidate_inputs_path)
-        plugin_lifecycle_evidence = sha256_digest(plugin_lifecycle_evidence_path.read_bytes())
-        customization_conformance_evidence = sha256_digest(customization_conformance_evidence_path.read_bytes())
+        release_candidate_inputs = parse_contract(
+            "ReleaseCandidateQualificationInputs", load_json(release_candidate_inputs_path)
+        )
+        plugin_lifecycle_evidence = load_json(plugin_lifecycle_evidence_path)
+        customization_conformance_evidence = load_json(customization_conformance_evidence_path)
     elif any(
         value is not None
         for value in (

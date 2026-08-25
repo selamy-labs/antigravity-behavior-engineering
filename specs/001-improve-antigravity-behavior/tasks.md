@@ -1706,6 +1706,14 @@ the original pre-treatment claim. This correction changes no candidate package,
 metric, threshold, denominator, ResourceEnvelope, or analysis decision and does
 not satisfy the T038 or T045 human gates.
 
+**Direct-coverage amendment**: The frozen confirmatory suite has no direct
+lifecycle regression protocol and no direct subagent-failure regression
+protocol. T032 lifecycle evidence and T029 review-topology evidence are
+checkpoint context only; they do not convert leakage/isolation, hook/tool
+failure, or agent-positive-control variants into direct coverage. The public
+taxonomy MUST record both gaps as uncovered and ineligible for T034 selection
+or release claims. Any later direct cases are diagnostic/noncausal only.
+
 **Required families**:
 
 ```text
@@ -1733,11 +1741,12 @@ model/quota drift, truncated capture, grader leakage, lifecycle, isolation
 - [ ] Review ceiling families, unexpected failures, and classification disputes
   directly from raw evidence before changing any component.
 
-**Acceptance**: Every required behavior and failure mode has immutable,
+**Acceptance**: Every directly covered behavior and failure mode has immutable,
 independently materialized regression coverage with pre-treatment-frozen
 semantic protocols and seed commitments, post-candidate-freeze/pre-outcome
-concrete bytes, and artifact-first grading; post-treatment diagnostics cannot
-enter causal selection evidence.
+concrete bytes, and artifact-first grading. Lifecycle and subagent failure are
+explicit uncovered gaps; post-treatment diagnostics cannot enter causal
+selection evidence or release claims.
 
 - [ ] T034 [US5] Run final-candidate leave-one-component-out ablations
 

@@ -34,6 +34,41 @@ _FALLBACK_EFFORTS = {
     "gemini-3.7-flash-high": "medium",
     "gemini-3.1-pro-high": "low",
 }
+_RELEASE_CANDIDATE_INVOCATION_BOUNDARY = {
+    "schemaVersion": 1,
+    "cliPath": "/opt/antigravity/bin/agy",
+    "mode": "print",
+    "requiredFlags": [
+        "--dangerously-skip-permissions",
+        "--disable-slash-commands",
+        "--sandbox",
+    ],
+    "requiredOptions": {
+        "--effort": "condition-reasoning-request",
+        "--log-file": "/workspace/output/agy.log",
+        "--model": "condition-model-request",
+        "--output-format": "stream-json",
+        "--print-timeout": "resource-envelope-wall-time-cap-seconds",
+        "-p": "verified-worker-visible-request",
+    },
+    "forbiddenOptions": ["--timeout"],
+    "environment": {"AGY_PERMISSION_MODE": "always-proceed"},
+}
+_RELEASE_CANDIDATE_CAPTURE_BOUNDARY = {
+    "schemaVersion": 1,
+    "format": "stream-json",
+    "rawLinesPreservedBeforeParsing": True,
+    "requiredInitialEvent": "init",
+    "requiredTerminalEvent": "result",
+    "exactlyOneInitialEvent": True,
+    "exactlyOneTerminalEvent": True,
+    "initialMustBeFirst": True,
+    "terminalMustBeLast": True,
+    "terminalMustFollowInitial": True,
+    "stdoutCaptured": True,
+    "stderrCaptured": True,
+    "logCapturedAt": "/workspace/output/agy.log",
+}
 
 
 @dataclass(frozen=True)
@@ -85,6 +120,14 @@ def _sha256_file(path: Path) -> str:
 
 def _digest_payload(value: object) -> str:
     return sha256_digest(canonical_bytes(value))
+
+
+def release_candidate_invocation_boundary_digest() -> str:
+    return _digest_payload(_RELEASE_CANDIDATE_INVOCATION_BOUNDARY)
+
+
+def release_candidate_capture_boundary_digest() -> str:
+    return _digest_payload(_RELEASE_CANDIDATE_CAPTURE_BOUNDARY)
 
 
 def _evidence(result: str, value: object) -> dict[str, object]:
@@ -249,8 +292,10 @@ def _stream_summary(
         raise _StreamContractError("missing or duplicate result event")
     init_index = events.index(init_events[0])
     result_index = events.index(result_events[0])
-    if result_index < init_index:
-        raise _StreamContractError("result before init")
+    if init_index != 0:
+        raise _StreamContractError("init event is not initial")
+    if result_index != len(events) - 1:
+        raise _StreamContractError("result event is not terminal")
 
     init = init_events[0].get("init")
     if not isinstance(init, dict):
@@ -739,26 +784,67 @@ def _selected_model_override_present(log_text: str, *, model: str, expected_labe
     )
 
 
+def _validated_release_candidate_evidence(
+    evidence: object,
+    *,
+    expected_type: str,
+    release_inputs: dict[str, object],
+    release_inputs_digest: str,
+    cli_digest: str,
+) -> dict[str, object]:
+    parsed = parse_contract("ReleaseCandidateQualificationEvidence", evidence)
+    if parsed["evidenceType"] != expected_type:
+        raise ValueError("antigravity.release_evidence_type_mismatch")
+    if parsed["result"] != "pass":
+        raise ValueError("antigravity.release_evidence_not_passing")
+    source_key = (
+        "pluginLifecycleSourceEvidenceDigest"
+        if expected_type == "plugin_lifecycle"
+        else "customizationConformanceSourceEvidenceDigest"
+    )
+    expected = {
+        "candidateArchiveDigest": release_inputs["candidateArchiveDigest"],
+        "workerImageDigest": release_inputs["workerImageDigest"],
+        "cliDigest": cli_digest,
+        "releaseCandidateInputsDigest": release_inputs_digest,
+        "invocationBoundaryDigest": release_inputs["invocationBoundaryDigest"],
+        "captureBoundaryDigest": release_inputs["captureBoundaryDigest"],
+        "sourceEvidenceDigest": release_inputs[source_key],
+    }
+    if any(parsed[field] != value for field, value in expected.items()):
+        raise ValueError("antigravity.release_evidence_binding_mismatch")
+    return parsed
+
+
 def qualify_environment(
     worker: AntigravityWorkerHandle,
     protocol: object,
     *,
     release_candidate_inputs: object | None = None,
-    plugin_lifecycle_evidence: str = "not_applicable",
-    customization_conformance_evidence: str = "not_applicable",
+    plugin_lifecycle_evidence: object = "not_applicable",
+    customization_conformance_evidence: object = "not_applicable",
 ) -> QualificationResult:
     """Qualify an exact CLI artifact and target model/effort set."""
 
     parsed_protocol = parse_contract("QualificationProtocol", protocol)
     release_inputs_digest = "not_applicable"
+    parsed_lifecycle_evidence: dict[str, object] | None = None
+    parsed_customization_evidence: dict[str, object] | None = None
     if parsed_protocol["customizationScope"] == "release_candidate":
         if not isinstance(release_candidate_inputs, dict):
             raise ValueError("antigravity.release_candidate_inputs_required")
+        release_candidate_inputs = parse_contract("ReleaseCandidateQualificationInputs", release_candidate_inputs)
         release_inputs_digest = _digest_payload(release_candidate_inputs)
         if release_inputs_digest != parsed_protocol["releaseCandidateInputsDigest"]:
             raise ValueError("antigravity.release_candidate_inputs_mismatch")
         if release_candidate_inputs.get("workerImageDigest") != parsed_protocol["imageDigest"]:
             raise ValueError("antigravity.release_candidate_worker_mismatch")
+        if release_candidate_inputs.get("authorizedCliDigest") != parsed_protocol["cliArtifactDigest"]:
+            raise ValueError("antigravity.release_candidate_cli_mismatch")
+        if release_candidate_inputs.get("invocationBoundaryDigest") != release_candidate_invocation_boundary_digest():
+            raise ValueError("antigravity.release_candidate_invocation_boundary_mismatch")
+        if release_candidate_inputs.get("captureBoundaryDigest") != release_candidate_capture_boundary_digest():
+            raise ValueError("antigravity.release_candidate_capture_boundary_mismatch")
         if plugin_lifecycle_evidence == "not_applicable":
             raise ValueError("antigravity.plugin_lifecycle_evidence_required")
         if customization_conformance_evidence == "not_applicable":
@@ -772,6 +858,22 @@ def qualify_environment(
     cli_digest = _sha256_file(cli_path)
     if cli_digest != parsed_protocol["cliArtifactDigest"]:
         raise ValueError("antigravity.cli_digest_mismatch")
+    if parsed_protocol["customizationScope"] == "release_candidate":
+        assert isinstance(release_candidate_inputs, dict)
+        parsed_lifecycle_evidence = _validated_release_candidate_evidence(
+            plugin_lifecycle_evidence,
+            expected_type="plugin_lifecycle",
+            release_inputs=release_candidate_inputs,
+            release_inputs_digest=release_inputs_digest,
+            cli_digest=cli_digest,
+        )
+        parsed_customization_evidence = _validated_release_candidate_evidence(
+            customization_conformance_evidence,
+            expected_type="customization_conformance",
+            release_inputs=release_candidate_inputs,
+            release_inputs_digest=release_inputs_digest,
+            cli_digest=cli_digest,
+        )
     cli_version = _version(cli_path, env=worker.env, cwd=worker.cwd)
     constraint = str(parsed_protocol["cliVersionConstraint"])
     if constraint and constraint[0].isdigit() and cli_version != constraint:
@@ -895,8 +997,16 @@ def qualify_environment(
             "modelConfigurationEvidence": dict(sorted(model_evidence.items())),
             "unknownModelFallbackEvidence": _digest_payload(fallback_results),
             "structuredCaptureEvidence": _digest_payload(raw_model_runs),
-            "pluginLifecycleEvidence": plugin_lifecycle_evidence,
-            "customizationConformanceEvidence": customization_conformance_evidence,
+            "pluginLifecycleEvidence": (
+                canonical_contract_digest("ReleaseCandidateQualificationEvidence", parsed_lifecycle_evidence)
+                if parsed_lifecycle_evidence is not None
+                else "not_applicable"
+            ),
+            "customizationConformanceEvidence": (
+                canonical_contract_digest("ReleaseCandidateQualificationEvidence", parsed_customization_evidence)
+                if parsed_customization_evidence is not None
+                else "not_applicable"
+            ),
             "authorityToolCapabilityEvidence": _digest_payload(
                 {
                     "catalog": catalog,
@@ -924,6 +1034,14 @@ def qualify_environment(
         "modelRuns": raw_model_runs,
         "fallbackProbes": fallback_results,
         "representativeAttemptQualification": attempt_qualification,
+        "releaseCandidateEvidence": (
+            {
+                "customizationConformance": parsed_customization_evidence,
+                "pluginLifecycle": parsed_lifecycle_evidence,
+            }
+            if parsed_lifecycle_evidence is not None and parsed_customization_evidence is not None
+            else "not_applicable"
+        ),
         "supportDecision": environment["supportDecision"],
         "limitations": limitations,
     }

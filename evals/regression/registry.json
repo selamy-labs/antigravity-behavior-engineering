@@ -78,7 +78,7 @@
         "variantProtocolDigest": "sha256:079458983e47ef15b2f68b2ea7b6c785148390bb8b0f0fb01c54a0f0a5a78108",
         "fixtureDigest": "sha256:f2eb195020684294092091a85a0fe193350f307353852b7882e2f2b5c98c7f22",
         "startingStateDigest": "sha256:78536fdb7ad8a17212a5484b22c5c80d9039459614612adc4967747383759fad",
-        "agentInput": "protected/scenarios/regression/fr044-interrogation-injection/079458983e47/agent-input.md",
+        "agentInput": "regression-fr044-interrogation-injection-079458983e47",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -156,7 +156,7 @@
         "classificationPolicyDigest": "sha256:341093ecc4d2edb6c8ee83f4ddb4505d7df2ca53b7bb6ed4529222d141390f73",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:3e267eb0c94bba1d6a06a5dfc2568ebb6a88893403d2683a6d0fafc7e854a9e0",
+      "scenarioCardDigest": "sha256:1ef5ed649afa5da5b867ecdd854d5c17bfb3c12535c615d9f1a6ee710f6a26fc",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-interrogation-injection-079458983e47",
@@ -182,12 +182,12 @@
           "clarification_log",
           "diff_scope"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-interrogation-injection/079458983e47/agent-input.md",
         "fixtureDigest": "sha256:f2eb195020684294092091a85a0fe193350f307353852b7882e2f2b5c98c7f22",
         "startingStateDigest": "sha256:78536fdb7ad8a17212a5484b22c5c80d9039459614612adc4967747383759fad",
         "checkIds": [
           "clarification-before-edit-079458983e47"
-        ]
+        ],
+        "agentInputDigest": "sha256:e1e02731fecda76baa24ae7993d6c38a9b3460fdca84482d10f8c98a91929d74"
       },
       "protectedMaterialDigest": "sha256:d0f1638ad2b2bae5ea93c6d6e576d2a6cac4949a04a4a76c105722698f727f39"
     },
@@ -206,7 +206,7 @@
         "variantProtocolDigest": "sha256:53d3dac5fa96fdc3fb709594896112bd1a209883adbd387de3fc5660eb1fc75b",
         "fixtureDigest": "sha256:a98e3c514f3f15fea8c852ad1c7d96aa98976942e451a9e716738ab14d0e2071",
         "startingStateDigest": "sha256:524a99c31b9603eb20f9d86d9404c0f40c87e49de40cbd60ce7f680d6f408470",
-        "agentInput": "protected/scenarios/regression/fr044-interrogation-injection/53d3dac5fa96/agent-input.md",
+        "agentInput": "regression-fr044-interrogation-injection-53d3dac5fa96",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -284,7 +284,7 @@
         "classificationPolicyDigest": "sha256:341093ecc4d2edb6c8ee83f4ddb4505d7df2ca53b7bb6ed4529222d141390f73",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:fdb4a04d23623fddcc101d6ed6dc52e0fcaa883bb56f46199f6e7b3a133f6cf6",
+      "scenarioCardDigest": "sha256:58cdf3606875e30749e4e04eea5c16986d1faa458d45f580bcab8b9978f44d0d",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-interrogation-injection-53d3dac5fa96",
@@ -310,12 +310,12 @@
           "clarification_log",
           "diff_scope"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-interrogation-injection/53d3dac5fa96/agent-input.md",
         "fixtureDigest": "sha256:a98e3c514f3f15fea8c852ad1c7d96aa98976942e451a9e716738ab14d0e2071",
         "startingStateDigest": "sha256:524a99c31b9603eb20f9d86d9404c0f40c87e49de40cbd60ce7f680d6f408470",
         "checkIds": [
           "clarification-before-edit-53d3dac5fa96"
-        ]
+        ],
+        "agentInputDigest": "sha256:b1594f045d10c855d6e64f065c7eb54f593ba146a1e48906af04e0504979b8f6"
       },
       "protectedMaterialDigest": "sha256:134aaaa4d9e146c80c30c77898c17307c203764788eb84ed131737296af797df"
     },
@@ -334,7 +334,7 @@
         "variantProtocolDigest": "sha256:37d505681ed64bff74c9bc5baced451bb28734da934b66ec98ddd10d0eea9c57",
         "fixtureDigest": "sha256:ff8d71c54bf9b0939c753589d5e3cba579e67a6e049cf83b6e8a480a721757da",
         "startingStateDigest": "sha256:5d60f1dd831e4711816495b6a7fc8ec22e3edda8212e2f74c769e66a37059eb6",
-        "agentInput": "protected/scenarios/regression/fr044-proportionality-safe-default/37d505681ed6/agent-input.md",
+        "agentInput": "regression-fr044-proportionality-safe-default-37d505681ed6",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -410,7 +410,7 @@
         "classificationPolicyDigest": "sha256:8da3de9aa865ae5e6371486478d57f504eb8a93dce5f03d33da355da1164fd63",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:44d23641e49141dbca731d87ab4a8138b6511738bfa625451bb3a8a6828a0157",
+      "scenarioCardDigest": "sha256:a92c514f3aa9a77934ecd759b59a5542fa80e0dd5673ec113eca3e2dbbed3009",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-proportionality-safe-default-37d505681ed6",
@@ -436,12 +436,12 @@
           "focused_test",
           "git_diff"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-proportionality-safe-default/37d505681ed6/agent-input.md",
         "fixtureDigest": "sha256:ff8d71c54bf9b0939c753589d5e3cba579e67a6e049cf83b6e8a480a721757da",
         "startingStateDigest": "sha256:5d60f1dd831e4711816495b6a7fc8ec22e3edda8212e2f74c769e66a37059eb6",
         "checkIds": [
           "proportionate-workflow-37d505681ed6"
-        ]
+        ],
+        "agentInputDigest": "sha256:d590647f9ef4530220d2c4e35e411c9738801e5b5a68a97d6011214b5b4fff0b"
       },
       "protectedMaterialDigest": "sha256:2b6fe55c0fe4dac61623c30f510f56f715e5e22341f4d3f76a021b43ba9727c5"
     },
@@ -460,7 +460,7 @@
         "variantProtocolDigest": "sha256:8025dd5c64c70dd73a1523c92459bab50d311cf9232ab4d8c8495cbf411da9e0",
         "fixtureDigest": "sha256:faeb268999dba91e1c2cf185daf03d565fb438127c8754bc0bf6a7b8d62a417b",
         "startingStateDigest": "sha256:0fde8c3fc1dd5a90ca37459d70dba5afb88cbd6d92e4657e0e9c78c2b5dd5f11",
-        "agentInput": "protected/scenarios/regression/fr044-proportionality-safe-default/8025dd5c64c7/agent-input.md",
+        "agentInput": "regression-fr044-proportionality-safe-default-8025dd5c64c7",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -536,7 +536,7 @@
         "classificationPolicyDigest": "sha256:8da3de9aa865ae5e6371486478d57f504eb8a93dce5f03d33da355da1164fd63",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:d72c6fa6b6755384dc3da3ac9f7e56346393bd80367ceb54c5bb7b74f6d1684d",
+      "scenarioCardDigest": "sha256:94998c8c32d430db08b5f50ba7e4311986e122fad7f32b5ac681b4ca1547dd3e",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-proportionality-safe-default-8025dd5c64c7",
@@ -562,12 +562,12 @@
           "focused_test",
           "git_diff"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-proportionality-safe-default/8025dd5c64c7/agent-input.md",
         "fixtureDigest": "sha256:faeb268999dba91e1c2cf185daf03d565fb438127c8754bc0bf6a7b8d62a417b",
         "startingStateDigest": "sha256:0fde8c3fc1dd5a90ca37459d70dba5afb88cbd6d92e4657e0e9c78c2b5dd5f11",
         "checkIds": [
           "proportionate-workflow-8025dd5c64c7"
-        ]
+        ],
+        "agentInputDigest": "sha256:f9386e5b9e1526cd924b008c75012eec3bd810291a6887d10ff0b5a6795ec6f1"
       },
       "protectedMaterialDigest": "sha256:fdbd5c208355c949a783c0bace6e44854679c8d91ec6798a229731b0a1b28211"
     },
@@ -586,7 +586,7 @@
         "variantProtocolDigest": "sha256:f14c503711ae327bfd98e32858403d59ef4621dd7e215ea821566ecf1f06674c",
         "fixtureDigest": "sha256:ca499dd03759e721dff3539f4aec4d8c9b33a21aa089fb81121bf7bdf4ec5131",
         "startingStateDigest": "sha256:7f328bdd169ca021f3206576d5e8337568ef1a970319b263ef5230b913facb38",
-        "agentInput": "protected/scenarios/regression/fr044-durable-intent-restart/f14c503711ae/agent-input.md",
+        "agentInput": "regression-fr044-durable-intent-restart-f14c503711ae",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -664,7 +664,7 @@
         "classificationPolicyDigest": "sha256:c6934fd24eb2e3f557fe2ea55b11ea6f7d3c4793f73d92bf944315b3e0979c06",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:6026eb741d4ca9a25db32ca1f07d0faed55353a51c55284bf7af4ba478582bb8",
+      "scenarioCardDigest": "sha256:75422d24c1890373d3e971d47a740f5eed1b6d7d1e5760e0038580c8f2973842",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-durable-intent-restart-f14c503711ae",
@@ -690,12 +690,12 @@
           "goal_artifact",
           "resume_decision"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-durable-intent-restart/f14c503711ae/agent-input.md",
         "fixtureDigest": "sha256:ca499dd03759e721dff3539f4aec4d8c9b33a21aa089fb81121bf7bdf4ec5131",
         "startingStateDigest": "sha256:7f328bdd169ca021f3206576d5e8337568ef1a970319b263ef5230b913facb38",
         "checkIds": [
           "durable-resume-f14c503711ae"
-        ]
+        ],
+        "agentInputDigest": "sha256:4379156948246ca9cbe3adec64f000bbf36ff42f5d3d00ca08843b8bd2718aef"
       },
       "protectedMaterialDigest": "sha256:8d7519eec0d60c4f1f30abf0e5482571a5f6d9fcdd7798382ab3a678822d20f4"
     },
@@ -714,7 +714,7 @@
         "variantProtocolDigest": "sha256:374f90928f388c391e248a46eb96c4c62f0caa1cf895158ab92e326ce06e4d41",
         "fixtureDigest": "sha256:d5724dde6b6a307f4c0fedfe571d75e6c64ba6dfaa57bf0de7f20a2557d4e276",
         "startingStateDigest": "sha256:62dd9b537f0fdff01dea409c2607ef7de370f9e92582b821209114bb1f9a0a64",
-        "agentInput": "protected/scenarios/regression/fr044-durable-intent-restart/374f90928f38/agent-input.md",
+        "agentInput": "regression-fr044-durable-intent-restart-374f90928f38",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -792,7 +792,7 @@
         "classificationPolicyDigest": "sha256:c6934fd24eb2e3f557fe2ea55b11ea6f7d3c4793f73d92bf944315b3e0979c06",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:1e6ae73b42ede7d07ce62e5ba7ca25487c661ec8db93e5d3fd0283338ec289f3",
+      "scenarioCardDigest": "sha256:0d4ac0076684bdc1c71d516577b03c26ecc25406e1ee1f60a9f1fd1f474a26d1",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-durable-intent-restart-374f90928f38",
@@ -818,12 +818,12 @@
           "goal_artifact",
           "resume_decision"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-durable-intent-restart/374f90928f38/agent-input.md",
         "fixtureDigest": "sha256:d5724dde6b6a307f4c0fedfe571d75e6c64ba6dfaa57bf0de7f20a2557d4e276",
         "startingStateDigest": "sha256:62dd9b537f0fdff01dea409c2607ef7de370f9e92582b821209114bb1f9a0a64",
         "checkIds": [
           "durable-resume-374f90928f38"
-        ]
+        ],
+        "agentInputDigest": "sha256:21350c4179158dd55885df99c512b055a6e148bcf3d95a3b0d5ec6b91e0abf8a"
       },
       "protectedMaterialDigest": "sha256:1e934e897b4cf42eedd284fe95f498b5d1d7bcc056801e5ba63673b0120c780a"
     },
@@ -842,7 +842,7 @@
         "variantProtocolDigest": "sha256:6fd01d9d789637afe41f1df2f55215665ba6b1c75c01d8c2a38920e762f21d18",
         "fixtureDigest": "sha256:d8b49c8437585015c6293d6775384b3e018eea90c13cf957c209a2befa9ea367",
         "startingStateDigest": "sha256:013d2dc0ac66be2a2c741594f9a1e4b8be1c34d102ef77f8c44e968f03f9e791",
-        "agentInput": "protected/scenarios/regression/fr044-debug-repair/6fd01d9d7896/agent-input.md",
+        "agentInput": "regression-fr044-debug-repair-6fd01d9d7896",
         "applicability": {
           "skill": false,
           "hook": true,
@@ -920,7 +920,7 @@
         "classificationPolicyDigest": "sha256:9dfe96b8ccd0e4c333519d3bbf5c605d28405fd1fb22c0c5e9f293d4f6ee58ee",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:68b46f5f1e03ae97d3e0d9063b96e753b96a66d2eeebd1c593d961f707f9b40d",
+      "scenarioCardDigest": "sha256:851d8021de227d449fa2844afda540a1fc171ade8ec181833638512490c433fb",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-debug-repair-6fd01d9d7896",
@@ -946,12 +946,12 @@
           "initial_failure",
           "fixed_test"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-debug-repair/6fd01d9d7896/agent-input.md",
         "fixtureDigest": "sha256:d8b49c8437585015c6293d6775384b3e018eea90c13cf957c209a2befa9ea367",
         "startingStateDigest": "sha256:013d2dc0ac66be2a2c741594f9a1e4b8be1c34d102ef77f8c44e968f03f9e791",
         "checkIds": [
           "root-cause-before-repair-6fd01d9d7896"
-        ]
+        ],
+        "agentInputDigest": "sha256:e8ffe7c00eecadc9a6077953afdaf8f80b47c474cbcf172169750f2d1c867696"
       },
       "protectedMaterialDigest": "sha256:9042acd9e0791e057d4393067d3a1d99e056a44e3e21f6c1e31a7fa3909192c7"
     },
@@ -970,7 +970,7 @@
         "variantProtocolDigest": "sha256:bc8b52b953843bc25c96c700860330ccef842868f34e3f1a43a656dc72767dfc",
         "fixtureDigest": "sha256:495bdda60b192f525f3991a83b532f106914b1732e9b83be6fe2ddfad1c29225",
         "startingStateDigest": "sha256:a90a51fffbcee15fd5bdfd61ef661becdae59816e63e280d1cbb0c796696cc40",
-        "agentInput": "protected/scenarios/regression/fr044-debug-repair/bc8b52b95384/agent-input.md",
+        "agentInput": "regression-fr044-debug-repair-bc8b52b95384",
         "applicability": {
           "skill": false,
           "hook": true,
@@ -1048,7 +1048,7 @@
         "classificationPolicyDigest": "sha256:9dfe96b8ccd0e4c333519d3bbf5c605d28405fd1fb22c0c5e9f293d4f6ee58ee",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:43b8197d4b8f1842e4d79dcd7d1ebd9cd5c1a359ff2851b3f5fceb08f23e84b4",
+      "scenarioCardDigest": "sha256:d18f7050427e134081357089f9081d67ab7c4e367862effe1114810ebd39de2f",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-debug-repair-bc8b52b95384",
@@ -1074,12 +1074,12 @@
           "initial_failure",
           "fixed_test"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-debug-repair/bc8b52b95384/agent-input.md",
         "fixtureDigest": "sha256:495bdda60b192f525f3991a83b532f106914b1732e9b83be6fe2ddfad1c29225",
         "startingStateDigest": "sha256:a90a51fffbcee15fd5bdfd61ef661becdae59816e63e280d1cbb0c796696cc40",
         "checkIds": [
           "root-cause-before-repair-bc8b52b95384"
-        ]
+        ],
+        "agentInputDigest": "sha256:5af3c1966526709697b7c2f20174ca7256019e527c2b92f70346c60dd27cca7e"
       },
       "protectedMaterialDigest": "sha256:b0741dcc6378a2eb700969d357ca6a0a4d1139a9c95195ab43bb911b257c1235"
     },
@@ -1098,7 +1098,7 @@
         "variantProtocolDigest": "sha256:75cd6554c627f7d72ac7c6c6bba50be376ca0fc302f3de439a51b256998e85df",
         "fixtureDigest": "sha256:48248511abcce4c502db9f15c66ceafa99de310dd255146b493924b19f951c2f",
         "startingStateDigest": "sha256:8d76b395203a5197171fd776abf89872a0dc5bd957ba46cfd8da23528cc2025c",
-        "agentInput": "protected/scenarios/regression/fr044-verification-truncation/75cd6554c627/agent-input.md",
+        "agentInput": "regression-fr044-verification-truncation-75cd6554c627",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -1174,7 +1174,7 @@
         "classificationPolicyDigest": "sha256:02e18d7b4d509088feeaaec3264ba96f7e234ae334c6d1ff1259b432b7ad9c67",
         "weight": 3
       },
-      "scenarioCardDigest": "sha256:c75cf5039e67886eadaa2d36a56069c0132ad1aa99addf29b2286dc0c0eaded4",
+      "scenarioCardDigest": "sha256:cd04ec789046de3b1781a414094be4e43b390706817f2f1dc7446de49fe810e9",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-verification-truncation-75cd6554c627",
@@ -1200,12 +1200,12 @@
           "verification_log_digest",
           "completion_report"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-verification-truncation/75cd6554c627/agent-input.md",
         "fixtureDigest": "sha256:48248511abcce4c502db9f15c66ceafa99de310dd255146b493924b19f951c2f",
         "startingStateDigest": "sha256:8d76b395203a5197171fd776abf89872a0dc5bd957ba46cfd8da23528cc2025c",
         "checkIds": [
           "honest-incomplete-report-75cd6554c627"
-        ]
+        ],
+        "agentInputDigest": "sha256:4a5e25772c6f61a2dcc021022cd6e383d07d02e1f8c5b062a93226cd9d342b0b"
       },
       "protectedMaterialDigest": "sha256:65385e97f9531ce5a3af8cbbb022f35be5aaa2e77bce9fb19fe457440c3cd030"
     },
@@ -1224,7 +1224,7 @@
         "variantProtocolDigest": "sha256:94c4a2bd98d7398a2b69db70ff6df638cb7d89a60a803cf07e28b835d9c1450b",
         "fixtureDigest": "sha256:cd7219ea32e000986fd0959968de3f6f51803ee38f6ed290107e5382926af49c",
         "startingStateDigest": "sha256:46cd05871a8b86401792ff371b341daaec9dd0eebc4a5c39abf12850824eae6d",
-        "agentInput": "protected/scenarios/regression/fr044-verification-truncation/94c4a2bd98d7/agent-input.md",
+        "agentInput": "regression-fr044-verification-truncation-94c4a2bd98d7",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -1300,7 +1300,7 @@
         "classificationPolicyDigest": "sha256:02e18d7b4d509088feeaaec3264ba96f7e234ae334c6d1ff1259b432b7ad9c67",
         "weight": 3
       },
-      "scenarioCardDigest": "sha256:b91b3a1377bb13cc37a33c5c04d0b32a61c8640012ff6288d75afeffabd9f58b",
+      "scenarioCardDigest": "sha256:16fd45117ef7808d358df41d16763f868e7f89c0ea8af9e8c9ccedc6d651a9a6",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-verification-truncation-94c4a2bd98d7",
@@ -1326,12 +1326,12 @@
           "verification_log_digest",
           "completion_report"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-verification-truncation/94c4a2bd98d7/agent-input.md",
         "fixtureDigest": "sha256:cd7219ea32e000986fd0959968de3f6f51803ee38f6ed290107e5382926af49c",
         "startingStateDigest": "sha256:46cd05871a8b86401792ff371b341daaec9dd0eebc4a5c39abf12850824eae6d",
         "checkIds": [
           "honest-incomplete-report-94c4a2bd98d7"
-        ]
+        ],
+        "agentInputDigest": "sha256:a22f274646dc46eb6f9ffa516b43fea530d5312198e9f485bd6102dfeaa14169"
       },
       "protectedMaterialDigest": "sha256:0f8ef90bdbcf52b52481ffcd109417f547b472ac5ff40cf5fa11d4e2a6f1b130"
     },
@@ -1350,7 +1350,7 @@
         "variantProtocolDigest": "sha256:6158766637579e1ad395d4742cfbf645149efb19f69f7142ec8d267d398f8b9f",
         "fixtureDigest": "sha256:3ce7c4962fff60f98c86adcc4b1e8e7c81ceaa03826c120f03b1f23d18b0e1dc",
         "startingStateDigest": "sha256:c9e042617e42aa537d2291512220d4f4a0219b00887aac3a498f31d955bf60cb",
-        "agentInput": "protected/scenarios/regression/fr044-review-defect-contrast/615876663757/agent-input.md",
+        "agentInput": "regression-fr044-review-defect-contrast-615876663757",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -1426,7 +1426,7 @@
         "classificationPolicyDigest": "sha256:78393b275d83ce635a5616285400dc751bd82d2e194ce69cee79e85e4655ebb1",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:c8f78135a3bb8fce9afb8300a251034886203b3ead2a4621c6331c689f8008b7",
+      "scenarioCardDigest": "sha256:dd259691f6f148d194d2f7be812dedc57214382358cdd3d318dc2274fadb4024",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-review-defect-contrast-615876663757",
@@ -1452,12 +1452,12 @@
           "finding_locations",
           "no_finding_statement"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-review-defect-contrast/615876663757/agent-input.md",
         "fixtureDigest": "sha256:3ce7c4962fff60f98c86adcc4b1e8e7c81ceaa03826c120f03b1f23d18b0e1dc",
         "startingStateDigest": "sha256:c9e042617e42aa537d2291512220d4f4a0219b00887aac3a498f31d955bf60cb",
         "checkIds": [
           "review-contrast-615876663757"
-        ]
+        ],
+        "agentInputDigest": "sha256:87fdd32b3e7941a40849c5bfab4f27a6d5246f1ebd077849b916175187ad7228"
       },
       "protectedMaterialDigest": "sha256:c2b63b0279954cf6fbccfb3e85a5ae32fa16189be49db212bb51184b75496b16"
     },
@@ -1476,7 +1476,7 @@
         "variantProtocolDigest": "sha256:93749ecc31f636bd9d71e5a69a17c9303c740946f32d91ecaf83b003ad062331",
         "fixtureDigest": "sha256:6f79770014a14c1d2e12dec5ab035886401c85f5354d0d5e90a0b476f07190a9",
         "startingStateDigest": "sha256:0be339b14571e1d389bc19ea7e0adcd06fc7d9d63452cb9f02d5f496a218d965",
-        "agentInput": "protected/scenarios/regression/fr044-review-defect-contrast/93749ecc31f6/agent-input.md",
+        "agentInput": "regression-fr044-review-defect-contrast-93749ecc31f6",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -1552,7 +1552,7 @@
         "classificationPolicyDigest": "sha256:78393b275d83ce635a5616285400dc751bd82d2e194ce69cee79e85e4655ebb1",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:41ddaf5bec897cd6422760e95b83b7f941389fe00026ff762f0fc6fe12dc79ec",
+      "scenarioCardDigest": "sha256:45563ac6083920254e5d37481badeafb02f76e418dc4b69c0c58d84938802c4d",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-review-defect-contrast-93749ecc31f6",
@@ -1578,12 +1578,12 @@
           "finding_locations",
           "no_finding_statement"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-review-defect-contrast/93749ecc31f6/agent-input.md",
         "fixtureDigest": "sha256:6f79770014a14c1d2e12dec5ab035886401c85f5354d0d5e90a0b476f07190a9",
         "startingStateDigest": "sha256:0be339b14571e1d389bc19ea7e0adcd06fc7d9d63452cb9f02d5f496a218d965",
         "checkIds": [
           "review-contrast-93749ecc31f6"
-        ]
+        ],
+        "agentInputDigest": "sha256:ff486c5d38fb6b83f9178374963004979e438182f3fe74a7f126cdad16340371"
       },
       "protectedMaterialDigest": "sha256:38463f1348b2a8f50c66046239ee1061328e3aa38d5239cdc3c244ce9a2b17bb"
     },
@@ -1602,7 +1602,7 @@
         "variantProtocolDigest": "sha256:c51adcce391f37a5893c11d165ec75eca98675092ab76d1ba35b92bdb917c38c",
         "fixtureDigest": "sha256:d7e097041ff92024b616ba8fc8e7877caf7ee68aab2ea0c803443a496d1b201e",
         "startingStateDigest": "sha256:f5613f85cffa1bbb1e06492e42344f69789483d5744d92d89aec398732d76278",
-        "agentInput": "protected/scenarios/regression/fr044-preferences-dirty-worktree/c51adcce391f/agent-input.md",
+        "agentInput": "regression-fr044-preferences-dirty-worktree-c51adcce391f",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -1680,7 +1680,7 @@
         "classificationPolicyDigest": "sha256:26e707b1beef8cb73bcf964e946122aab8712c3ebe5491a37b1ffa3b6c9adff5",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:fabc42872e6e29aec7a1773dd4c1718cb3b83dea26efc0b97bfa4d19a8100116",
+      "scenarioCardDigest": "sha256:cecb1efe257c7edc2a15abc8b02f2fcc383d7e28f269beaa7381a957d69982be",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-preferences-dirty-worktree-c51adcce391f",
@@ -1706,12 +1706,12 @@
           "pre_diff",
           "post_diff"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-preferences-dirty-worktree/c51adcce391f/agent-input.md",
         "fixtureDigest": "sha256:d7e097041ff92024b616ba8fc8e7877caf7ee68aab2ea0c803443a496d1b201e",
         "startingStateDigest": "sha256:f5613f85cffa1bbb1e06492e42344f69789483d5744d92d89aec398732d76278",
         "checkIds": [
           "dirty-worktree-preserved-c51adcce391f"
-        ]
+        ],
+        "agentInputDigest": "sha256:599d5acc3f13ab8a0eead3fc0b0192431b5703f0fe1c16749bb0475802d6550f"
       },
       "protectedMaterialDigest": "sha256:b14f957d7a24e5516ea219bbea39d28a90c12205d57a2a69f366acd1f0d2d8c3"
     },
@@ -1730,7 +1730,7 @@
         "variantProtocolDigest": "sha256:ff1ac65d3ccc0ce3a94c12d852de5ffce54b2a424bb50067b2d70bc35c9ca6e0",
         "fixtureDigest": "sha256:0f74acaf2184757a01210add4f1a1729093203583a88fd5ee813198ec16c2af0",
         "startingStateDigest": "sha256:04fb66122183da1a43c89893c7c329c7b04e5fd4a216173ad51e1202f6150ab7",
-        "agentInput": "protected/scenarios/regression/fr044-preferences-dirty-worktree/ff1ac65d3ccc/agent-input.md",
+        "agentInput": "regression-fr044-preferences-dirty-worktree-ff1ac65d3ccc",
         "applicability": {
           "skill": true,
           "hook": false,
@@ -1808,7 +1808,7 @@
         "classificationPolicyDigest": "sha256:26e707b1beef8cb73bcf964e946122aab8712c3ebe5491a37b1ffa3b6c9adff5",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:5bc48577ab5adbc5ef284df9ce68514887080aac06e93b5402bad095ff4681d7",
+      "scenarioCardDigest": "sha256:a40898941d52bc32a2044579a9db6b15ba9716924c8e8f8cdd4012d2000a6324",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-preferences-dirty-worktree-ff1ac65d3ccc",
@@ -1834,12 +1834,12 @@
           "pre_diff",
           "post_diff"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-preferences-dirty-worktree/ff1ac65d3ccc/agent-input.md",
         "fixtureDigest": "sha256:0f74acaf2184757a01210add4f1a1729093203583a88fd5ee813198ec16c2af0",
         "startingStateDigest": "sha256:04fb66122183da1a43c89893c7c329c7b04e5fd4a216173ad51e1202f6150ab7",
         "checkIds": [
           "dirty-worktree-preserved-ff1ac65d3ccc"
-        ]
+        ],
+        "agentInputDigest": "sha256:7170a99c4dbec7b1bdeb84dc2af5ef81019c58b626c73fc3876fe09e975ac016"
       },
       "protectedMaterialDigest": "sha256:ec7f141d45481dfa7c35dcc4d680187bf0c5bd3cbe30d3f2ec4c4716ee37180a"
     },
@@ -1858,7 +1858,7 @@
         "variantProtocolDigest": "sha256:1eb40117e24d0f5aab21e7d89d523356d346c1b347c94d48047716542fd67313",
         "fixtureDigest": "sha256:62b328d037d01122edca76374ed05dfef0892437ccfe6ebce4e42aecfb6078be",
         "startingStateDigest": "sha256:2ad5fc6840878fe53495fe6a075a033dc72c975479c65af09b254ff9c0a6b8dc",
-        "agentInput": "protected/scenarios/regression/fr044-permission-missing-input/1eb40117e24d/agent-input.md",
+        "agentInput": "regression-fr044-permission-missing-input-1eb40117e24d",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -1935,7 +1935,7 @@
         "classificationPolicyDigest": "sha256:5345bfa55fc5321fce3fbb6e17bf5cf6a16d48c60153b07e7a805d166ab256d4",
         "weight": 3
       },
-      "scenarioCardDigest": "sha256:e6734379b7c0160f51632ee559632d87e8c6b62ad7dac2ee9ec685e46824efd9",
+      "scenarioCardDigest": "sha256:12392c16f0680764500939d969ef814ac8532d4548d33f94dc50dbe4cad51305",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-permission-missing-input-1eb40117e24d",
@@ -1961,12 +1961,12 @@
           "needs_input_report",
           "no_destructive_action"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-permission-missing-input/1eb40117e24d/agent-input.md",
         "fixtureDigest": "sha256:62b328d037d01122edca76374ed05dfef0892437ccfe6ebce4e42aecfb6078be",
         "startingStateDigest": "sha256:2ad5fc6840878fe53495fe6a075a033dc72c975479c65af09b254ff9c0a6b8dc",
         "checkIds": [
           "needs-input-not-success-1eb40117e24d"
-        ]
+        ],
+        "agentInputDigest": "sha256:f7d623e278329ad46b331092ebb9376d4941ad17ac94ac10973084cb1bc2ab8b"
       },
       "protectedMaterialDigest": "sha256:5e3a90e9de719523a1f0cea048c828a938edd2a30a9d1d52f5b5c66259de1fda"
     },
@@ -1985,7 +1985,7 @@
         "variantProtocolDigest": "sha256:4159d76b1b76cf365a2696733e4faf98288a68036d49e454e31e5fa2b046f066",
         "fixtureDigest": "sha256:7b1af5f13875b4a9bb30ca509d379307840e23249e6501e4bec844bf039d7e3c",
         "startingStateDigest": "sha256:d32f826b7af31ca409c40a31796d2dd62c9ec3d23fbdb8692e5d4ab4b186b7b3",
-        "agentInput": "protected/scenarios/regression/fr044-permission-missing-input/4159d76b1b76/agent-input.md",
+        "agentInput": "regression-fr044-permission-missing-input-4159d76b1b76",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -2062,7 +2062,7 @@
         "classificationPolicyDigest": "sha256:5345bfa55fc5321fce3fbb6e17bf5cf6a16d48c60153b07e7a805d166ab256d4",
         "weight": 3
       },
-      "scenarioCardDigest": "sha256:532eba35f8ae4ade35509479c272c968f35d4d756513aff12ee06deecdbcc40a",
+      "scenarioCardDigest": "sha256:97dfb05634b3c8d7888ce35ec78d43fbc9db9a693b1e421c9768b535434567cf",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-permission-missing-input-4159d76b1b76",
@@ -2088,12 +2088,12 @@
           "needs_input_report",
           "no_destructive_action"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-permission-missing-input/4159d76b1b76/agent-input.md",
         "fixtureDigest": "sha256:7b1af5f13875b4a9bb30ca509d379307840e23249e6501e4bec844bf039d7e3c",
         "startingStateDigest": "sha256:d32f826b7af31ca409c40a31796d2dd62c9ec3d23fbdb8692e5d4ab4b186b7b3",
         "checkIds": [
           "needs-input-not-success-4159d76b1b76"
-        ]
+        ],
+        "agentInputDigest": "sha256:a7986ea6b7505ac6887dc4556aac65d816fd0f6c44ecafe595e340b9c480c555"
       },
       "protectedMaterialDigest": "sha256:0e731f2e5c7afc56afc5d946f1e1d4a89f44b3d59a99a5b188549370547e5d65"
     },
@@ -2112,7 +2112,7 @@
         "variantProtocolDigest": "sha256:f6a90b890439be800a25800026e5b8f520062f37f0e36078f2772ce64f967b0a",
         "fixtureDigest": "sha256:ace33ba6d0ec813f9e623c56edb0c2def635bdc14b9d0e843aaeba44e002924b",
         "startingStateDigest": "sha256:d7a679caea679b77c77518f3b3b75cb6d5eaa938b855479c774408925e015532",
-        "agentInput": "protected/scenarios/regression/fr044-hook-tool-failure/f6a90b890439/agent-input.md",
+        "agentInput": "regression-fr044-hook-tool-failure-f6a90b890439",
         "applicability": {
           "skill": false,
           "hook": true,
@@ -2188,7 +2188,7 @@
         "classificationPolicyDigest": "sha256:4f6a6ee9e0f9cf31462a95fa61239a99649791a0735f8a05b6442ed2afded614",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:c98dd47eca9cda969eb75adfa8a4356f2bf2aed39ab126dd794df56c7c9a4d05",
+      "scenarioCardDigest": "sha256:2f9220bafc45501aedf3af828d0da5191d90588f69336a6ec3af702d7a89b3a9",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-hook-tool-failure-f6a90b890439",
@@ -2214,12 +2214,12 @@
           "hook_exit",
           "tool_error"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-hook-tool-failure/f6a90b890439/agent-input.md",
         "fixtureDigest": "sha256:ace33ba6d0ec813f9e623c56edb0c2def635bdc14b9d0e843aaeba44e002924b",
         "startingStateDigest": "sha256:d7a679caea679b77c77518f3b3b75cb6d5eaa938b855479c774408925e015532",
         "checkIds": [
           "failure-classification-f6a90b890439"
-        ]
+        ],
+        "agentInputDigest": "sha256:b4893e8d36a355ff4d87930d07697b9efeb34c54e703127a4d0a46cc95e501dd"
       },
       "protectedMaterialDigest": "sha256:957496aa5dab9548e7764082de7051d63da76274b74a55fc3405369aaf78af65"
     },
@@ -2238,7 +2238,7 @@
         "variantProtocolDigest": "sha256:2c2286f7880ddbeb2f45fe1fb665e721e4fa896c6cad70823785c33ccca8edab",
         "fixtureDigest": "sha256:5b5eadc0a4eab778a87e07853cca32836699b155216bd7335e44fae04680f0a3",
         "startingStateDigest": "sha256:2a5d617d5306e0f8f2d5f4ea4e4dac148565f8edca9a5e83c439882de6944bec",
-        "agentInput": "protected/scenarios/regression/fr044-hook-tool-failure/2c2286f7880d/agent-input.md",
+        "agentInput": "regression-fr044-hook-tool-failure-2c2286f7880d",
         "applicability": {
           "skill": false,
           "hook": true,
@@ -2314,7 +2314,7 @@
         "classificationPolicyDigest": "sha256:4f6a6ee9e0f9cf31462a95fa61239a99649791a0735f8a05b6442ed2afded614",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:7d2c40028e18f4feffa0801989c0cd6826c8da4b44dea03a73a50b2be8d68ddf",
+      "scenarioCardDigest": "sha256:16a343aa630c37cd0c373dd3ef2a889ba81414be2b08deef1c024496dffb90bd",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-hook-tool-failure-2c2286f7880d",
@@ -2340,12 +2340,12 @@
           "hook_exit",
           "tool_error"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-hook-tool-failure/2c2286f7880d/agent-input.md",
         "fixtureDigest": "sha256:5b5eadc0a4eab778a87e07853cca32836699b155216bd7335e44fae04680f0a3",
         "startingStateDigest": "sha256:2a5d617d5306e0f8f2d5f4ea4e4dac148565f8edca9a5e83c439882de6944bec",
         "checkIds": [
           "failure-classification-2c2286f7880d"
-        ]
+        ],
+        "agentInputDigest": "sha256:83edd73c04cbe1f7b401073e672fd7cdf5a0c27c34f0ed59e8886b3e29c256eb"
       },
       "protectedMaterialDigest": "sha256:997c1dd12e6a83fa9ff426f17e345a5f23a270f342ab8e6d0cbe648a9e08fdab"
     },
@@ -2364,7 +2364,7 @@
         "variantProtocolDigest": "sha256:233e049bd3fa8f52125952fe20c366f258cfdd4d2e0f328ce073f581481d27d4",
         "fixtureDigest": "sha256:8f5d15e4450e56126efe54a801734beb1fe3608efff768048f426f95628be303",
         "startingStateDigest": "sha256:0e6a645be1186f86324599b43d0bc51e5bf63c166caa12dfaa981f056371b34b",
-        "agentInput": "protected/scenarios/regression/fr044-model-quota-drift/233e049bd3fa/agent-input.md",
+        "agentInput": "regression-fr044-model-quota-drift-233e049bd3fa",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -2441,7 +2441,7 @@
         "classificationPolicyDigest": "sha256:f17526dae13d07871a64883d114a518064480acb6e20acc17aa5cb610850d848",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:375b864c1c00bf8998353f496ac555143f576a62e9870ed009221694d8478f67",
+      "scenarioCardDigest": "sha256:0a65ec65afcadcb73ebc7c263d394342c85491a8367f5a34638e5047bef2e174",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-model-quota-drift-233e049bd3fa",
@@ -2467,12 +2467,12 @@
           "model_probe",
           "quota_probe"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-model-quota-drift/233e049bd3fa/agent-input.md",
         "fixtureDigest": "sha256:8f5d15e4450e56126efe54a801734beb1fe3608efff768048f426f95628be303",
         "startingStateDigest": "sha256:0e6a645be1186f86324599b43d0bc51e5bf63c166caa12dfaa981f056371b34b",
         "checkIds": [
           "drift-fails-closed-233e049bd3fa"
-        ]
+        ],
+        "agentInputDigest": "sha256:ca86c7886bb3e86834b0d402c0360aad10a55b35b28129108561afff7e997f6d"
       },
       "protectedMaterialDigest": "sha256:50d7c97302415aac21013870280818c56ba9164656e2fbdd7403b985b5f9c083"
     },
@@ -2491,7 +2491,7 @@
         "variantProtocolDigest": "sha256:d4bcd7736fa76592e3af9425df84bd28430b06d567fc0b114e126fee1d05d720",
         "fixtureDigest": "sha256:49477c703019f70381fa845f42914e07a90de09aef8c7ba3a6f44755a72e63b9",
         "startingStateDigest": "sha256:fd3d7f82eccc02089c4ae2c5b1d20cd3ccd9674280bccbac921ae2817625c94f",
-        "agentInput": "protected/scenarios/regression/fr044-model-quota-drift/d4bcd7736fa7/agent-input.md",
+        "agentInput": "regression-fr044-model-quota-drift-d4bcd7736fa7",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -2568,7 +2568,7 @@
         "classificationPolicyDigest": "sha256:f17526dae13d07871a64883d114a518064480acb6e20acc17aa5cb610850d848",
         "weight": 2
       },
-      "scenarioCardDigest": "sha256:eafaf1b9e7e938a0ae6880443f9d1171306871b297d67490d18a21a06779bafe",
+      "scenarioCardDigest": "sha256:afb21d0e1554dc6c59127981c13b2a4f33f60269fc58a388449baa5c4fca7a74",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-model-quota-drift-d4bcd7736fa7",
@@ -2594,12 +2594,12 @@
           "model_probe",
           "quota_probe"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-model-quota-drift/d4bcd7736fa7/agent-input.md",
         "fixtureDigest": "sha256:49477c703019f70381fa845f42914e07a90de09aef8c7ba3a6f44755a72e63b9",
         "startingStateDigest": "sha256:fd3d7f82eccc02089c4ae2c5b1d20cd3ccd9674280bccbac921ae2817625c94f",
         "checkIds": [
           "drift-fails-closed-d4bcd7736fa7"
-        ]
+        ],
+        "agentInputDigest": "sha256:b672df347fd87c96f7a796bd3418d7b4fa8c890dffb7943f3a2323b5934344a2"
       },
       "protectedMaterialDigest": "sha256:9ec80f01571f91f92fe90df6e4531a10172b4d0f67a915a59eb09dc98a5cf207"
     },
@@ -2618,7 +2618,7 @@
         "variantProtocolDigest": "sha256:471abe1a7efbc0f36fc27c6aeb828402391eb2f6073f304474fc21d09b8d17ea",
         "fixtureDigest": "sha256:93b9f7a253591782daad363d9535b583231021872954326676f94371dab1fb06",
         "startingStateDigest": "sha256:d3c29474b1e66f4a6a9c12d38094539d8d4394166a272ef6b9758def0c9e2657",
-        "agentInput": "protected/scenarios/regression/fr044-leakage-state-isolation/471abe1a7efb/agent-input.md",
+        "agentInput": "regression-fr044-leakage-state-isolation-471abe1a7efb",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -2694,7 +2694,7 @@
         "classificationPolicyDigest": "sha256:4fe5c414effcd78ab18574a172a792325d2336f46e0ffd798486022f3c506594",
         "weight": 3
       },
-      "scenarioCardDigest": "sha256:08e207a0daba14b4162bfae1b3bf898464e3bc4fa34d666ef8952a777529ad7f",
+      "scenarioCardDigest": "sha256:45e190655a2bc716e3a6ede5d77a8ae27553c6c764e832a6af9eff34d006e270",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-leakage-state-isolation-471abe1a7efb",
@@ -2720,12 +2720,12 @@
           "canary_absence_probe",
           "cross_run_state_probe"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-leakage-state-isolation/471abe1a7efb/agent-input.md",
         "fixtureDigest": "sha256:93b9f7a253591782daad363d9535b583231021872954326676f94371dab1fb06",
         "startingStateDigest": "sha256:d3c29474b1e66f4a6a9c12d38094539d8d4394166a272ef6b9758def0c9e2657",
         "checkIds": [
           "leakage-and-isolation-471abe1a7efb"
-        ]
+        ],
+        "agentInputDigest": "sha256:35663a21160cc0f74c34648b2041396e24c192428601e1f64c559269d9d799e1"
       },
       "protectedMaterialDigest": "sha256:0736431f284bc5ce86b6b06874bf424002e19760b819a2090c0db02c7fc90fc2"
     },
@@ -2744,7 +2744,7 @@
         "variantProtocolDigest": "sha256:782e0a38f3a83d9d2699b831c93e9961d0688a7d07f0943dc291d97958684753",
         "fixtureDigest": "sha256:8ec158a2148aaac61b766427433fa4e113eb3644f34b75a1e10e7fd1aac2762e",
         "startingStateDigest": "sha256:5bec4ac4ad40830cd58392cb676ac9e4aa8d74b52bbd273f52f982b5603a3c8f",
-        "agentInput": "protected/scenarios/regression/fr044-leakage-state-isolation/782e0a38f3a8/agent-input.md",
+        "agentInput": "regression-fr044-leakage-state-isolation-782e0a38f3a8",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -2820,7 +2820,7 @@
         "classificationPolicyDigest": "sha256:4fe5c414effcd78ab18574a172a792325d2336f46e0ffd798486022f3c506594",
         "weight": 3
       },
-      "scenarioCardDigest": "sha256:b622d4e25bbfdbeee8be9ded463382c1492278ba2bc0f874ff534ff6a4f5b86d",
+      "scenarioCardDigest": "sha256:6a8f057a0a0a8dddc7700f63d9dcb7bfe9238ff9b2237da80bbcd06f0e6d90a8",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-leakage-state-isolation-782e0a38f3a8",
@@ -2846,12 +2846,12 @@
           "canary_absence_probe",
           "cross_run_state_probe"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-leakage-state-isolation/782e0a38f3a8/agent-input.md",
         "fixtureDigest": "sha256:8ec158a2148aaac61b766427433fa4e113eb3644f34b75a1e10e7fd1aac2762e",
         "startingStateDigest": "sha256:5bec4ac4ad40830cd58392cb676ac9e4aa8d74b52bbd273f52f982b5603a3c8f",
         "checkIds": [
           "leakage-and-isolation-782e0a38f3a8"
-        ]
+        ],
+        "agentInputDigest": "sha256:30045b119a87764c8787d5ac76bc0c190eb64b4cadfcaf2d5e112c3686c10f4f"
       },
       "protectedMaterialDigest": "sha256:94a6a5dfb22a48d7be9cb7258f79d6a860fa385e4526e7f83905ad33214616b8"
     },
@@ -2870,7 +2870,7 @@
         "variantProtocolDigest": "sha256:d4b292a4018fdac419d9d9edd3856ab5ed5e6f8337b0e3d78080c0f5198b6fac",
         "fixtureDigest": "sha256:a28e95ba1773b27e05918bedd94ac94cfb8d412f51f45ded548a0bef97508b73",
         "startingStateDigest": "sha256:ae2b4b85b5deca5e321f770403281aafc5c45107a4d5858038f14f5d4279b865",
-        "agentInput": "protected/scenarios/regression/fr044-tooling-negative-control/d4b292a4018f/agent-input.md",
+        "agentInput": "regression-fr044-tooling-negative-control-d4b292a4018f",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -2946,7 +2946,7 @@
         "classificationPolicyDigest": "sha256:c9c4edfa203521e6806b8baa903b1c1a4d53c0b149ef2e0cbb116e9b85a53955",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:0d460a91b7ee0c55842449d1f71fd3d4a3e8c9fe468c1d92724c76843bc367e5",
+      "scenarioCardDigest": "sha256:c2ab9e57a6de6a3ac9de3e9e53829a90eadb89d2393f65f16ffd3e1bf7b6e78c",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-tooling-negative-control-d4b292a4018f",
@@ -2972,12 +2972,12 @@
           "process_state",
           "valid_start"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-tooling-negative-control/d4b292a4018f/agent-input.md",
         "fixtureDigest": "sha256:a28e95ba1773b27e05918bedd94ac94cfb8d412f51f45ded548a0bef97508b73",
         "startingStateDigest": "sha256:ae2b4b85b5deca5e321f770403281aafc5c45107a4d5858038f14f5d4279b865",
         "checkIds": [
           "pre-start-tool-classification-d4b292a4018f"
-        ]
+        ],
+        "agentInputDigest": "sha256:071d5cccf80c160320a5f558c42059942da1d4507f5e41b094cf62817419239d"
       },
       "protectedMaterialDigest": "sha256:95712f8f5f93bd1413e2dd68079d418298d220c9a8ea85837497d5e531d3c3a6"
     },
@@ -2996,7 +2996,7 @@
         "variantProtocolDigest": "sha256:b728ad4ace22192e3aa74d24f1d26dbbe01fc82b4a456b6d565868b3f5199a66",
         "fixtureDigest": "sha256:c2c8eac6df806db7e9f70d834f46528855a7959233253e9315250ca8e663e351",
         "startingStateDigest": "sha256:b78c93689514f78f286895a8b3cb12d8fefa7ae46fd63b674cde9cee1537797b",
-        "agentInput": "protected/scenarios/regression/fr044-tooling-negative-control/b728ad4ace22/agent-input.md",
+        "agentInput": "regression-fr044-tooling-negative-control-b728ad4ace22",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -3072,7 +3072,7 @@
         "classificationPolicyDigest": "sha256:c9c4edfa203521e6806b8baa903b1c1a4d53c0b149ef2e0cbb116e9b85a53955",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:2e26dc7aa52c900ee7db1877b791560271ae30aa79e43b4c199c48a66cd4bfb5",
+      "scenarioCardDigest": "sha256:b3339ee370282aea30f620d685275258539ab1c50d12e0df93996928d1077765",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-tooling-negative-control-b728ad4ace22",
@@ -3098,12 +3098,12 @@
           "process_state",
           "valid_start"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-tooling-negative-control/b728ad4ace22/agent-input.md",
         "fixtureDigest": "sha256:c2c8eac6df806db7e9f70d834f46528855a7959233253e9315250ca8e663e351",
         "startingStateDigest": "sha256:b78c93689514f78f286895a8b3cb12d8fefa7ae46fd63b674cde9cee1537797b",
         "checkIds": [
           "pre-start-tool-classification-b728ad4ace22"
-        ]
+        ],
+        "agentInputDigest": "sha256:5b3f681239be9add2adaf207fe95fac6848253b6d9d19c8891c668dfbde24467"
       },
       "protectedMaterialDigest": "sha256:b965920af9f84eb694ebfb7954d298ffc568fd24c7a71453628f9b22ccceca6e"
     },
@@ -3122,7 +3122,7 @@
         "variantProtocolDigest": "sha256:06fc53f9fe52b11c441d891bcf27da869282e6334cb3a63de092b77aa27d9fe6",
         "fixtureDigest": "sha256:8df816eb2fcb5a23c5bf6a67b09c688453c21d16f858bdea44ebef58606b229f",
         "startingStateDigest": "sha256:f21bb997d158406155f315465816fab6bb1ff877e5f197b44162ebc4c931a4ed",
-        "agentInput": "protected/scenarios/regression/fr044-agent-positive-control/06fc53f9fe52/agent-input.md",
+        "agentInput": "regression-fr044-agent-positive-control-06fc53f9fe52",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -3199,7 +3199,7 @@
         "classificationPolicyDigest": "sha256:68c43ab47ab425e5c828b2c6e66fd1a6e711226797de3dc1c983187e509edb1c",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:f78ab30abc90c77f0c1f41876ef956a1ff6ec001a028cd6686ad7dbd522f6ae5",
+      "scenarioCardDigest": "sha256:ec80a7ac66b55f1090bd983c1981212a3a9cb018b9cae4cefd56c2f527c23c3d",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-agent-positive-control-06fc53f9fe52",
@@ -3225,12 +3225,12 @@
           "delegation_prompt",
           "parent_synthesis"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-agent-positive-control/06fc53f9fe52/agent-input.md",
         "fixtureDigest": "sha256:8df816eb2fcb5a23c5bf6a67b09c688453c21d16f858bdea44ebef58606b229f",
         "startingStateDigest": "sha256:f21bb997d158406155f315465816fab6bb1ff877e5f197b44162ebc4c931a4ed",
         "checkIds": [
           "scoped-agent-used-correctly-06fc53f9fe52"
-        ]
+        ],
+        "agentInputDigest": "sha256:b980c87c2d95d62aa48af656e5dc9e0befa5cfece3e936f79ce502e1b7e8c44c"
       },
       "protectedMaterialDigest": "sha256:5fcc9c5c093935f63ff490a390367dd1d061105943391bd20e164992359ed5bc"
     },
@@ -3249,7 +3249,7 @@
         "variantProtocolDigest": "sha256:c04830685ba59aebe56ec0e5ad9a074a25fac8a07f3c002ba2588a55201c3ff1",
         "fixtureDigest": "sha256:3aa9f534fd2cbd3b5d62ac6ca18d46195f665965c7cc2d253da892daf6ece385",
         "startingStateDigest": "sha256:60790b4289f1f77f4d0e1f7e15d22bde1fe1364d50df31557c9dccea0fa8119d",
-        "agentInput": "protected/scenarios/regression/fr044-agent-positive-control/c04830685ba5/agent-input.md",
+        "agentInput": "regression-fr044-agent-positive-control-c04830685ba5",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -3326,7 +3326,7 @@
         "classificationPolicyDigest": "sha256:68c43ab47ab425e5c828b2c6e66fd1a6e711226797de3dc1c983187e509edb1c",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:dc8863e2ebc1c160714d428cbb324eb9e6d2c27001d20761c730fda64c4f4ad9",
+      "scenarioCardDigest": "sha256:4f58c42c7dde9a8c3b970e24292262b23224f04820ed4715189d2a97b8241536",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-agent-positive-control-c04830685ba5",
@@ -3352,12 +3352,12 @@
           "delegation_prompt",
           "parent_synthesis"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-agent-positive-control/c04830685ba5/agent-input.md",
         "fixtureDigest": "sha256:3aa9f534fd2cbd3b5d62ac6ca18d46195f665965c7cc2d253da892daf6ece385",
         "startingStateDigest": "sha256:60790b4289f1f77f4d0e1f7e15d22bde1fe1364d50df31557c9dccea0fa8119d",
         "checkIds": [
           "scoped-agent-used-correctly-c04830685ba5"
-        ]
+        ],
+        "agentInputDigest": "sha256:c3cf0e5f1a034309a299bc2d8230a91bb8b01c117fdcf528950ba3ce431b831c"
       },
       "protectedMaterialDigest": "sha256:b2b55305f40015dd66b81a0f6a40a61f8f27e304fb230d2b9a5931c57f09ba32"
     },
@@ -3376,7 +3376,7 @@
         "variantProtocolDigest": "sha256:6f6559e3b1ad8d13c2f55689cf0ee76fac72f1fd7d3ee2f77f798c37ff0b22e2",
         "fixtureDigest": "sha256:53e13b864bf86d1a9be5ed0032960c1e7102c2be4830b0785e44f3eb4a570ad1",
         "startingStateDigest": "sha256:80d62f68d89043aa68262f567dd63c1ad68b4c359bf9bc78d63916478726fffd",
-        "agentInput": "protected/scenarios/regression/fr044-rule-negative-control/6f6559e3b1ad/agent-input.md",
+        "agentInput": "regression-fr044-rule-negative-control-6f6559e3b1ad",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -3452,7 +3452,7 @@
         "classificationPolicyDigest": "sha256:d36c60504b6f522314f775fede7bc9fe53695597e94c434aa0ebc141f03484f3",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:c37e28046eababb5fb0056a28cf2ab206967e441da93d631c585ba8761d388be",
+      "scenarioCardDigest": "sha256:8ebeb2641e5b32d082c2a4fd900f0d46ed92246e199179605f12aa78f1d8e2e4",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-rule-negative-control-6f6559e3b1ad",
@@ -3478,12 +3478,12 @@
           "component_inventory",
           "no_rule_credit"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-rule-negative-control/6f6559e3b1ad/agent-input.md",
         "fixtureDigest": "sha256:53e13b864bf86d1a9be5ed0032960c1e7102c2be4830b0785e44f3eb4a570ad1",
         "startingStateDigest": "sha256:80d62f68d89043aa68262f567dd63c1ad68b4c359bf9bc78d63916478726fffd",
         "checkIds": [
           "rule-negative-control-6f6559e3b1ad"
-        ]
+        ],
+        "agentInputDigest": "sha256:381266ea53762ad28d772adf3682b3273bed64d67c42cd860716f29fdb40ff0c"
       },
       "protectedMaterialDigest": "sha256:b9e2903e1300d65507e827b073d1688e9a19d4a087943345bed9b473c8f3393e"
     },
@@ -3502,7 +3502,7 @@
         "variantProtocolDigest": "sha256:778a15b13bc248d0ddea427371562681bbf09aeff9f991150eefcdd67d828ea1",
         "fixtureDigest": "sha256:daf2969aadef26a6533b2f72ddf28fd2ae067fc3d2571046645fbc984318263e",
         "startingStateDigest": "sha256:7ef08eca60888569902dc3e94ff7362dfd2a22d672729f29e608756231b1d974",
-        "agentInput": "protected/scenarios/regression/fr044-rule-negative-control/778a15b13bc2/agent-input.md",
+        "agentInput": "regression-fr044-rule-negative-control-778a15b13bc2",
         "applicability": {
           "skill": false,
           "hook": false,
@@ -3578,7 +3578,7 @@
         "classificationPolicyDigest": "sha256:d36c60504b6f522314f775fede7bc9fe53695597e94c434aa0ebc141f03484f3",
         "weight": 1
       },
-      "scenarioCardDigest": "sha256:e9f0f046848c7ea3331651a480d91e1a6f374e19f92d8024587dd658d933fc9e",
+      "scenarioCardDigest": "sha256:48b2657743e3f056c01393998a3ca3ecb455832b5a39c0cc769106c6a06d6520",
       "publicScenario": {
         "schemaVersion": 1,
         "publicScenarioId": "public-regression-fr044-rule-negative-control-778a15b13bc2",
@@ -3604,12 +3604,12 @@
           "component_inventory",
           "no_rule_credit"
         ],
-        "protectedAgentInput": "protected/scenarios/regression/fr044-rule-negative-control/778a15b13bc2/agent-input.md",
         "fixtureDigest": "sha256:daf2969aadef26a6533b2f72ddf28fd2ae067fc3d2571046645fbc984318263e",
         "startingStateDigest": "sha256:7ef08eca60888569902dc3e94ff7362dfd2a22d672729f29e608756231b1d974",
         "checkIds": [
           "rule-negative-control-778a15b13bc2"
-        ]
+        ],
+        "agentInputDigest": "sha256:903f42c22b046a1d9f14fb4fa888f0225383c458f98f0e65f76fb57e2f578c9e"
       },
       "protectedMaterialDigest": "sha256:4e17bc55ba4c4e7943598cdccb5ea2b3e9408dc8ee7793d4b2ed426c8f0f19e0"
     }
@@ -3635,7 +3635,8 @@
       ],
       "analysisLockDigests": [
         "sha256:94f425e10fd81f1dfbb4ec49844ef198b6ecf4f832113adce2ffd898e0d0f71f"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "completion_honesty",
@@ -3657,7 +3658,8 @@
       ],
       "analysisLockDigests": [
         "sha256:03da8f17a0c3a0395e189f33f9aa1cd7f283593f301fcd9c467ba0aa30ba0348"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "dirty_worktree",
@@ -3679,7 +3681,8 @@
       ],
       "analysisLockDigests": [
         "sha256:bba31b90449a8af395f2afe8f87ee5e543d13b873983f3efc896b293374cf889"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "durable_intent",
@@ -3701,7 +3704,8 @@
       ],
       "analysisLockDigests": [
         "sha256:94f425e10fd81f1dfbb4ec49844ef198b6ecf4f832113adce2ffd898e0d0f71f"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "explicit_preference",
@@ -3723,7 +3727,8 @@
       ],
       "analysisLockDigests": [
         "sha256:bba31b90449a8af395f2afe8f87ee5e543d13b873983f3efc896b293374cf889"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "grader_leakage",
@@ -3745,37 +3750,40 @@
       ],
       "analysisLockDigests": [
         "sha256:fa3b9f6933e8097e71a1a845b246b6833fc148633186e3b21275913ec356108d"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "hook_tool_subagent_failure",
       "protocolFamilyIds": [
-        "fr044-hook-tool-failure",
-        "fr044-agent-positive-control"
+        "fr044-hook-tool-failure"
       ],
       "positiveVariantIds": [
-        "regression-fr044-hook-tool-failure-f6a90b890439",
-        "regression-fr044-agent-positive-control-06fc53f9fe52"
+        "regression-fr044-hook-tool-failure-f6a90b890439"
       ],
       "relevantNegativeVariantIds": [
-        "regression-fr044-hook-tool-failure-2c2286f7880d",
-        "regression-fr044-agent-positive-control-c04830685ba5"
+        "regression-fr044-hook-tool-failure-2c2286f7880d"
       ],
       "realArtifactSeams": [
         "hook_exit",
-        "tool_error",
-        "delegation_prompt",
-        "parent_synthesis",
-        "docs/task-checkpoints/T029.json"
+        "tool_error"
       ],
       "classificationDigests": [
-        "sha256:4f6a6ee9e0f9cf31462a95fa61239a99649791a0735f8a05b6442ed2afded614",
-        "sha256:68c43ab47ab425e5c828b2c6e66fd1a6e711226797de3dc1c983187e509edb1c"
+        "sha256:4f6a6ee9e0f9cf31462a95fa61239a99649791a0735f8a05b6442ed2afded614"
       ],
       "analysisLockDigests": [
-        "sha256:8033d24a9c49108b8df6b23ed12b0705ef32577cf52928336dd2b934690bff25",
         "sha256:b4b645342d33a97c2ea6649ca97b660d807960a6a45233affec689f2a388a22a"
-      ]
+      ],
+      "coverageStatus": "partial",
+      "uncoveredAspects": [
+        "subagent_failure"
+      ],
+      "coveredAspects": [
+        "hook_failure",
+        "tool_failure"
+      ],
+      "uncoveredAspectsEligibleForT034Selection": false,
+      "uncoveredAspectsEligibleForReleaseClaim": false
     },
     {
       "requiredFamily": "interrogation",
@@ -3797,7 +3805,8 @@
       ],
       "analysisLockDigests": [
         "sha256:0bff6249ebc20f6f94c8801ea193d59ec19867d1ce06845d01481ab6da403d89"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "isolation",
@@ -3819,30 +3828,23 @@
       ],
       "analysisLockDigests": [
         "sha256:fa3b9f6933e8097e71a1a845b246b6833fc148633186e3b21275913ec356108d"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "lifecycle",
-      "protocolFamilyIds": [
-        "fr044-leakage-state-isolation"
+      "protocolFamilyIds": [],
+      "positiveVariantIds": [],
+      "relevantNegativeVariantIds": [],
+      "realArtifactSeams": [],
+      "classificationDigests": [],
+      "analysisLockDigests": [],
+      "coverageStatus": "uncovered",
+      "uncoveredAspects": [
+        "lifecycle"
       ],
-      "positiveVariantIds": [
-        "regression-fr044-leakage-state-isolation-471abe1a7efb"
-      ],
-      "relevantNegativeVariantIds": [
-        "regression-fr044-leakage-state-isolation-782e0a38f3a8"
-      ],
-      "realArtifactSeams": [
-        "canary_absence_probe",
-        "cross_run_state_probe",
-        "docs/task-checkpoints/T032.json"
-      ],
-      "classificationDigests": [
-        "sha256:4fe5c414effcd78ab18574a172a792325d2336f46e0ffd798486022f3c506594"
-      ],
-      "analysisLockDigests": [
-        "sha256:fa3b9f6933e8097e71a1a845b246b6833fc148633186e3b21275913ec356108d"
-      ]
+      "eligibleForT034Selection": false,
+      "eligibleForReleaseClaim": false
     },
     {
       "requiredFamily": "missing_input",
@@ -3864,7 +3866,8 @@
       ],
       "analysisLockDigests": [
         "sha256:176a83366ac9bd5369eb07620d40836a50a9d8639c4b3ea9ab8e0d6528d6c37e"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "model_quota_drift",
@@ -3886,7 +3889,8 @@
       ],
       "analysisLockDigests": [
         "sha256:e6158c71d1d5bd669af01905f2c933684d8845a5ae7c55886479e19e3f91c109"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "planted_and_defect_free_review",
@@ -3908,7 +3912,8 @@
       ],
       "analysisLockDigests": [
         "sha256:c7ccbe9f35e3c1d681fc98b78cd6b254345f3fb6f902a0d74025bb7f70207273"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "prompt_injection",
@@ -3937,7 +3942,8 @@
       "analysisLockDigests": [
         "sha256:0bff6249ebc20f6f94c8801ea193d59ec19867d1ce06845d01481ab6da403d89",
         "sha256:c0e13b37366d9f911cc0c6c4798bd329c2b9d6d0eb5a9a448de513ec46195651"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "proportionality",
@@ -3959,7 +3965,8 @@
       ],
       "analysisLockDigests": [
         "sha256:c1125139b22c27f48e9e8cdceda567b42b75d1f874a8c9dfb627a570b12aa141"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "real_seam_evidence",
@@ -3981,7 +3988,8 @@
       ],
       "analysisLockDigests": [
         "sha256:03da8f17a0c3a0395e189f33f9aa1cd7f283593f301fcd9c467ba0aa30ba0348"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "repair_closure",
@@ -4003,7 +4011,8 @@
       ],
       "analysisLockDigests": [
         "sha256:2a3ca69dfed12351e686f8582a40ece4c81e5e5fb9433c22f09d489d311cc587"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "root_cause_debugging",
@@ -4025,7 +4034,8 @@
       ],
       "analysisLockDigests": [
         "sha256:2a3ca69dfed12351e686f8582a40ece4c81e5e5fb9433c22f09d489d311cc587"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "soft_denial",
@@ -4047,7 +4057,8 @@
       ],
       "analysisLockDigests": [
         "sha256:176a83366ac9bd5369eb07620d40836a50a9d8639c4b3ea9ab8e0d6528d6c37e"
-      ]
+      ],
+      "coverageStatus": "covered"
     },
     {
       "requiredFamily": "truncated_capture",
@@ -4069,7 +4080,8 @@
       ],
       "analysisLockDigests": [
         "sha256:03da8f17a0c3a0395e189f33f9aa1cd7f283593f301fcd9c467ba0aa30ba0348"
-      ]
+      ],
+      "coverageStatus": "covered"
     }
   ],
   "concreteBindingCorrection": {
@@ -4078,9 +4090,23 @@
     "originalRegistryDigest": "sha256:e8c96b128c2f9a1d9fde98ed127a99adfb1e9df517e5ec38c56eab00dba7f0e7",
     "protectedBundleManifestDigest": "sha256:2d0450f5b4455787a1e3563a72e7a148792815c5d65a838a7594b5f5726946f9",
     "candidateCausalityFreezeDigest": "sha256:eaabda91aea0f2555205bc98ac2337e6c3c6871fc35ba2b4bb1c56d71dd695fa",
-    "qualificationDigest": "sha256:252cb549dc4dba878a352e049ea75c2d076b59aa9f0dcd111aa5c626cb6699f2",
+    "qualificationDigest": "sha256:8fcab232e403cbe396dbcf0c808b6dba3fb65aebf860de682d997a77a69c5382",
     "scopeAmendmentDigest": "sha256:f7b15d12094e9bf2a48f807e8d88481e01cb6668dfca0e368212c50485b00418",
     "originalConcreteBindingsAvailable": false,
-    "candidateMutationAllowedAfterOutcome": false
-  }
+    "candidateMutationAllowedAfterOutcome": false,
+    "sourceQualificationDigest": "sha256:252cb549dc4dba878a352e049ea75c2d076b59aa9f0dcd111aa5c626cb6699f2",
+    "qualificationReplacementAmendmentDigest": "sha256:f1659df6d7542aec1aac6a812c252268f9b562e8b7295efecfe9872caf8eaf81"
+  },
+  "causalCoverageComplete": false,
+  "uncoveredFamilies": [
+    "lifecycle"
+  ],
+  "partiallyUncoveredFamilies": [
+    {
+      "requiredFamily": "hook_tool_subagent_failure",
+      "uncoveredAspects": [
+        "subagent_failure"
+      ]
+    }
+  ]
 }

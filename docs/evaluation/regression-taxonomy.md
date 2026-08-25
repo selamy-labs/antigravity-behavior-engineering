@@ -30,18 +30,35 @@ protocol rather than consumed after treatment.
 
 ## Coverage and evidence seams
 
-The `coverage` table maps every required behavior and failure family to its
-frozen protocol families, positive and relevant-negative variant IDs, analysis
-locks, classification policies, and artifact-first evidence seams. Scenario
-cards retain protected agent-input references and fixture, starting-state,
-resource-envelope, and check digests; raw protected inputs are not public.
+The `coverage` table maps every directly covered behavior and failure family to
+its frozen protocol families, positive and relevant-negative variant IDs,
+analysis locks, classification policies, and artifact-first evidence seams.
+Public scenario cards use opaque case identifiers plus canonical digests;
+protected path resolution remains exclusively in the private controller
+manifest.
 
-Lifecycle coverage composes the frozen leakage/state-isolation protocol with
-the T032 package lifecycle checkpoint seam. Hook, tool, and subagent failure
-coverage composes the frozen hook/tool-failure and agent-positive-control
-protocols with the T029 review-topology checkpoint seam. These mappings add no
-new generator behavior and make no claim beyond the frozen protocols and the
-named real artifacts.
+The frozen suite directly covers hook and tool failures, but it does not
+directly cover lifecycle behavior or subagent failure. T032 package-lifecycle
+evidence and T029 review-topology evidence are checkpoint context, not causal
+regression variants. The registry preserves the frozen hook/tool variants while
+recording lifecycle and the subagent aspect as uncovered and ineligible for
+T034 selection or release claims. New direct cases may be
+diagnostic/noncausal only.
+
+At the registry top level, `uncoveredFamilies` names only wholly uncovered
+families (`lifecycle`), while `partiallyUncoveredFamilies` names the exact
+uncovered aspect of an otherwise directly covered family (`subagent_failure`
+within `hook_tool_subagent_failure`). Both claims and
+`causalCoverageComplete` are derived from and checked against the detailed
+coverage table.
+
+The correction record retains the superseded bundle-time qualification digest
+as `sourceQualificationDigest` and binds the sole eligible replacement
+qualification plus its immutable amendment digest for downstream replay.
+That replacement explicitly binds the structured stream boundary: the sole
+`init` event must be first and the sole `result` event must be last. The prior
+replacement qualification remains preserved but is ineligible because its
+capture-boundary digest declared only relative ordering.
 
 ## Replay and interpretation
 

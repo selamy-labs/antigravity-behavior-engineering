@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "protocolId": "qualification-protocol-release-candidate-1.1.19-2026-08-24",
+  "protocolId": "qualification-protocol-release-candidate-1.1.19-capture-replacement-2026-08-25",
   "cliVersionConstraint": "1.1.19",
   "cliArtifactDigest": "sha256:68d229d37aeabde76d15af0003d4c1ce07b211414e7452fb0309be9714ae7dd4",
   "imageDigest": "sha256:6760a6e905563f4b52ac6cdd0fbf71445c01fb021405bc86d7829fadf2be8c98",
@@ -60,6 +60,6 @@
     "authority_tool_inventory"
   ],
   "customizationScope": "release_candidate",
-  "releaseCandidateInputsDigest": "sha256:be0445f2803b422100a841c736c67038c8845da90fcbc952195cdebb60c50726",
-  "protocolDigest": "sha256:f20f926559d161fa62285aa5b83562c570b164f293c7616a2ab3039f00b01c3c"
+  "releaseCandidateInputsDigest": "sha256:e98867b32a601a9a8e81dcc583559dec5e3eba94b8ade43fb7ad7c2d69912137",
+  "protocolDigest": "sha256:3facd56569e6523a337e097807b8b380ba5a5fe32d80c18c9da66b4fb30aea18"
 }
